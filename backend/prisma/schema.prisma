@@ -1,0 +1,323 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Category {
+  category_id   Int     @id @default(autoincrement())
+  category_name String  @db.VarChar(50)
+  combos        Combo[]
+  dishes        Dish[]
+
+  @@map("categories")
+}
+
+model Size {
+  size_id     Int         @id @default(autoincrement())
+  size_name   String      @db.VarChar(50)
+  is_visible  Boolean?    @default(true)
+  dish_prices DishPrice[]
+  toppings    Topping[]
+
+  @@map("sizes")
+}
+
+model Crust {
+  crust_id    Int         @id @default(autoincrement())
+  crust_name  String      @db.VarChar(50)
+  is_visible  Boolean?    @default(true)
+  dish_prices DishPrice[]
+
+  @@map("crusts")
+}
+
+model Topping {
+  topping_id       Int      @id @default(autoincrement())
+  topping_name     String   @db.VarChar(50)
+  price_topping    Int?     @default(0)
+  size_id          Int?
+  is_for_pizza     Boolean? @default(true)
+  is_for_spaghetti Boolean? @default(true)
+  sizes            Size?    @relation(fields: [size_id], references: [size_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("toppings")
+}
+
+model Dish {
+  dish_id     Int         @id @default(autoincrement())
+  category_id Int?
+  dish_name   String      @db.VarChar(100)
+  image       String?
+  ingredient  String?
+  dish_status Boolean?
+  prices      DishPrice[]
+  category    Category?   @relation(fields: [category_id], references: [category_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("dishes")
+}
+
+model DishPrice {
+  dish_price_id String      @id @db.VarChar(100)
+  dish_id       Int?
+  size_id       Int?
+  crust_id      Int?
+  dish_price    Int?        @default(0)
+  combo_items   ComboItem[]
+  crust         Crust?      @relation(fields: [crust_id], references: [crust_id], onDelete: NoAction, onUpdate: NoAction)
+  dish          Dish?       @relation(fields: [dish_id], references: [dish_id], onDelete: Cascade, onUpdate: NoAction)
+  size          Size?       @relation(fields: [size_id], references: [size_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("dish_prices")
+}
+
+model Combo {
+  combo_id    Int          @id @default(autoincrement())
+  combo_name  String       @db.VarChar(100)
+  combo_price Int
+  description String?
+  is_active   Boolean?     @default(true)
+  category_id Int?
+  groups      ComboGroup[]
+  categories  Category?    @relation(fields: [category_id], references: [category_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("combos")
+}
+
+model ComboGroup {
+  group_id    String      @id @db.VarChar(50)
+  combo_id    Int?
+  group_name  String
+  min_select  Int?        @default(1)
+  max_select  Int?        @default(1)
+  combo       Combo?      @relation(fields: [combo_id], references: [combo_id], onDelete: Cascade, onUpdate: NoAction)
+  combo_items ComboItem[]
+
+  @@map("combo_groups")
+}
+
+model ComboItem {
+  combo_item_id Int         @id @default(autoincrement())
+  group_id      String?     @db.VarChar(50)
+  dish_price_id String?     @db.VarChar(100)
+  price_extra   Int?        @default(0)
+  dish_price    DishPrice?  @relation(fields: [dish_price_id], references: [dish_price_id], onDelete: Cascade, onUpdate: NoAction)
+  group         ComboGroup? @relation(fields: [group_id], references: [group_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("combo_items")
+}
+
+model Store {
+  store_id   Int      @id @default(autoincrement())
+  store_name String?  @db.VarChar(255)
+  address    String?
+  latitude   Decimal? @db.Decimal
+  longitude  Decimal? @db.Decimal
+  hotline    String?  @db.VarChar(100)
+  is_active  Boolean?
+
+  @@map("stores")
+}
+
+model User {
+  user_id     Int           @id @default(autoincrement())
+  username    String?       @db.VarChar(100)
+  email       String?       @db.VarChar(100)
+  phone       String?       @db.VarChar(20)
+  password    String?       @db.VarChar(255)
+  role        String?       @db.VarChar(50)
+  user_status Boolean?
+  created_at  DateTime?     @db.Timestamp(6)
+  cart        Cart[]
+  orders      Order[]
+  reviews     ShopReview[]
+  addresses   UserAddress[]
+
+  @@map("users")
+}
+
+model UserAddress {
+  user_address_id Int      @id @default(autoincrement())
+  user_id         Int?
+  address_line    String?
+  is_default      Boolean?
+  orders          Order[]
+  user            User?    @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("user_address")
+}
+
+model Cart {
+  cart_id          Int        @id @default(autoincrement())
+  user_id          Int?
+  created_at       DateTime?  @db.Timestamp(6)
+  order_note       String?
+  total_price_cart Int?
+  items            CartItem[]
+  user             User?      @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("carts")
+}
+
+model CartItem {
+  cart_item_id   Int               @id @default(autoincrement())
+  cart_id        Int?
+  dish_price_id  String?           @db.VarChar(100)
+  combo_id       Int?
+  quantity       Int?
+  is_half_half   Boolean?
+  price_cart     Int?
+  cart_item_note String?
+  combos         CartItemCombo[]
+  halves         CartItemHalf[]
+  toppings       CartItemTopping[]
+  cart           Cart?             @relation(fields: [cart_id], references: [cart_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("cart_items")
+}
+
+model CartItemTopping {
+  item_topping_id    Int            @id @default(autoincrement())
+  cart_item_id       Int?
+  cart_item_combo_id Int?
+  cart_item_half_id  Int?
+  topping_id         Int?
+  quantity           Int?
+  cart_item_combo    CartItemCombo? @relation(fields: [cart_item_combo_id], references: [cart_item_combo_id], onDelete: NoAction, onUpdate: NoAction)
+  cart_item_half     CartItemHalf?  @relation(fields: [cart_item_half_id], references: [cart_item_half_id], onDelete: NoAction, onUpdate: NoAction)
+  cart_item          CartItem?      @relation(fields: [cart_item_id], references: [cart_item_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("cart_item_topping")
+}
+
+model CartItemCombo {
+  cart_item_combo_id Int               @id @default(autoincrement())
+  cart_item_id       Int?
+  group_id           String?           @db.VarChar(50)
+  dish_price_id      String?           @db.VarChar(100)
+  is_half_half       Boolean?
+  cart_combo_note    String?
+  cart_item          CartItem?         @relation(fields: [cart_item_id], references: [cart_item_id], onDelete: NoAction, onUpdate: NoAction)
+  halves             CartItemHalf[]
+  toppings           CartItemTopping[]
+
+  @@map("cart_item_combos")
+}
+
+model CartItemHalf {
+  cart_item_half_id  Int               @id @default(autoincrement())
+  cart_item_id       Int?
+  cart_item_combo_id Int?
+  dish_id            Int?
+  cart_half_note     String?
+  cart_item_combo    CartItemCombo?    @relation(fields: [cart_item_combo_id], references: [cart_item_combo_id], onDelete: NoAction, onUpdate: NoAction)
+  cart_item          CartItem?         @relation(fields: [cart_item_id], references: [cart_item_id], onDelete: NoAction, onUpdate: NoAction)
+  cart_item_topping  CartItemTopping[]
+
+  @@map("cart_item_half")
+}
+
+model Order {
+  order_id                Int          @id @default(autoincrement())
+  user_id                 Int?
+  user_address_id         Int?
+  payment_method          String?      @db.VarChar(50)
+  payment_status          String?      @db.VarChar(50)
+  total_price_dish        Int?
+  shipping_fee            Int?
+  discount_amount         Int?
+  total_order             Int?
+  order_note              String?
+  created_at              DateTime?    @db.Timestamp(6)
+  order_status            String?      @db.VarChar(50)
+  shipped_at              DateTime?    @db.Timestamp(6)
+  estimated_delivery_time DateTime?    @db.Timestamp(6)
+  arrived_at              DateTime?    @db.Timestamp(6)
+  completed_at            DateTime?    @db.Timestamp(6)
+  order_type              String?      @db.VarChar(50)
+  pickup_time             DateTime?    @db.Timestamp(6)
+  items                   OrderItem[]
+  user_address            UserAddress? @relation(fields: [user_address_id], references: [user_address_id], onDelete: NoAction, onUpdate: NoAction)
+  user                    User?        @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  reviews                 ShopReview[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  order_item_id   Int                @id @default(autoincrement())
+  order_id        Int?
+  dish_price_id   String?            @db.VarChar(100)
+  combo_id        Int?
+  quantity        Int?
+  is_half_half    Boolean?
+  order_price     Int?
+  order_item_note String?
+  combos          OrderItemCombo[]
+  halves          OrderItemHalf[]
+  toppings        OrderItemTopping[]
+  order           Order?             @relation(fields: [order_id], references: [order_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("order_items")
+}
+
+model OrderItemTopping {
+  order_item_topping_id Int             @id @default(autoincrement())
+  order_item_id         Int?
+  order_item_combo_id   Int?
+  order_item_half_id    Int?
+  topping_id            Int?
+  quantity              Int?
+  topping_price         Int?
+  order_item_combo      OrderItemCombo? @relation(fields: [order_item_combo_id], references: [order_item_combo_id], onDelete: NoAction, onUpdate: NoAction)
+  order_item_half       OrderItemHalf?  @relation(fields: [order_item_half_id], references: [order_item_half_id], onDelete: NoAction, onUpdate: NoAction)
+  order_item            OrderItem?      @relation(fields: [order_item_id], references: [order_item_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("order_item_toppings")
+}
+
+model OrderItemCombo {
+  order_item_combo_id Int                @id @default(autoincrement())
+  order_item_id       Int?
+  group_id            String?            @db.VarChar(50)
+  dish_price_id       String?            @db.VarChar(100)
+  is_half_half        Boolean?
+  order_combo_note    String?
+  order_item          OrderItem?         @relation(fields: [order_item_id], references: [order_item_id], onDelete: NoAction, onUpdate: NoAction)
+  halves              OrderItemHalf[]
+  toppings            OrderItemTopping[]
+
+  @@map("order_item_combos")
+}
+
+model OrderItemHalf {
+  order_item_half_id  Int                @id @default(autoincrement())
+  order_item_id       Int?
+  order_item_combo_id Int?
+  dish_id             Int?
+  order_half_note     String?
+  order_item_combo    OrderItemCombo?    @relation(fields: [order_item_combo_id], references: [order_item_combo_id], onDelete: NoAction, onUpdate: NoAction)
+  order_item          OrderItem?         @relation(fields: [order_item_id], references: [order_item_id], onDelete: NoAction, onUpdate: NoAction)
+  order_item_toppings OrderItemTopping[]
+
+  @@map("order_item_half")
+}
+
+model ShopReview {
+  review_id   Int       @id @default(autoincrement())
+  user_id     Int?
+  order_id    Int?
+  rating_star Int?
+  comment     String?
+  image_url   String?
+  shop_reply  String?
+  created_at  DateTime? @db.Timestamp(6)
+  is_visible  Boolean?
+  order       Order?    @relation(fields: [order_id], references: [order_id], onDelete: NoAction, onUpdate: NoAction)
+  user        User?     @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("shop_reviews")
+}
