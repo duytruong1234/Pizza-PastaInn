@@ -6,6 +6,7 @@ import { formatPrice } from '@/lib/utils';
 import { useAddToCart } from '@/hooks/useAddToCart';
 import ProductModal from './ProductModal';
 import ComboModal from './ComboModal';
+import HalfHalfModal from './HalfHalfModal';
 import { useState } from 'react';
 import { useUI } from './UIProvider';
 
@@ -20,6 +21,7 @@ interface ProductCardProps {
   layout?: 'image-left' | 'image-right';
   theme?: 'green' | 'red';
   isCombo?: boolean;
+  isHalfHalf?: boolean;
   categoryName?: string;
 }
 
@@ -34,14 +36,15 @@ export default function ProductCard({
   layout = 'image-left',
   theme = 'green',
   isCombo = false,
+  isHalfHalf = false,
   categoryName = '',
 }: ProductCardProps) {
   const isImageLeft = layout === 'image-left';
   const { handleAddToCart } = useAddToCart();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { t } = useUI();
+  const { t, tMenu, tIngredient } = useUI();
   
-  // Theme colors based on image
+  // Màu nền theo chủ đề
   const bgClass = theme === 'green' ? 'bg-[#294c29]/60' : 'bg-[#9f280a]/60';
   const priceColorClass = theme === 'green' ? 'text-pizza-green' : 'text-pizza-red';
 
@@ -71,10 +74,10 @@ export default function ProductCard({
 
         {/* Content Area */}
         <div className={`flex flex-col flex-1 h-full py-1 justify-center ${isImageLeft ? 'ml-36 lg:ml-44 pr-1' : 'mr-36 lg:mr-44 pl-1'}`}>
-          <h3 className="text-white font-bold text-base lg:text-lg mb-1 leading-tight line-clamp-1">{name}</h3>
+          <h3 className="text-white font-bold text-base lg:text-lg mb-1 leading-tight line-clamp-1">{tMenu(name)}</h3>
           {ingredients && (
             <p className="text-gray-300 text-[10px] lg:text-xs leading-snug mb-3">
-              {ingredients}
+              {tIngredient(ingredients)}
             </p>
           )}
           
@@ -108,7 +111,9 @@ export default function ProductCard({
         </div>
       </div>
 
-      {isCombo ? (
+      {isHalfHalf ? (
+        <HalfHalfModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      ) : isCombo ? (
         <ComboModal 
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}

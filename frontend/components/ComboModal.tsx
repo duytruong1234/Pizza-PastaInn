@@ -2,11 +2,50 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
-import { X, Check } from 'lucide-react';
+import { X, Gift, ShoppingCart, Check, ChevronDown } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useUI } from '@/components/UIProvider';
+
+const CustomSelect = ({ value, options, onChange }: { value: any, options: { value: any, label: string }[], onChange: (val: any) => void }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedOption = options.find(o => o.value === value);
+
+  return (
+    <div className="relative">
+      <div
+        className="w-full bg-white/10 border border-white/20 text-white rounded-lg p-2.5 flex items-center justify-between cursor-pointer hover:bg-white/15 transition-colors"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span className="text-sm truncate">{selectedOption ? selectedOption.label : "Chọn..."}</span>
+        <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+      </div>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+          <div className="absolute z-20 top-full left-0 right-0 mt-2 bg-[#8b2006] border border-white/20 rounded-lg shadow-2xl max-h-56 overflow-y-auto custom-scrollbar">
+            {options.map((option) => (
+              <div
+                key={option.value}
+                className={`px-3 py-2.5 text-sm cursor-pointer transition-colors ${value === option.value
+                    ? 'bg-white/20 font-bold'
+                    : 'hover:bg-white/10'
+                  }`}
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+              >
+                {option.label}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 
 interface ComboModalProps {
   isOpen: boolean;
@@ -20,22 +59,71 @@ interface ComboModalProps {
 
 export default function ComboModal({ isOpen, onClose, comboId, comboName, comboPrice, comboDescription, imageUrl }: ComboModalProps) {
   const { addToCart } = useCartStore();
-  const { toggleCart, isCartOpen, t } = useUI();
+  const { toggleCart, isCartOpen, tMenu, tIngredient } = useUI();
 
   const [comboDetail, setComboDetail] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [selections, setSelections] = useState<Record<string, string[]>>({}); // group_id -> selected combo_item_ids
+
+  const [selections, setSelections] = useState<Record<string, string[]>>({});
+  const [pizzaDishSelections, setPizzaDishSelections] = useState<Record<string, number>>({});
+  const [pizzaDish2Selections, setPizzaDish2Selections] = useState<Record<string, number>>({});
+  const [pizzaHalfSelections, setPizzaHalfSelections] = useState<Record<string, boolean>>({});
+  const [pizzaSizeSelections, setPizzaSizeSelections] = useState<Record<string, number>>({});
+  const [pizzaCrustSelections, setPizzaCrustSelections] = useState<Record<string, number>>({});
+  const [pastaCategorySelections, setPastaCategorySelections] = useState<Record<string, string>>({});
+
+  const [pizzaToppingsList, setPizzaToppingsList] = useState<any[]>([]);
+  const [spaghettiToppingsList, setSpaghettiToppingsList] = useState<any[]>([]);
+  const [crustsList, setCrustsList] = useState<any[]>([]);
+  const [selectedToppings, setSelectedToppings] = useState<Record<string, any[]>>({});
+
   const [note, setNote] = useState('');
   const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     if (isOpen) {
       fetchComboDetail();
+      fetchToppings();
       setQuantity(1);
       setSelections({});
+      setPizzaDishSelections({});
+      setPizzaDish2Selections({});
+      setPizzaHalfSelections({});
+      setPizzaSizeSelections({});
+      setPizzaCrustSelections({});
+      setPastaCategorySelections({});
+      setSelectedToppings({});
       setNote('');
     }
   }, [isOpen]);
+
+  const fetchToppings = async () => {
+    try {
+      const [pizzaRes, spaRes, crustsRes] = await Promise.all([
+        fetch('http://localhost:4000/api/menu/toppings?type=pizza'),
+        fetch('http://localhost:4000/api/menu/toppings?type=spaghetti'),
+        fetch('http://localhost:4000/api/menu/crusts')
+      ]);
+      const pizzaData = await pizzaRes.json();
+      const spaData = await spaRes.json();
+      const crustsData = await crustsRes.json();
+      if (pizzaData.success) setPizzaToppingsList(pizzaData.data);
+      if (spaData.success) setSpaghettiToppingsList(spaData.data);
+      if (crustsData.success) setCrustsList(crustsData.data);
+    } catch (e) { }
+  };
+
+  const getPastaCatMap = (items: any[]) => {
+    const map: Record<string, any[]> = { 'Risotto': [], 'Grantin': [], 'Spaghetti': [], 'Other': [] };
+    items.forEach(item => {
+      const name = item.dish_price?.dish?.dish_name?.toLowerCase() || '';
+      if (name.includes('risotto')) map['Risotto'].push(item);
+      else if (name.includes('grantin') || name.includes('gratin')) map['Grantin'].push(item);
+      else if (name.includes('spaghetti')) map['Spaghetti'].push(item);
+      else map['Other'].push(item);
+    });
+    return map;
+  };
 
   const fetchComboDetail = async () => {
     setLoading(true);
@@ -44,17 +132,55 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
       const json = await res.json();
       if (json.success) {
         setComboDetail(json.data);
-        // Initialize selections: pre-select first item in each group
+
         const initialSelections: Record<string, string[]> = {};
+        const initialPizzaDishes: Record<string, number> = {};
+        const initialPizzaDishes2: Record<string, number> = {};
+        const initialPizzaHalf: Record<string, boolean> = {};
+        const initialPizzaCrusts: Record<string, number> = {};
+        const initialPastaCats: Record<string, string> = {};
+
         json.data.groups?.forEach((group: any) => {
           if (group.combo_items?.length > 0) {
-            initialSelections[group.group_id] = [String(group.combo_items[0].combo_item_id)];
+            const groupNameLower = group.group_name.toLowerCase();
+            const isPizzaGroup = groupNameLower.includes('pizza');
+            const isPastaGroup = groupNameLower.includes('spaghetti') || groupNameLower.includes('grantin') || groupNameLower.includes('risotto') || groupNameLower.includes('gratin');
+            const isFixed = group.combo_items.length === 1 && group.min_select === group.max_select;
+
+            if (isFixed) {
+              initialSelections[group.group_id] = [String(group.combo_items[0].combo_item_id)];
+            } else if (isPizzaGroup) {
+              const firstItem = group.combo_items[0];
+              initialPizzaDishes[group.group_id] = firstItem.dish_price.dish_id;
+              
+              const secondItem = group.combo_items.find((i: any) => i.dish_price.dish_id !== firstItem.dish_price.dish_id) || firstItem;
+              initialPizzaDishes2[group.group_id] = secondItem.dish_price.dish_id;
+              initialPizzaHalf[group.group_id] = false;
+
+              setPizzaSizeSelections(prev => ({ ...prev, [group.group_id]: firstItem.dish_price.size_id || 0 }));
+              initialPizzaCrusts[group.group_id] = firstItem.dish_price.crust_id || 0;
+              initialSelections[group.group_id] = [String(firstItem.combo_item_id)];
+            } else if (isPastaGroup) {
+              const catMap = getPastaCatMap(group.combo_items);
+              const firstCat = ['Risotto', 'Grantin', 'Spaghetti'].find(c => catMap[c] && catMap[c].length > 0) || 'Other';
+              initialPastaCats[group.group_id] = firstCat;
+              const firstItemInCat = catMap[firstCat]?.[0] || group.combo_items[0];
+              initialSelections[group.group_id] = [String(firstItemInCat.combo_item_id)];
+            } else {
+              initialSelections[group.group_id] = [String(group.combo_items[0].combo_item_id)];
+            }
           }
         });
+
         setSelections(initialSelections);
+        setPizzaDishSelections(initialPizzaDishes);
+        setPizzaDish2Selections(initialPizzaDishes2);
+        setPizzaHalfSelections(initialPizzaHalf);
+        setPizzaCrustSelections(initialPizzaCrusts);
+        setPastaCategorySelections(initialPastaCats);
       }
     } catch (error) {
-      console.error('Failed to fetch combo detail', error);
+      console.error('Lỗi khi lấy chi tiết combo', error);
     } finally {
       setLoading(false);
     }
@@ -62,67 +188,106 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
 
   if (!isOpen) return null;
 
-  const handleItemToggle = (groupId: string, comboItemId: string, maxSelect: number) => {
-    setSelections(prev => {
+  const handleSelection = (groupId: string, comboItemId: string) => {
+    setSelections(prev => ({ ...prev, [groupId]: [comboItemId] }));
+  };
+
+  const handleToppingToggle = (groupId: string, topping: any) => {
+    setSelectedToppings(prev => {
       const current = prev[groupId] || [];
-      if (current.includes(comboItemId)) {
-        // Deselect (but keep at least minSelect)
-        return { ...prev, [groupId]: current.filter(id => id !== comboItemId) };
+      if (current.find(t => t.topping_id === topping.topping_id)) {
+        return { ...prev, [groupId]: current.filter(t => t.topping_id !== topping.topping_id) };
       } else {
-        if (maxSelect === 1) {
-          // Radio behavior
-          return { ...prev, [groupId]: [comboItemId] };
-        } else {
-          // Checkbox behavior with max limit
-          if (current.length < maxSelect) {
-            return { ...prev, [groupId]: [...current, comboItemId] };
-          }
-          return prev;
-        }
+        return { ...prev, [groupId]: [...current, topping] };
       }
     });
   };
 
-  // Calculate extra price from selected items
-  const extraPrice = comboDetail?.groups?.reduce((total: number, group: any) => {
-    const selectedItems = selections[group.group_id] || [];
-    return total + group.combo_items
-      .filter((item: any) => selectedItems.includes(String(item.combo_item_id)))
-      .reduce((sum: number, item: any) => sum + (item.price_extra || 0), 0);
-  }, 0) || 0;
+  let extraItemsPrice = 0;
+  comboDetail?.groups?.forEach((group: any) => {
+    const selectedItemIds = selections[group.group_id] || [];
+    const isHalf = pizzaHalfSelections[group.group_id];
+    const dish2Id = pizzaDish2Selections[group.group_id];
 
-  const totalPrice = (comboPrice + extraPrice) * quantity;
+    group.combo_items.forEach((item: any) => {
+      if (selectedItemIds.includes(String(item.combo_item_id))) {
+        let itemExtra = item.price_extra || 0;
+        
+        if (isHalf && dish2Id) {
+           const dish2Item = group.combo_items.find((i: any) => 
+               i.dish_price?.dish_id === dish2Id && 
+               i.dish_price?.size_id === item.dish_price?.size_id &&
+               i.dish_price?.crust_id === item.dish_price?.crust_id
+           );
+           const item2Extra = dish2Item?.price_extra || 0;
+           // Theo mặc định, lấy mức phụ thu cao hơn giữa 2 nửa (có thể đổi sang trung bình cộng nếu cần)
+           extraItemsPrice += Math.max(itemExtra, item2Extra);
+        } else {
+           extraItemsPrice += itemExtra;
+        }
+      }
+    });
+  });
+
+  let extraToppingsPrice = 0;
+  Object.values(selectedToppings).forEach(toppingsArray => {
+    toppingsArray.forEach(t => {
+      extraToppingsPrice += t.price_topping || 0;
+    });
+  });
+
+  const totalPrice = (comboPrice + extraItemsPrice + extraToppingsPrice) * quantity;
 
   const handleAddToCart = () => {
-    // Build selected items summary
     const selectedItemNames: string[] = [];
     comboDetail?.groups?.forEach((group: any) => {
-      const selectedIds = selections[group.group_id] || [];
-      group.combo_items
-        .filter((item: any) => selectedIds.includes(String(item.combo_item_id)))
-        .forEach((item: any) => {
-          const dishName = item.dish_price?.dish?.dish_name || 'Unknown';
+      const selectedItemIds = selections[group.group_id] || [];
+      group.combo_items.forEach((item: any) => {
+        if (selectedItemIds.includes(String(item.combo_item_id))) {
+          const dishName = item.dish_price?.dish?.dish_name || '';
+          const selectedCrustId = pizzaCrustSelections[group.group_id] || item.dish_price?.crust_id;
+          const crustObj = crustsList.find(c => c.crust_id === selectedCrustId);
+          const crustName = crustObj ? crustObj.crust_name : item.dish_price?.crust?.crust_name;
           const sizeName = item.dish_price?.size?.size_name;
-          const crustName = item.dish_price?.crust?.crust_name;
-          let label = dishName;
-          if (sizeName) label += ` (${sizeName})`;
-          if (crustName) label += ` - ${crustName}`;
-          if (item.price_extra > 0) label += ` +${formatPrice(item.price_extra)}`;
+
+          let label = '';
+          const isHalf = pizzaHalfSelections[group.group_id];
+          const dish2Id = pizzaDish2Selections[group.group_id];
+          if (isHalf && dish2Id) {
+             const dish2Name = group.combo_items.find((i:any) => i.dish_price?.dish_id === dish2Id)?.dish_price?.dish?.dish_name || '';
+             label = `[Half-Half] ${tMenu(dishName)} / ${tMenu(dish2Name)}`;
+          } else {
+             label = tMenu(dishName);
+          }
+
+          if (crustName && crustName !== 'None') label += ` (${crustName})`;
+          if (sizeName && sizeName !== 'Standard') label += ` - ${tMenu(sizeName)}`;
+
+          const groupToppings = selectedToppings[group.group_id] || [];
+          if (groupToppings.length > 0) {
+            label += ` + [${groupToppings.map(t => tMenu(t.topping_name)).join(', ')}]`;
+          }
+
+          if (group.max_select > 1 && group.combo_items.length === 1) {
+            label = `${group.max_select} x ${label}`;
+          }
+
           selectedItemNames.push(label);
-        });
+        }
+      });
     });
 
     addToCart({
       dish_id: comboId,
       dish_price_id: `combo_${comboId}`,
       name: comboName,
-      price: comboPrice + extraPrice,
+      price: comboPrice + extraItemsPrice + extraToppingsPrice,
       quantity,
       imageUrl,
       options: {
-        toppings: selectedItemNames.join(', '),
+        toppings: selectedItemNames.join(' | '),
         notes: note,
-        extraPrice: extraPrice,
+        extraPrice: extraItemsPrice + extraToppingsPrice,
       }
     });
 
@@ -130,152 +295,490 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
     onClose();
   };
 
+  const fixedGroups: any[] = [];
+  const choiceGroups: any[] = [];
+
+  comboDetail?.groups?.forEach((group: any) => {
+    // Lọc ra những món (dish) còn đang kích hoạt (dish_status = true)
+    const activeItems = group.combo_items?.filter((item: any) => item.dish_price?.dish?.dish_status === true);
+    if (!activeItems || activeItems.length === 0) return; // Nếu nhóm không có món nào active thì bỏ qua
+
+    const activeGroup = { ...group, combo_items: activeItems };
+    const isFixed = activeItems.length === 1 && activeGroup.min_select === activeGroup.max_select;
+
+    if (isFixed) fixedGroups.push(activeGroup);
+    else choiceGroups.push(activeGroup);
+  });
+
   return createPortal(
-    <div className="fixed inset-0 z-[100] overflow-y-auto custom-scrollbar bg-black/60 backdrop-blur-sm">
-      <div className="flex min-h-full items-center justify-center p-2 sm:p-4">
-        <div className="bg-[#294c29] text-white w-full max-w-4xl rounded-2xl overflow-hidden flex flex-col md:flex-row shadow-2xl relative max-h-[none] md:max-h-[90vh]">
-        
-          {/* Close Button */}
-          <button 
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#9f280a] text-white w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+
+        {/* Header */}
+        <div className="p-5 md:p-6 relative shrink-0 bg-black/15">
+          <button
             onClick={onClose}
-            className="absolute top-2 right-2 md:top-4 md:right-4 z-20 w-8 h-8 flex items-center justify-center bg-black/40 hover:bg-black/60 rounded-full text-white transition-colors"
+            className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center bg-black/40 hover:bg-black/60 rounded-full text-white transition-colors"
           >
             <X size={18} />
           </button>
-
-          {/* Left Side: Image */}
-          <div className="w-full md:w-1/2 relative h-[30vh] min-h-[200px] md:h-auto md:min-h-full shrink-0">
-            <Image 
-              src={imageUrl || 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=600&auto=format&fit=crop'}
-              alt={comboName}
-              fill
-              className="object-cover"
-            />
-            {/* Combo badge */}
-            <div className="absolute bottom-4 left-4 bg-[#ee2828] text-white px-3 py-1 rounded-lg text-sm font-bold shadow-lg">
-              COMBO
-            </div>
+          <h2 className="text-2xl md:text-3xl font-bold uppercase tracking-wide pr-8 mb-2">{tMenu(comboName)?.normalize('NFC')}</h2>
+          <div className="text-white/90 text-[15px] mb-3 flex items-baseline gap-2">
+            <span>Giá:</span>
+            <span className="text-2xl font-bold text-[#f0c14b] tracking-wide">
+              {formatPrice(comboPrice + extraItemsPrice + extraToppingsPrice)}
+            </span>
           </div>
+          {comboDescription && (
+            <p className="text-white/80 text-sm">{tIngredient(comboDescription)?.normalize('NFC')}</p>
+          )}
+        </div>
 
-          {/* Right Side: Details & Options */}
-          <div className="w-full md:w-1/2 p-4 md:p-6 overflow-y-auto custom-scrollbar flex flex-col bg-[#294c29] min-h-0">
-            <h2 className="text-3xl font-serif font-bold mb-1">{comboName}</h2>
-            {comboDescription && (
-              <p className="text-sm text-white/80 mb-2">{comboDescription}</p>
-            )}
-            <div className="text-lg font-bold text-[#f0c14b] mb-4">{formatPrice(comboPrice)}</div>
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar border-t border-white/20">
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            </div>
+          ) : (
+            <div className="max-w-2xl mx-auto space-y-6">
+              {choiceGroups.map((group, index) => {
+                const groupNameLower = group.group_name.toLowerCase();
+                const isPizzaGroup = groupNameLower.includes('pizza');
+                const isPastaGroup = groupNameLower.includes('spaghetti') || groupNameLower.includes('grantin') || groupNameLower.includes('risotto') || groupNameLower.includes('gratin');
 
-            {loading ? (
-              <div className="flex items-center justify-center py-10">
-                <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              </div>
-            ) : (
-              <div className="space-y-6 flex-1">
-                {comboDetail?.groups?.map((group: any) => (
+                return (
                   <div key={group.group_id}>
-                    <h3 className="font-bold text-lg mb-1 border-b border-white/20 pb-1">
-                      {group.group_name}
-                    </h3>
-                    <p className="text-xs text-white/60 mb-3">
-                      {group.min_select === group.max_select 
-                        ? `Chọn ${group.min_select} món`
-                        : `Chọn từ ${group.min_select} đến ${group.max_select} món`
+                    <h3 className="font-bold text-lg mb-1 border-b border-white/20 pb-1">{tMenu(group.group_name)}</h3>
+                    <p className="text-xs text-white/60 mb-4">
+                      {group.min_select === group.max_select
+                        ? `Chọn ${group.min_select}`
+                        : `Chọn từ ${group.min_select} - ${group.max_select}`
                       }
                     </p>
-                    <div className="space-y-2">
-                      {group.combo_items?.map((item: any) => {
-                        const isSelected = (selections[group.group_id] || []).includes(String(item.combo_item_id));
-                        const dishName = item.dish_price?.dish?.dish_name || 'Món';
-                        const sizeName = item.dish_price?.size?.size_name;
-                        const crustName = item.dish_price?.crust?.crust_name;
+
+                    {isPizzaGroup ? (
+                      (() => {
+                        const dishMap = new Map();
+                        group.combo_items.forEach((item: any) => {
+                          const dishId = item.dish_price.dish_id;
+                          if (!dishMap.has(dishId)) {
+                            dishMap.set(dishId, { dish: item.dish_price.dish, items: [] });
+                          }
+                          dishMap.get(dishId).items.push(item);
+                        });
+                        const uniqueDishes = Array.from(dishMap.values());
+                        const selectedDishId = pizzaDishSelections[group.group_id];
+                        const currentDishData = dishMap.get(selectedDishId);
+                        const selectedComboItemId = selections[group.group_id]?.[0];
+
+                        const dishOptions = uniqueDishes.map((ud: any) => ({
+                          value: ud.dish.dish_id,
+                          label: tMenu(ud.dish.dish_name)
+                        }));
+
+                        const sizeMap = new Map();
+                        const isHalf = pizzaHalfSelections[group.group_id] || false;
+                        const dish2Id = pizzaDish2Selections[group.group_id];
+                        const currentDishData2 = (isHalf && dish2Id) ? dishMap.get(dish2Id) : null;
+
+                        currentDishData?.items.forEach((item1: any) => {
+                          const sizeId = item1.dish_price.size_id || 0;
+                          const crustId = item1.dish_price.crust_id || 0;
+
+                          if (isHalf && currentDishData2) {
+                            const hasMatch = currentDishData2.items.some((item2: any) => 
+                              (item2.dish_price.size_id || 0) === sizeId
+                            );
+                            if (!hasMatch) return; // Nửa 2 không có size này thì bỏ qua
+                          }
+
+                          if (!sizeMap.has(sizeId)) {
+                            sizeMap.set(sizeId, { size: item1.dish_price.size, items: [] });
+                          }
+                          sizeMap.get(sizeId).items.push(item1);
+                        });
+                        const uniqueSizes = Array.from(sizeMap.values());
+                        
+                        // Lấy size đang chọn hoặc mặc định size đầu tiên nếu chưa chọn
+                        const rawSelectedSizeId = pizzaSizeSelections[group.group_id];
+                        let activeSizeData = sizeMap.get(rawSelectedSizeId);
+                        if (!activeSizeData && uniqueSizes.length > 0) {
+                          activeSizeData = uniqueSizes[0];
+                        }
+                        const activeSizeId = activeSizeData?.size?.size_id || 0;
 
                         return (
-                          <label 
-                            key={item.combo_item_id} 
-                            className={`flex items-center justify-between cursor-pointer group px-3 py-2 rounded-lg transition-colors ${
-                              isSelected ? 'bg-white/15' : 'hover:bg-white/5'
-                            }`}
-                            onClick={() => handleItemToggle(group.group_id, String(item.combo_item_id), group.max_select || 1)}
-                          >
-                            <div className="flex items-center gap-3">
-                              {group.max_select === 1 ? (
-                                // Radio style
-                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                                  isSelected ? 'border-white' : 'border-white/50 group-hover:border-white/80'
-                                }`}>
-                                  {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
+                          <div>
+                            {crustsList.length > 0 && (
+                              <div className="mb-6 pb-6 border-b border-white/10">
+                                <label className="block text-sm font-bold text-white mb-3">Đế bánh (*)</label>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                  {crustsList.filter(c => c.is_visible !== false && c.crust_name !== 'None').map(crust => {
+                                    const selectedCrustId = pizzaCrustSelections[group.group_id] || 0;
+                                    return (
+                                      <label key={crust.crust_id} className="flex items-center gap-3 cursor-pointer group" onClick={() => {
+                                        setPizzaCrustSelections(prev => ({ ...prev, [group.group_id]: crust.crust_id }));
+                                        const match = group.combo_items.find((i:any) => i.dish_price?.dish_id === selectedDishId && (i.dish_price?.size_id || 0) === activeSizeId && (i.dish_price?.crust_id || 0) === crust.crust_id);
+                                        if (match) handleSelection(group.group_id, String(match.combo_item_id));
+                                      }}>
+                                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${selectedCrustId === crust.crust_id ? 'border-white' : 'border-white/50 group-hover:border-white/80'}`}>
+                                          {selectedCrustId === crust.crust_id && <div className="w-2 h-2 bg-white rounded-full" />}
+                                        </div>
+                                        <span className="text-white text-sm">{crust.crust_name}</span>
+                                      </label>
+                                    );
+                                  })}
                                 </div>
-                              ) : (
-                                // Checkbox style
-                                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                                  isSelected ? 'border-white bg-white' : 'border-white/50 group-hover:border-white/80'
-                                }`}>
-                                  {isSelected && <Check size={10} className="text-[#294c29]" />}
-                                </div>
-                              )}
+                              </div>
+                            )}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                               <div>
-                                <span className="text-sm font-medium">{dishName}</span>
-                                {(sizeName || crustName) && (
-                                  <span className="text-xs text-white/60 ml-2">
-                                    {[sizeName, crustName].filter(Boolean).join(' • ')}
-                                  </span>
+                                <div className="flex justify-between items-center mb-2">
+                                  <label className="block text-sm font-bold text-white">Pizza (*)</label>
+                                  {dishOptions.length > 1 && (
+                                    <label className="flex items-center gap-2 cursor-pointer group select-none">
+                                      <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isHalf ? 'bg-[#f0c14b] border-[#f0c14b]' : 'border-white/50 group-hover:border-white'}`}>
+                                        {isHalf && (
+                                          <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                          </svg>
+                                        )}
+                                      </div>
+                                      <span className="text-sm font-semibold text-white">Half-Half</span>
+                                      <input 
+                                        type="checkbox" 
+                                        className="hidden" 
+                                        checked={isHalf} 
+                                        onChange={() => setPizzaHalfSelections(prev => ({ ...prev, [group.group_id]: !prev[group.group_id] }))} 
+                                      />
+                                    </label>
+                                  )}
+                                </div>
+                                
+                                {!isHalf ? (
+                                  <CustomSelect
+                                    value={selectedDishId}
+                                    options={dishOptions}
+                                    onChange={(newDishId) => {
+                                      setPizzaDishSelections(prev => ({ ...prev, [group.group_id]: newDishId }));
+                                      const items = dishMap.get(newDishId).items;
+                                      const firstSizeId = items[0].dish_price.size_id || 0;
+                                      setPizzaSizeSelections(prev => ({ ...prev, [group.group_id]: firstSizeId }));
+                                      handleSelection(group.group_id, String(items[0].combo_item_id));
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="space-y-3 p-3 bg-black/20 rounded-lg border border-white/10">
+                                    <div>
+                                      <label className="block text-xs text-white/80 mb-1 font-semibold">Nửa 1:</label>
+                                      <CustomSelect
+                                        value={selectedDishId}
+                                        options={dishOptions}
+                                        onChange={(newDishId) => {
+                                          setPizzaDishSelections(prev => ({ ...prev, [group.group_id]: newDishId }));
+                                          const items = dishMap.get(newDishId).items;
+                                          const firstSizeId = items[0].dish_price.size_id || 0;
+                                          setPizzaSizeSelections(prev => ({ ...prev, [group.group_id]: firstSizeId }));
+                                          handleSelection(group.group_id, String(items[0].combo_item_id));
+                                        }}
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs text-white/80 mb-1 font-semibold">Nửa 2:</label>
+                                      <CustomSelect
+                                        value={pizzaDish2Selections[group.group_id] || dishOptions[0]?.value}
+                                        options={dishOptions}
+                                        onChange={(newDishId) => {
+                                          setPizzaDish2Selections(prev => ({ ...prev, [group.group_id]: newDishId }));
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
                                 )}
                               </div>
+                              
+                              {uniqueSizes.length > 1 && (
+                                <div>
+                                  <label className="block text-sm font-bold text-white mb-2">Kích thước (*)</label>
+                                  <div className="flex gap-3">
+                                    {uniqueSizes.map((szData: any) => {
+                                      const sId = szData.size?.size_id || 0;
+                                      return (
+                                        <button
+                                          key={sId}
+                                          className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${
+                                            activeSizeId === sId
+                                              ? 'bg-white text-[#9f280a]' 
+                                              : 'bg-black/20 text-white hover:bg-black/30'
+                                          }`}
+                                          onClick={() => {
+                                            setPizzaSizeSelections(prev => ({ ...prev, [group.group_id]: sId }));
+                                            if (szData.items.length > 0) {
+                                              handleSelection(group.group_id, String(szData.items[0].combo_item_id));
+                                            }
+                                          }}
+                                        >
+                                          {szData.size ? tMenu(szData.size.size_name) : 'Standard'}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+
                             </div>
-                            {item.price_extra > 0 && (
-                              <span className="text-sm font-bold text-[#f0c14b]">+{formatPrice(item.price_extra)}</span>
+
+                            {(() => {
+                              const selectedItemForSize = activeSizeData?.items.find((item: any) => String(item.combo_item_id) === selectedComboItemId);
+                              const selectedSizeIdTopping = selectedItemForSize?.dish_price?.size_id;
+                              const availableToppings = pizzaToppingsList.filter(t => !t.size_id || t.size_id === selectedSizeIdTopping);
+
+                              if (availableToppings.length === 0) return null;
+                              return (
+                                <div className="mt-6">
+                                  <label className="block text-sm font-bold text-white mb-3">Món thêm</label>
+                                  <div className="space-y-3">
+                                    {availableToppings.map(topping => {
+                                      const isSelected = (selectedToppings[group.group_id] || []).some(t => t.topping_id === topping.topping_id);
+                                      return (
+                                        <label key={topping.topping_id} className="flex items-center justify-between cursor-pointer group" onClick={() => handleToppingToggle(group.group_id, topping)}>
+                                          <div className="flex items-center gap-3">
+                                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${isSelected ? 'border-white bg-white' : 'border-white/50 group-hover:border-white/80'}`}>
+                                              {isSelected && <Check size={10} className="text-[#9f280a]" />}
+                                            </div>
+                                            <span className="text-white text-sm">
+                                              {tMenu(topping.topping_name)}
+                                              {(() => {
+                                                const matchingItem = currentDishData?.items.find((item: any) => item.dish_price?.size_id === topping.size_id);
+                                                return matchingItem?.dish_price?.size ? ` - Size ${tMenu(matchingItem.dish_price.size.size_name)}` : '';
+                                              })()}
+                                            </span>
+                                          </div>
+                                          <span className="text-white font-bold text-sm">{formatPrice(topping.price_topping)}</span>
+                                        </label>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        );
+                      })()
+                    ) : isPastaGroup ? (
+                      (() => {
+                        const catMap = getPastaCatMap(group.combo_items);
+                        const selectedCat = pastaCategorySelections[group.group_id];
+                        const itemsInCat = catMap[selectedCat] || [];
+                        const selectedComboItemId = selections[group.group_id]?.[0];
+
+                        return (
+                          <div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                              <div>
+                                <label className="block text-sm font-bold text-white mb-2">Phân loại</label>
+                                <div className="space-y-3">
+                                  {['Risotto', 'Grantin', 'Spaghetti'].filter(c => catMap[c] && catMap[c].length > 0).map(cat => (
+                                    <label key={cat} className="flex items-center gap-3 cursor-pointer group" onClick={() => {
+                                      setPastaCategorySelections(prev => ({ ...prev, [group.group_id]: cat }));
+                                      const newItems = catMap[cat];
+                                      if (newItems.length > 0) {
+                                        handleSelection(group.group_id, String(newItems[0].combo_item_id));
+                                      }
+                                    }}>
+                                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedCat === cat ? 'border-white' : 'border-white/50 group-hover:border-white/80'}`}>
+                                        {selectedCat === cat && <div className="w-2 h-2 bg-white rounded-full" />}
+                                      </div>
+                                      <span className="text-white text-sm">{tMenu(cat)}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-bold text-white mb-2">Tùy chọn</label>
+                                <CustomSelect
+                                  value={selectedComboItemId}
+                                  options={itemsInCat.map((item: any) => ({
+                                    value: String(item.combo_item_id),
+                                    label: tMenu(item.dish_price.dish.dish_name)
+                                  }))}
+                                  onChange={(newComboItemId) => handleSelection(group.group_id, String(newComboItemId))}
+                                />
+                              </div>
+                            </div>
+
+                            {(() => {
+                              const selectedItem = itemsInCat.find((i: any) => String(i.combo_item_id) === selectedComboItemId);
+                              const selectedSizeIdTopping = selectedItem?.dish_price?.size_id;
+                              
+                              const availableToppings: any[] = [];
+                              const seenNames = new Set();
+                              
+                              spaghettiToppingsList.forEach(t => {
+                                if (selectedSizeIdTopping) {
+                                  // Nếu món Pasta có size (hiếm), lọc đúng theo size đó hoặc topping dùng chung
+                                  if (!t.size_id || t.size_id === selectedSizeIdTopping) {
+                                    availableToppings.push(t);
+                                  }
+                                } else {
+                                  // Nếu món Pasta không có size, lọc trùng tên để tránh hiện 2 lần cùng 1 món thêm (do khác size của Pizza)
+                                  if (!seenNames.has(t.topping_name)) {
+                                    seenNames.add(t.topping_name);
+                                    availableToppings.push(t);
+                                  }
+                                }
+                              });
+
+                              if (availableToppings.length === 0) return null;
+                              return (
+                                <div className="mt-6">
+                                  <label className="block text-sm font-bold text-white mb-3">Món thêm</label>
+                                  <div className="space-y-3">
+                                    {availableToppings.map(topping => {
+                                      const isSelected = (selectedToppings[group.group_id] || []).some(t => t.topping_id === topping.topping_id);
+                                      return (
+                                        <label key={topping.topping_id} className="flex items-center justify-between cursor-pointer group" onClick={() => handleToppingToggle(group.group_id, topping)}>
+                                          <div className="flex items-center gap-3">
+                                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${isSelected ? 'border-white bg-white' : 'border-white/50 group-hover:border-white/80'}`}>
+                                              {isSelected && <Check size={10} className="text-[#9f280a]" />}
+                                            </div>
+                                            <span className="text-white text-sm">{tMenu(topping.topping_name)}</span>
+                                          </div>
+                                          <span className="text-white font-bold text-sm">{formatPrice(topping.price_topping)}</span>
+                                        </label>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      (() => {
+                        const selectedComboItemId = selections[group.group_id]?.[0];
+                        return (
+                          <div className="space-y-3">
+                            {group.combo_items.map((item: any) => (
+                              <label key={item.combo_item_id} className="flex items-center justify-between cursor-pointer group" onClick={() => handleSelection(group.group_id, String(item.combo_item_id))}>
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedComboItemId === String(item.combo_item_id) ? 'border-white' : 'border-white/50 group-hover:border-white/80'}`}>
+                                    {selectedComboItemId === String(item.combo_item_id) && <div className="w-2 h-2 bg-white rounded-full" />}
+                                  </div>
+                                  <span className="text-white text-sm">{tMenu(item.dish_price.dish.dish_name)}</span>
+                                </div>
+                              </label>
+                            ))}
+                          </div>
+                        );
+                      })()
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Fixed items & Note */}
+              <div>
+                {fixedGroups.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="font-bold text-lg mb-2 border-b border-white/20 pb-1">Bao gồm trong Combo</h3>
+                    <ul className="list-disc pl-5 space-y-1 mt-3">
+                      {fixedGroups.map(g => {
+                        const groupNameLower = g.group_name.toLowerCase();
+                        const isPizza = groupNameLower.includes('pizza');
+                        const isPasta = groupNameLower.includes('spaghetti') || groupNameLower.includes('grantin') || groupNameLower.includes('risotto') || groupNameLower.includes('gratin');
+                        const selectedSizeIdTopping = g.combo_items[0]?.dish_price?.size_id;
+                        
+                        let availableToppings: any[] = [];
+                        if (isPizza) {
+                           availableToppings = pizzaToppingsList.filter(t => !t.size_id || t.size_id === selectedSizeIdTopping);
+                        } else if (isPasta) {
+                           const seenNames = new Set();
+                           spaghettiToppingsList.forEach(t => {
+                             if (selectedSizeIdTopping) {
+                               if (!t.size_id || t.size_id === selectedSizeIdTopping) availableToppings.push(t);
+                             } else {
+                               if (!seenNames.has(t.topping_name)) {
+                                 seenNames.add(t.topping_name);
+                                 availableToppings.push(t);
+                               }
+                             }
+                           });
+                        }
+
+                        return (
+                          <li key={g.group_id} className="text-white text-sm mb-3">
+                            <span className="font-semibold leading-relaxed">{tMenu(g.group_name)}</span>
+                            {availableToppings.length > 0 && (
+                              <div className="mt-2 ml-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {availableToppings.map(topping => {
+                                  const isSelected = (selectedToppings[g.group_id] || []).some(t => t.topping_id === topping.topping_id);
+                                  return (
+                                    <label key={topping.topping_id} className="flex items-center gap-3 cursor-pointer group" onClick={() => handleToppingToggle(g.group_id, topping)}>
+                                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-white bg-white' : 'border-white/50 group-hover:border-white/80'}`}>
+                                        {isSelected && <Check size={10} className="text-[#9f280a]" />}
+                                      </div>
+                                      <span className="text-white text-xs">{tMenu(topping.topping_name)} <span className="font-bold text-[#f0c14b] ml-1">+{formatPrice(topping.price_topping)}</span></span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
                             )}
-                          </label>
+                          </li>
                         );
                       })}
-                    </div>
+                    </ul>
                   </div>
-                ))}
+                )}
 
-                {/* Notes */}
                 <div>
-                  <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">{t('modal.notes')}</h3>
-                  <input 
+                  <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">Ghi chú</h3>
+                  <input
                     type="text"
-                    placeholder={t('modal.notesPlaceholder')}
+                    placeholder="Hãy để lại ghi chú về lưu ý món ăn của bạn nhé!!!"
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
-                    className="w-full px-4 py-2 rounded-lg bg-white text-black text-sm outline-none"
+                    className="w-full bg-white text-black rounded-lg p-3 outline-none text-sm mt-2"
                   />
                 </div>
               </div>
-            )}
-
-            {/* Footer Actions */}
-            <div className="mt-8 pt-4 border-t border-white/20 flex flex-col items-center gap-4">
-              <div className="flex items-center justify-center bg-white text-black rounded-xl overflow-hidden font-bold h-10 shadow-md">
-                <button 
-                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                  className="px-4 h-full hover:bg-gray-200 transition-colors flex items-center justify-center text-xl"
-                >
-                  -
-                </button>
-                <span className="w-10 text-center text-lg">{quantity}</span>
-                <button 
-                  onClick={() => setQuantity(q => q + 1)}
-                  className="px-4 h-full hover:bg-gray-200 transition-colors flex items-center justify-center text-xl"
-                >
-                  +
-                </button>
-              </div>
-
-              <button 
-                onClick={handleAddToCart}
-                className="w-full sm:w-[90%] bg-[#f0c14b] hover:bg-[#e2b036] text-black font-bold py-3 px-6 rounded-xl transition-colors shadow-lg text-center text-base"
-              >
-                {t('modal.addToCart')} : {formatPrice(totalPrice)}
-              </button>
             </div>
-
-          </div>
+          )}
         </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-white/20 flex flex-col items-center gap-4 shrink-0">
+          <div className="flex items-center justify-center bg-white text-black rounded-xl overflow-hidden font-bold h-10 w-32 shadow-md">
+            <button
+              onClick={() => setQuantity(q => Math.max(1, q - 1))}
+              className="flex-1 h-full hover:bg-gray-200 transition-colors flex items-center justify-center text-xl"
+            >
+              -
+            </button>
+            <span className="w-10 text-center text-lg">{quantity}</span>
+            <button
+              onClick={() => setQuantity(q => q + 1)}
+              className="flex-1 h-full hover:bg-gray-200 transition-colors flex items-center justify-center text-xl"
+            >
+              +
+            </button>
+          </div>
+
+          <button
+            onClick={handleAddToCart}
+            className="w-auto px-8 sm:px-12 bg-[#f0c14b] hover:bg-[#e2b036] text-black font-bold h-12 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2.5 text-base"
+          >
+            <ShoppingCart size={20} />
+            Thêm vào giỏ hàng : {formatPrice(totalPrice)}
+          </button>
+        </div>
+
       </div>
     </div>,
     document.body
   );
 }
+

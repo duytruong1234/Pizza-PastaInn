@@ -8,7 +8,7 @@ import { X } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 
 export default function CartSidebar() {
-  const { isCartOpen, toggleCart, t } = useUI();
+  const { isCartOpen, toggleCart, t, tMenu } = useUI();
   const { items, removeFromCart, updateQuantity, totalItems, totalPrice } = useCartStore();
   const [isMounted, setIsMounted] = useState(false);
 
@@ -22,7 +22,7 @@ export default function CartSidebar() {
 
   return (
     <>
-      {/* Overlay when sidebar is open (mobile only) */}
+      {/* Overlay khi sidebar mở (chỉ trên mobile) */}
       {isCartOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-40 md:hidden" 
@@ -40,7 +40,7 @@ export default function CartSidebar() {
             <h2 className="text-white font-bold text-xl mb-1">{t('cart.title')}</h2>
             <p className="text-gray-400 text-sm">{t('cart.quantity')} {displayTotalItems} {t('cart.items')}</p>
           </div>
-          {/* Close button - visible only on mobile */}
+          {/* Nút đóng - chỉ hiển trên mobile */}
           <button onClick={toggleCart} className="p-2 text-gray-300 hover:text-white transition-colors md:hidden">
             <X size={24} />
           </button>
@@ -55,7 +55,7 @@ export default function CartSidebar() {
             displayItems.map((item) => (
               <div key={item.id} className="bg-[#d2a679]/30 rounded-md p-3 relative shadow-md border border-white/10">
                 <div className="flex justify-between items-start mb-1">
-                  <h3 className="text-white font-bold text-base w-3/4 drop-shadow-md">{item.name}</h3>
+                  <h3 className="text-white font-bold text-base w-3/4 drop-shadow-md">{tMenu(item.name)}</h3>
                   <div className="w-12 h-12 rounded-full overflow-hidden absolute top-2 right-2 border-2 border-white/20 shadow-sm">
                     <Image 
                       src={item.imageUrl || "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=100&auto=format&fit=crop"} 
@@ -67,9 +67,9 @@ export default function CartSidebar() {
                 </div>
                 
                 <div className="text-[11px] font-bold text-white/90 space-y-0.5 mb-2 w-2/3">
-                  {item.options?.size && <p>{t('cart.size')}: {item.options.size}</p>}
-                  {item.options?.crust && <p>{t('cart.crust')}: {item.options.crust}</p>}
-                  {item.options?.toppings && <p>{t('cart.topping')}: {item.options.toppings}</p>}
+                  {item.options?.size && <p>{t('cart.size')}: {tMenu(item.options.size)}</p>}
+                  {item.options?.crust && <p>{t('cart.crust')}: {tMenu(item.options.crust)}</p>}
+                  {item.options?.toppings && <p>{t('cart.topping')}: {item.options.toppings.split(', ').map((tp: string) => tMenu(tp)).join(', ')}</p>}
                   {item.options?.notes && (
                     <div className="bg-[#9f280a] inline-block px-1.5 py-0.5 mt-1 rounded text-[10px] text-white">
                       {t('cart.note')}: {item.options.notes}

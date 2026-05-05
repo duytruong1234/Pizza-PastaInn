@@ -2,9 +2,9 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export type CartItem = {
-  id: string; // unique id for cart item (frontend generated)
+  id: string; // ID duy nhất cho mục giỏ hàng (frontend tạo)
   dish_id: number;
-  dish_price_id: string; // The specific variant to save to DB
+  dish_price_id: string; // Biến thể cụ thể để lưu vào DB
   name: string;
   price: number;
   quantity: number;
@@ -35,11 +35,11 @@ export const useCartStore = create<CartStore>()(
       cart_id: null,
       items: [],
       addToCart: async (item) => {
-        // Optimistic UI update
+        // Cập nhật giao diện ngay lập tức
         const newItem = { ...item, id: Date.now().toString() };
         set((state) => ({ items: [...state.items, newItem] }));
 
-        // API Call to Database
+        // Gọi API đồng bộ với Database
         try {
           const res = await fetch('http://localhost:4000/api/cart/items', {
             method: 'POST',
@@ -59,7 +59,7 @@ export const useCartStore = create<CartStore>()(
             }
           }
         } catch (error) {
-          console.error('Failed to sync add to cart with DB', error);
+          console.error('Lỗi đồng bộ thêm vào giỏ hàng với DB', error);
         }
       },
       removeFromCart: async (id, dish_price_id) => {
@@ -79,7 +79,7 @@ export const useCartStore = create<CartStore>()(
               }),
             });
           } catch (error) {
-            console.error('Failed to sync remove from cart with DB', error);
+            console.error('Lỗi đồng bộ xóa giỏ hàng với DB', error);
           }
         }
       },
@@ -105,7 +105,7 @@ export const useCartStore = create<CartStore>()(
               }),
             });
           } catch (error) {
-            console.error('Failed to sync update cart with DB', error);
+            console.error('Lỗi đồng bộ cập nhật giỏ hàng với DB', error);
           }
         }
       },
@@ -121,7 +121,7 @@ export const useCartStore = create<CartStore>()(
       },
     }),
     {
-      name: 'cart-storage', // name of item in localStorage
+      name: 'cart-storage', // tên key trong localStorage
     }
   )
 );

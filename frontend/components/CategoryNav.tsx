@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, X } from 'lucide-react';
 import { useUI } from './UIProvider';
+import HalfHalfModal from './HalfHalfModal';
 
 type Category = {
   category_id: number;
@@ -15,15 +16,13 @@ export default function CategoryNav({ categories = [], activeCategoryId }: { cat
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
-  const { t } = useUI();
+  const [isHalfHalfModalOpen, setIsHalfHalfModalOpen] = useState(false);
+  const { t, tMenu } = useUI();
 
-  // If API categories fail, use a fallback
-  const displayCategories = categories.length > 0 ? categories : [
-    { category_id: 1, category_name: 'Pizza' },
-    { category_id: 2, category_name: 'Mỳ ý' },
-  ];
+  // Danh sách danh mục từ DB
+  const displayCategories = categories;
 
-  // If no active category is provided, default to the first one
+  // Nếu chưa chọn danh mục, mặc định chọn danh mục đầu tiên
   const currentActive = activeCategoryId || displayCategories[0]?.category_id;
 
   const handleSearch = (e?: React.FormEvent) => {
@@ -32,7 +31,7 @@ export default function CategoryNav({ categories = [], activeCategoryId }: { cat
     if (trimmed) {
       router.push(`/?search=${encodeURIComponent(trimmed)}`);
     } else {
-      // If search is empty, go back to active category or home
+      // Nếu ô tìm kiếm trống, quay lại danh mục đang chọn
       const categoryParam = searchParams.get('category');
       router.push(categoryParam ? `/?category=${categoryParam}` : '/');
     }
@@ -94,16 +93,23 @@ export default function CategoryNav({ categories = [], activeCategoryId }: { cat
               href={`/?category=${cat.category_id}`}
               onClick={() => setSearchQuery('')}
               className={`px-6 md:px-8 py-2 rounded-sm text-[13px] md:text-[15px] font-bold transition-colors shadow-md uppercase tracking-wide whitespace-nowrap text-center ${
-                cat.category_id === currentActive && !searchParams.get('search')
+                cat.category_id === currentActive && !searchParams.get('search') && searchParams.get('category') !== 'half-half'
                   ? 'bg-[#ee2828] text-white shadow-[0_0_10px_rgba(238,40,40,0.5)]'
                   : 'bg-[#294c29] text-gray-200 hover:bg-[#ee2828] hover:text-white'
               }`}
             >
-              {cat.category_name}
+              {tMenu(cat.category_name)}
             </Link>
           ))}
+          <button
+            onClick={() => setIsHalfHalfModalOpen(true)}
+            className={`px-6 md:px-8 py-2 rounded-sm text-[13px] md:text-[15px] font-bold transition-colors shadow-md uppercase tracking-wide whitespace-nowrap text-center bg-[#294c29] text-gray-200 hover:bg-[#ee2828] hover:text-white`}
+          >
+            {tMenu('HALF-HALF')}
+          </button>
         </div>
       </div>
+      <HalfHalfModal isOpen={isHalfHalfModalOpen} onClose={() => setIsHalfHalfModalOpen(false)} />
     </div>
   );
 }

@@ -24,7 +24,7 @@ interface ProductModalProps {
 
 export default function ProductModal({ isOpen, onClose, product, categoryName }: ProductModalProps) {
   const { addToCart } = useCartStore();
-  const { toggleCart, isCartOpen, t } = useUI();
+  const { toggleCart, isCartOpen, t, tMenu, tIngredient } = useUI();
 
   const [sizes, setSizes] = useState<any[]>([]);
   const [crusts, setCrusts] = useState<any[]>([]);
@@ -39,7 +39,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
   useEffect(() => {
     if (isOpen) {
       fetchData();
-      // Reset state
+      // Đặt lại trạng thái
       setQuantity(1);
       setSelectedToppings([]);
       setNote('');
@@ -56,7 +56,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
       const crustsData = await crustsRes.json();
       
       if (sizesData.success) {
-        // Filter sizes that actually exist in product prices
+        // Lọc size thực tế có trong giá sản phẩm
         const availableSizeIds = new Set(product.prices?.map(p => p.size_id).filter(id => id !== null));
         const availableSizes = sizesData.data.filter((s: any) => availableSizeIds.has(s.size_id));
         setSizes(availableSizes);
@@ -64,7 +64,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
         else setSelectedSize(null);
       }
       if (crustsData.success) {
-        // Filter crusts that actually exist in product prices
+        // Lọc đế bánh thực tế có trong giá sản phẩm
         const availableCrustIds = new Set(product.prices?.map(p => p.crust_id).filter(id => id !== null));
         const availableCrusts = crustsData.data.filter((c: any) => availableCrustIds.has(c.crust_id));
         setCrusts(availableCrusts);
@@ -72,11 +72,11 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
         else setSelectedCrust(null);
       }
     } catch (error) {
-      console.error('Failed to fetch options', error);
+      console.error('Lỗi khi lấy tùy chọn', error);
     }
   };
 
-  // Determine topping type based on category
+  // Xác định loại topping theo danh mục
   const toppingType = categoryName?.toLowerCase().includes('spaghetti') ? 'spaghetti' : 'pizza';
   const isSimpleProduct = categoryName?.toLowerCase().includes('salad') || categoryName?.toLowerCase().includes('drink');
 
@@ -89,7 +89,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
     if (selectedSize) {
       fetchToppings(selectedSize.size_id);
     } else if (sizes.length === 0) {
-      // If the product has no sizes, fetch global toppings
+      // Nếu sản phẩm không có size, lấy topping chung
       fetchToppings(null);
     }
   }, [selectedSize, sizes.length, toppingType, isSimpleProduct]);
@@ -105,7 +105,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
         setToppings(data.data);
       }
     } catch (error) {
-      console.error('Failed to fetch toppings', error);
+      console.error('Lỗi khi lấy topping', error);
     }
   };
 
@@ -119,14 +119,14 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
     );
   };
 
-  // Find the exact dish_price based on size and crust
+  // Tìm giá chính xác theo size và crust đã chọn
   let exactDishPriceObj: any = null;
   if (selectedSize || selectedCrust) {
     exactDishPriceObj = product.prices?.find(
       (p) => p.size_id === selectedSize?.size_id && p.crust_id === selectedCrust?.crust_id
     );
   }
-  // For products without size/crust (Salad, Drink), use the first price entry
+  // Sản phẩm không có size/crust (Salad, Drink) dùng giá đầu tiên
   if (!exactDishPriceObj && product.prices && product.prices.length > 0) {
     exactDishPriceObj = product.prices[0];
   }
@@ -164,7 +164,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
       <div className="flex min-h-full items-center justify-center p-2 sm:p-4">
         <div className="bg-[#9f280a] text-white w-full max-w-4xl rounded-2xl overflow-hidden flex flex-col md:flex-row shadow-2xl relative max-h-[none] md:max-h-[90vh]">
         
-        {/* Close Button */}
+        {/* Nút đóng */}
         <button 
           onClick={onClose}
           className="absolute top-2 right-2 md:top-4 md:right-4 z-20 w-8 h-8 flex items-center justify-center bg-black/40 hover:bg-black/60 rounded-full text-white transition-colors"
@@ -172,7 +172,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
           <X size={18} />
         </button>
 
-        {/* Left Side: Image */}
+        {/* Bên trái: Hình ảnh */}
         <div className="w-full md:w-1/2 relative h-[30vh] min-h-[200px] md:h-auto md:min-h-full shrink-0">
           <Image 
             src={product.imageUrl || 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=600&auto=format&fit=crop'}
@@ -182,13 +182,13 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
           />
         </div>
 
-        {/* Right Side: Details & Options */}
+        {/* Bên phải: Chi tiết & Tùy chọn */}
         <div className="w-full md:w-1/2 p-4 md:p-6 overflow-y-auto custom-scrollbar flex flex-col bg-[#9f280a] min-h-0">
-          <h2 className="text-4xl font-serif font-bold mb-2">{product.name}</h2>
-          <p className="text-sm text-white/80 mb-6">{product.ingredients}</p>
+          <h2 className="text-3xl md:text-4xl font-bold mb-2">{tMenu(product.name)?.normalize('NFC')}</h2>
+          <p className="text-sm text-white/80 mb-6">{tIngredient(product.ingredients)?.normalize('NFC')}</p>
 
           <div className="space-y-6 flex-1">
-            {/* Size */}
+            {/* Kích thước */}
             {sizes.length > 0 && (
               <div>
                 <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">{t('modal.size')}</h3>
@@ -203,20 +203,20 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
                           : 'bg-black/20 text-white hover:bg-black/30'
                       }`}
                     >
-                      {size.size_name}
+                      {tMenu(size.size_name)}
                     </button>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Crust */}
+            {/* Đế bánh */}
             {crusts.length > 0 && (
               <div>
                 <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">{t('modal.crust')}</h3>
                 <div className="space-y-2">
                   {crusts.map(crust => {
-                    // Find price for this crust + selected size combination
+                    // Tìm giá cho tổ hợp đế bánh + size đã chọn
                     const crustPrice = product.prices?.find(
                       (p: any) => p.size_id === selectedSize?.size_id && p.crust_id === crust.crust_id
                     );
@@ -232,7 +232,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
                           }`}>
                             {selectedCrust?.crust_id === crust.crust_id && <div className="w-2 h-2 bg-white rounded-full" />}
                           </div>
-                          <span className="text-sm">{crust.crust_name}</span>
+                          <span className="text-sm">{tMenu(crust.crust_name)}</span>
                         </div>
                         {crustPrice && (
                           <span className="text-sm font-bold">{formatPrice(crustPrice.dish_price)}</span>
@@ -244,7 +244,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
               </div>
             )}
 
-            {/* Toppings */}
+            {/* Topping thêm */}
             {toppings.length > 0 && (
               <div>
                 <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">{t('modal.toppings')}</h3>
@@ -263,7 +263,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
                           }`}>
                             {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
                           </div>
-                          <span className="text-sm">{topping.topping_name}</span>
+                          <span className="text-sm">{tMenu(topping.topping_name)}</span>
                         </div>
                         <span className="text-sm font-bold">{formatPrice(topping.price_topping)}</span>
                       </label>
@@ -273,7 +273,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
               </div>
             )}
 
-            {/* Notes */}
+            {/* Ghi chú */}
             <div>
               <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">{t('modal.notes')}</h3>
               <input 
@@ -286,7 +286,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
             </div>
           </div>
 
-          {/* Footer Actions */}
+          {/* Nút thao tác */}
           <div className="mt-8 pt-4 border-t border-white/20 flex flex-col items-center gap-4">
             <div className="flex items-center justify-center bg-white text-black rounded-xl overflow-hidden font-bold h-10 shadow-md">
               <button 

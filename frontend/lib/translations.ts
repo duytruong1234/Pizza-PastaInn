@@ -2,39 +2,42 @@ export type Language = 'vi' | 'en' | 'kr';
 
 export const translations: Record<Language, Record<string, string>> = {
   vi: {
-    // Header
+    // Tiêu đề
     'nav.menu': 'Thực đơn',
     'nav.branches': 'Chi nhánh',
     'nav.about': 'Giới thiệu',
     'nav.login': 'Đăng nhập',
+    'nav.logout': 'Đăng xuất',
 
-    // Search
+    // Tìm kiếm
     'search.placeholder': 'Tìm kiếm',
     'search.clearTitle': 'Xóa tìm kiếm',
 
-    // Search results
+    // Kết quả tìm kiếm
     'search.resultsFor': 'Kết quả tìm kiếm cho:',
     'search.results': 'kết quả',
 
-    // Empty state
+    // Trạng thái rỗng
     'empty.title': 'Không tìm thấy món nào',
     'empty.subtitle': 'Thử tìm kiếm với từ khóa khác nhé!',
 
-    // Promo
+    // Khuyến mãi
     'promo.halfHalf': 'Bạn muốn half/half pizza không?',
 
-    // Product Card
+    // Thẻ sản phẩm
     'product.addToCart': 'Thêm vào giỏ',
 
-    // Product Modal
+    // Modal sản phẩm
     'modal.size': 'Kích thước (*):',
     'modal.crust': 'Đế bánh (*):',
     'modal.toppings': 'Món thêm:',
     'modal.notes': 'Ghi chú:',
     'modal.notesPlaceholder': 'Hãy để lại ghi chú về lưu ý món ăn của bạn nhé!!!',
     'modal.addToCart': 'Thêm vào giỏ hàng',
+    'modal.combo.select': 'Chọn',
+    'modal.combo.selectRange': 'Chọn từ',
 
-    // Cart
+    // Giỏ hàng
     'cart.title': 'Giỏ hàng',
     'cart.quantity': 'Số lượng:',
     'cart.items': 'món',
@@ -51,39 +54,42 @@ export const translations: Record<Language, Record<string, string>> = {
   },
 
   en: {
-    // Header
+    // Tiêu đề
     'nav.menu': 'Menu',
     'nav.branches': 'Branches',
     'nav.about': 'About Us',
     'nav.login': 'Log in',
+    'nav.logout': 'Log out',
 
-    // Search
+    // Tìm kiếm
     'search.placeholder': 'Search',
     'search.clearTitle': 'Clear search',
 
-    // Search results
+    // Kết quả tìm kiếm
     'search.resultsFor': 'Search results for:',
     'search.results': 'results',
 
-    // Empty state
+    // Trạng thái rỗng
     'empty.title': 'No dishes found',
     'empty.subtitle': 'Try searching with different keywords!',
 
-    // Promo
+    // Khuyến mãi
     'promo.halfHalf': 'Go Half & Half?',
 
-    // Product Card
+    // Thẻ sản phẩm
     'product.addToCart': 'Add to cart',
 
-    // Product Modal
+    // Modal sản phẩm
     'modal.size': 'Size (*):',
     'modal.crust': 'Crust (*):',
     'modal.toppings': 'Extra toppings:',
     'modal.notes': 'Notes:',
     'modal.notesPlaceholder': 'Leave a note about your order...',
     'modal.addToCart': 'Add to cart',
+    'modal.combo.select': 'Select',
+    'modal.combo.selectRange': 'Select from',
 
-    // Cart
+    // Giỏ hàng
     'cart.title': 'My Cart',
     'cart.quantity': 'Quantity:',
     'cart.items': 'items',
@@ -100,39 +106,42 @@ export const translations: Record<Language, Record<string, string>> = {
   },
 
   kr: {
-    // Header
+    // Tiêu đề
     'nav.menu': '메뉴',
     'nav.branches': '매장',
     'nav.about': '소개',
     'nav.login': '로그인',
+    'nav.logout': '로그아웃',
 
-    // Search
+    // Tìm kiếm
     'search.placeholder': '검색',
     'search.clearTitle': '검색 지우기',
 
-    // Search results
+    // Kết quả tìm kiếm
     'search.resultsFor': '검색 결과:',
     'search.results': '결과',
 
-    // Empty state
+    // Trạng thái rỗng
     'empty.title': '메뉴를 찾을 수 없습니다',
     'empty.subtitle': '다른 키워드로 검색해 보세요!',
 
-    // Promo
+    // Khuyến mãi
     'promo.halfHalf': '하프 & 하프 피자?',
 
-    // Product Card
+    // Thẻ sản phẩm
     'product.addToCart': '장바구니',
 
-    // Product Modal
+    // Modal sản phẩm
     'modal.size': '사이즈 (*):',
     'modal.crust': '도우 (*):',
     'modal.toppings': '추가 토핑:',
     'modal.notes': '메모:',
     'modal.notesPlaceholder': '주문에 대한 메모를 남겨주세요...',
     'modal.addToCart': '장바구니에 추가',
+    'modal.combo.select': '선택',
+    'modal.combo.selectRange': '선택 범위',
 
-    // Cart
+    // Giỏ hàng
     'cart.title': '장바구니',
     'cart.quantity': '수량:',
     'cart.items': '개',

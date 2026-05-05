@@ -10,7 +10,7 @@ export default async function BranchesPage() {
       if (json.success) stores = json.data;
     }
   } catch (err) {
-    console.error('Failed to fetch stores:', err);
+    console.error('Lỗi khi lấy danh sách cửa hàng:', err);
   }
 
   return (

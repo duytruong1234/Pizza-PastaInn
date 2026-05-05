@@ -21,7 +21,7 @@ export function useAddToCart() {
       imageUrl: item.imageUrl || 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=300&auto=format&fit=crop',
     });
     
-    // Auto open cart if it's closed
+    // Tự động mở giỏ hàng nếu đang đóng
     if (!isCartOpen) {
       toggleCart();
     }
