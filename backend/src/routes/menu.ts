@@ -38,24 +38,29 @@ router.get('/crusts', async (req, res) => {
 router.get('/toppings', async (req, res) => {
   try {
     const { size_id, type } = req.query;
-    let conditions: string[] = [];
-    let params: any[] = [];
-    let paramIndex = 1;
-
+    
+    let where: any = {};
+    
     if (size_id) {
-      conditions.push(`(size_id = $${paramIndex} OR size_id IS NULL)`);
-      params.push(Number(size_id));
-      paramIndex++;
+      where.OR = [
+        { size_id: Number(size_id) },
+        { size_id: null }
+      ];
     }
-
+    
     if (type === 'spaghetti') {
-      conditions.push(`is_for_spaghetti = true`);
+      where.is_for_spaghetti = true;
     } else if (type === 'pizza') {
-      conditions.push(`is_for_pizza = true`);
+      where.is_for_pizza = true;
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-    const toppings = await prisma.$queryRawUnsafe(`SELECT * FROM toppings ${whereClause}`, ...params);
+    const toppings = await prisma.topping.findMany({
+      where,
+      include: {
+        sizes: true
+      }
+    });
+    
     sendSuccess(res, { data: toppings });
   } catch (error: any) {
     console.error('Topping error:', error?.message || error);

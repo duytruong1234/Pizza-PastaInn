@@ -12,9 +12,10 @@ export type CartItem = {
   options?: {
     size?: string;
     crust?: string;
-    toppings?: string;
+    toppings?: string | any[];
     notes?: string;
     extraPrice?: number;
+    comboItems?: any[];
   };
 };
 

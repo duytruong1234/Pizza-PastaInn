@@ -8,7 +8,6 @@ import ProductModal from './ProductModal';
 import ComboModal from './ComboModal';
 import HalfHalfModal from './HalfHalfModal';
 import { useState } from 'react';
-import { useUI } from './UIProvider';
 
 interface ProductCardProps {
   id: number;
@@ -42,7 +41,6 @@ export default function ProductCard({
   const isImageLeft = layout === 'image-left';
   const { handleAddToCart } = useAddToCart();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { t, tMenu, tIngredient } = useUI();
   
   // Màu nền theo chủ đề
   const bgClass = theme === 'green' ? 'bg-[#294c29]/60' : 'bg-[#9f280a]/60';
@@ -74,10 +72,10 @@ export default function ProductCard({
 
         {/* Content Area */}
         <div className={`flex flex-col flex-1 h-full py-1 justify-center ${isImageLeft ? 'ml-36 lg:ml-44 pr-1' : 'mr-36 lg:mr-44 pl-1'}`}>
-          <h3 className="text-white font-bold text-base lg:text-lg mb-1 leading-tight line-clamp-1">{tMenu(name)}</h3>
+          <h3 className="text-white font-bold text-base lg:text-lg mb-1 leading-tight line-clamp-1">{name}</h3>
           {ingredients && (
             <p className="text-gray-300 text-[10px] lg:text-xs leading-snug mb-3">
-              {tIngredient(ingredients)}
+              {ingredients}
             </p>
           )}
           
@@ -91,7 +89,7 @@ export default function ProductCard({
                   onClick={onAddToCartClick}
                   className="bg-[#ee2828] hover:bg-red-700 text-white text-[10px] lg:text-xs font-bold px-3 py-1.5 lg:px-4 lg:py-2 rounded-md shadow-lg transition-all active:scale-95"
                 >
-                  {t('product.addToCart')}
+                  {"Add to Cart"}
                 </button>
               </>
             ) : (
@@ -100,7 +98,7 @@ export default function ProductCard({
                   onClick={onAddToCartClick}
                   className="bg-[#007a3f] hover:bg-green-700 text-white text-[10px] lg:text-xs font-bold px-3 py-1.5 lg:px-4 lg:py-2 rounded-md shadow-lg transition-all active:scale-95"
                 >
-                  {t('product.addToCart')}
+                  {"Add to Cart"}
                 </button>
                 <div className="bg-white px-2 py-1 lg:px-2.5 lg:py-1.5 rounded-md text-xs lg:text-sm font-extrabold shadow-inner">
                   <span className="text-[#ee2828]">{formatPrice(price)}</span>

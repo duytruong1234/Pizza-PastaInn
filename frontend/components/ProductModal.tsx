@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
-import { X } from 'lucide-react';
+import { X, ShoppingCart, Check } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useUI } from '@/components/UIProvider';
 
@@ -24,7 +24,7 @@ interface ProductModalProps {
 
 export default function ProductModal({ isOpen, onClose, product, categoryName }: ProductModalProps) {
   const { addToCart } = useCartStore();
-  const { toggleCart, isCartOpen, t, tMenu, tIngredient } = useUI();
+  const { toggleCart, isCartOpen } = useUI();
 
   const [sizes, setSizes] = useState<any[]>([]);
   const [crusts, setCrusts] = useState<any[]>([]);
@@ -37,13 +37,21 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
   const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
+    const mainContainer = document.getElementById('main-scroll-container');
     if (isOpen) {
+      if (mainContainer) mainContainer.style.overflow = 'hidden';
       fetchData();
       // Đặt lại trạng thái
       setQuantity(1);
       setSelectedToppings([]);
       setNote('');
+    } else {
+      if (mainContainer) mainContainer.style.overflow = '';
     }
+
+    return () => {
+      if (mainContainer) mainContainer.style.overflow = '';
+    };
   }, [isOpen]);
 
   const fetchData = async () => {
@@ -54,7 +62,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
       ]);
       const sizesData = await sizesRes.json();
       const crustsData = await crustsRes.json();
-      
+
       if (sizesData.success) {
         // Lọc size thực tế có trong giá sản phẩm
         const availableSizeIds = new Set(product.prices?.map(p => p.size_id).filter(id => id !== null));
@@ -77,7 +85,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
   };
 
   // Xác định loại topping theo danh mục
-  const toppingType = categoryName?.toLowerCase().includes('spaghetti') ? 'spaghetti' : 'pizza';
+  const toppingType = (categoryName?.toLowerCase().includes('spaghetti') || categoryName?.toLowerCase().includes('gratin') || categoryName?.toLowerCase().includes('risotto')) ? 'spaghetti' : 'pizza';
   const isSimpleProduct = categoryName?.toLowerCase().includes('salad') || categoryName?.toLowerCase().includes('drink');
 
   useEffect(() => {
@@ -96,13 +104,14 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
 
   const fetchToppings = async (size_id: number | null) => {
     try {
-      let url = size_id 
+      let url = size_id
         ? `http://localhost:4000/api/menu/toppings?size_id=${size_id}&type=${toppingType}`
         : `http://localhost:4000/api/menu/toppings?type=${toppingType}`;
       const res = await fetch(url);
       const data = await res.json();
       if (data.success) {
-        setToppings(data.data);
+        const sortedToppings = data.data.sort((a: any, b: any) => a.topping_id - b.topping_id);
+        setToppings(sortedToppings);
       }
     } catch (error) {
       console.error('Lỗi khi lấy topping', error);
@@ -112,7 +121,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
   if (!isOpen) return null;
 
   const handleToppingToggle = (topping: any) => {
-    setSelectedToppings(prev => 
+    setSelectedToppings(prev =>
       prev.some(t => t.topping_id === topping.topping_id)
         ? prev.filter(t => t.topping_id !== topping.topping_id)
         : [...prev, topping]
@@ -130,15 +139,15 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
   if (!exactDishPriceObj && product.prices && product.prices.length > 0) {
     exactDishPriceObj = product.prices[0];
   }
-  
+
   const currentBasePrice = exactDishPriceObj ? exactDishPriceObj.dish_price : product.basePrice;
   const extraToppingsPrice = selectedToppings.reduce((sum, t) => sum + (t.price_topping || 0), 0);
   const totalPrice = (currentBasePrice + extraToppingsPrice) * quantity;
 
   const handleAddToCart = () => {
-    const dish_price_id = exactDishPriceObj?.dish_price_id 
+    const dish_price_id = exactDishPriceObj?.dish_price_id
       || `${product.id}_default`;
-    
+
     addToCart({
       dish_id: product.id,
       dish_price_id,
@@ -149,7 +158,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
       options: {
         size: selectedSize?.size_name,
         crust: selectedCrust?.crust_name,
-        toppings: selectedToppings.map(t => t.topping_name).join(', '),
+        toppings: selectedToppings.map(t => ({ name: t.topping_name, price: t.price_topping || 0 })),
         notes: note,
         extraPrice: extraToppingsPrice
       }
@@ -160,162 +169,162 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] overflow-y-auto custom-scrollbar bg-black/60 backdrop-blur-sm">
-      <div className="flex min-h-full items-center justify-center p-2 sm:p-4">
-        <div className="bg-[#9f280a] text-white w-full max-w-4xl rounded-2xl overflow-hidden flex flex-col md:flex-row shadow-2xl relative max-h-[none] md:max-h-[90vh]">
-        
-        {/* Nút đóng */}
-        <button 
-          onClick={onClose}
-          className="absolute top-2 right-2 md:top-4 md:right-4 z-20 w-8 h-8 flex items-center justify-center bg-black/40 hover:bg-black/60 rounded-full text-white transition-colors"
-        >
-          <X size={18} />
-        </button>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#9f280a] text-white w-full max-w-4xl rounded-2xl overflow-hidden flex flex-col md:flex-row shadow-2xl relative max-h-[95vh]">
 
-        {/* Bên trái: Hình ảnh */}
-        <div className="w-full md:w-1/2 relative h-[30vh] min-h-[200px] md:h-auto md:min-h-full shrink-0">
-          <Image 
-            src={product.imageUrl || 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=600&auto=format&fit=crop'}
-            alt={product.name}
-            fill
-            className="object-cover"
-          />
-        </div>
+          {/* Nút đóng */}
+          <button
+            onClick={onClose}
+            className="absolute top-2 right-2 md:top-4 md:right-4 z-20 w-8 h-8 flex items-center justify-center bg-black/40 hover:bg-black/60 rounded-full text-white transition-colors"
+          >
+            <X size={18} />
+          </button>
 
-        {/* Bên phải: Chi tiết & Tùy chọn */}
-        <div className="w-full md:w-1/2 p-4 md:p-6 overflow-y-auto custom-scrollbar flex flex-col bg-[#9f280a] min-h-0">
-          <h2 className="text-3xl md:text-4xl font-bold mb-2">{tMenu(product.name)?.normalize('NFC')}</h2>
-          <p className="text-sm text-white/80 mb-6">{tIngredient(product.ingredients)?.normalize('NFC')}</p>
-
-          <div className="space-y-6 flex-1">
-            {/* Kích thước */}
-            {sizes.length > 0 && (
-              <div>
-                <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">{t('modal.size')}</h3>
-                <div className="flex gap-3">
-                  {sizes.map(size => (
-                    <button
-                      key={size.size_id}
-                      onClick={() => setSelectedSize(size)}
-                      className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${
-                        selectedSize?.size_id === size.size_id 
-                          ? 'bg-white text-[#9f280a]' 
-                          : 'bg-black/20 text-white hover:bg-black/30'
-                      }`}
-                    >
-                      {tMenu(size.size_name)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Đế bánh */}
-            {crusts.length > 0 && (
-              <div>
-                <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">{t('modal.crust')}</h3>
-                <div className="space-y-2">
-                  {crusts.map(crust => {
-                    // Tìm giá cho tổ hợp đế bánh + size đã chọn
-                    const crustPrice = product.prices?.find(
-                      (p: any) => p.size_id === selectedSize?.size_id && p.crust_id === crust.crust_id
-                    );
-                    return (
-                      <label 
-                        key={crust.crust_id} 
-                        className="flex items-center justify-between cursor-pointer group"
-                        onClick={() => setSelectedCrust(crust)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                            selectedCrust?.crust_id === crust.crust_id ? 'border-white' : 'border-white/50 group-hover:border-white/80'
-                          }`}>
-                            {selectedCrust?.crust_id === crust.crust_id && <div className="w-2 h-2 bg-white rounded-full" />}
-                          </div>
-                          <span className="text-sm">{tMenu(crust.crust_name)}</span>
-                        </div>
-                        {crustPrice && (
-                          <span className="text-sm font-bold">{formatPrice(crustPrice.dish_price)}</span>
-                        )}
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Topping thêm */}
-            {toppings.length > 0 && (
-              <div>
-                <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">{t('modal.toppings')}</h3>
-                <div className="space-y-2">
-                  {toppings.map(topping => {
-                    const isSelected = selectedToppings.some(t => t.topping_id === topping.topping_id);
-                    return (
-                      <label 
-                        key={topping.topping_id} 
-                        className="flex items-center justify-between cursor-pointer group"
-                        onClick={() => handleToppingToggle(topping)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                            isSelected ? 'border-white' : 'border-white/50 group-hover:border-white/80'
-                          }`}>
-                            {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
-                          </div>
-                          <span className="text-sm">{tMenu(topping.topping_name)}</span>
-                        </div>
-                        <span className="text-sm font-bold">{formatPrice(topping.price_topping)}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Ghi chú */}
-            <div>
-              <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">{t('modal.notes')}</h3>
-              <input 
-                type="text"
-                placeholder={t('modal.notesPlaceholder')}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg bg-white text-black text-sm outline-none"
-              />
-            </div>
+          {/* Bên trái: Hình ảnh */}
+          <div className="w-full md:w-1/2 relative h-[30vh] min-h-[200px] md:h-auto md:min-h-full shrink-0">
+            <Image
+              src={product.imageUrl || 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=600&auto=format&fit=crop'}
+              alt={product.name}
+              fill
+              className="object-cover"
+            />
           </div>
 
-          {/* Nút thao tác */}
-          <div className="mt-8 pt-4 border-t border-white/20 flex flex-col items-center gap-4">
-            <div className="flex items-center justify-center bg-white text-black rounded-xl overflow-hidden font-bold h-10 shadow-md">
-              <button 
-                onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                className="px-4 h-full hover:bg-gray-200 transition-colors flex items-center justify-center text-xl"
+          {/* Bên phải: Chi tiết & Tùy chọn */}
+          <div className="w-full md:w-1/2 flex flex-col bg-[#9f280a] min-h-0 relative">
+            <div className="p-4 md:p-6 pb-2 overflow-y-auto custom-scrollbar flex-1">
+              <h2 className="text-3xl md:text-4xl font-bold mb-2">{product.name?.normalize('NFC')}</h2>
+              <p className="text-sm text-white/80 mb-6">{product.ingredients?.normalize('NFC')}</p>
+
+              <div className="space-y-6">
+              {/* Kích thước */}
+              {sizes.length > 0 && (
+                <div>
+                  <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">{"Size (*):"}</h3>
+                  <div className="flex gap-3">
+                    {sizes.map(size => (
+                      <button
+                        key={size.size_id}
+                        onClick={() => setSelectedSize(size)}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${selectedSize?.size_id === size.size_id
+                            ? 'bg-white text-[#9f280a]'
+                            : 'bg-black/20 text-white hover:bg-black/30'
+                          }`}
+                      >
+                        {size.size_name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Đế bánh */}
+              {crusts.length > 0 && (
+                <div>
+                  <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">{"Crust (*):"}</h3>
+                  <div className="space-y-2">
+                    {crusts.map(crust => {
+                      // Tìm giá cho tổ hợp đế bánh + size đã chọn
+                      const crustPrice = product.prices?.find(
+                        (p: any) => p.size_id === selectedSize?.size_id && p.crust_id === crust.crust_id
+                      );
+                      return (
+                        <label
+                          key={crust.crust_id}
+                          className="flex items-center justify-between cursor-pointer group"
+                          onClick={() => setSelectedCrust(crust)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedCrust?.crust_id === crust.crust_id ? 'border-white' : 'border-white/50 group-hover:border-white/80'
+                              }`}>
+                              {selectedCrust?.crust_id === crust.crust_id && <div className="w-2 h-2 bg-white rounded-full" />}
+                            </div>
+                            <span className="text-sm">{crust.crust_name}</span>
+                          </div>
+                          {crustPrice && (
+                            <span className="text-sm font-bold">{formatPrice(crustPrice.dish_price)}</span>
+                          )}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Topping thêm */}
+              {toppings.length > 0 && (
+                <div>
+                  <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">{"Extra Toppings:"}</h3>
+                  <div className="space-y-2">
+                    {toppings.map(topping => {
+                      const isSelected = selectedToppings.some(t => t.topping_id === topping.topping_id);
+                      return (
+                        <label
+                          key={topping.topping_id}
+                          className="flex items-center justify-between cursor-pointer group"
+                          onClick={() => handleToppingToggle(topping)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${isSelected ? 'border-white bg-white' : 'border-white/50 group-hover:border-white/80'
+                              }`}>
+                              {isSelected && <Check size={10} className="text-[#9f280a]" />}
+                            </div>
+                            <span className="text-sm">
+                              {topping.topping_name}
+                            </span>
+                          </div>
+                          <span className="text-sm font-bold">{formatPrice(topping.price_topping)}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Ghi chú */}
+              <div>
+                <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">{"Note:"}</h3>
+                <input
+                  type="text"
+                  placeholder={"Leave a note about your order here..."}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg bg-white text-black text-sm outline-none"
+                />
+              </div>
+              </div>
+            </div>
+
+            {/* Nút thao tác */}
+            <div className="p-4 md:p-6 pt-4 border-t border-white/20 flex flex-col items-center gap-4 bg-[#9f280a] shrink-0">
+              <div className="flex items-center justify-center bg-white text-black rounded-xl overflow-hidden font-bold h-10 w-28 shadow-md">
+                <button
+                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  className="flex-1 h-full hover:bg-gray-200 transition-colors flex items-center justify-center text-xl"
+                >
+                  -
+                </button>
+                <span className="w-8 text-center text-lg">{quantity}</span>
+                <button
+                  onClick={() => setQuantity(q => q + 1)}
+                  className="flex-1 h-full hover:bg-gray-200 transition-colors flex items-center justify-center text-xl"
+                >
+                  +
+                </button>
+              </div>
+
+              <button
+                onClick={handleAddToCart}
+                className="w-full sm:w-[90%] bg-[#f0c14b] hover:bg-[#e2b036] text-black font-bold py-3 px-6 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2.5 text-base"
               >
-                -
-              </button>
-              <span className="w-10 text-center text-lg">{quantity}</span>
-              <button 
-                onClick={() => setQuantity(q => q + 1)}
-                className="px-4 h-full hover:bg-gray-200 transition-colors flex items-center justify-center text-xl"
-              >
-                +
+                <ShoppingCart size={20} />
+                <span>{"Add to Cart"} : {formatPrice(totalPrice)}</span>
               </button>
             </div>
 
-            <button 
-              onClick={handleAddToCart}
-              className="w-full sm:w-[90%] bg-[#f0c14b] hover:bg-[#e2b036] text-black font-bold py-3 px-6 rounded-xl transition-colors shadow-lg text-center text-base"
-            >
-              {t('modal.addToCart')} : {formatPrice(totalPrice)}
-            </button>
           </div>
-
         </div>
-        </div>
-      </div>
-    </div>,
-    document.body
-  );
-}
+      </div>,
+      document.body
+    );
+  }

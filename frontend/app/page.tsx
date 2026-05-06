@@ -1,9 +1,10 @@
 import Image from 'next/image';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import CategoryNav from '@/components/CategoryNav';
 import CartSidebar from '@/components/CartSidebar';
 import ProductCard from '@/components/ProductCard';
-import { PromoBanner, SearchResultsBanner, EmptyState } from '@/components/PageTranslations';
+import { SearchResultsBanner, EmptyState } from '@/components/PageComponents';
 
 export default async function Home(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const searchParams = await props.searchParams;
@@ -100,6 +101,33 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
           }
         }
       }
+
+      // Khi đang tìm kiếm, cũng fetch thêm combos để hiển thị trong kết quả
+      if (searchQuery) {
+        try {
+          const comboRes = await fetch('http://localhost:4000/api/menu/combos', { cache: 'no-store' });
+          if (comboRes.ok) {
+            const comboJson = await comboRes.json();
+            if (comboJson.success) {
+              const comboProducts = comboJson.data.map((combo: any, index: number) => ({
+                id: combo.combo_id,
+                name: combo.combo_name,
+                ingredients: combo.description || '',
+                price: combo.combo_price || 0,
+                dish_price_id: null,
+                prices: [],
+                theme: index % 2 === 0 ? 'green' : 'red',
+                layout: index % 2 === 0 ? 'image-left' : 'image-right',
+                imageUrl: combo.image || 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=300&auto=format&fit=crop',
+                isCombo: true
+              }));
+              products = [...products, ...comboProducts];
+            }
+          }
+        } catch (comboErr) {
+          console.error('Lỗi khi lấy combo cho tìm kiếm:', comboErr);
+        }
+      }
     }
   } catch (err) {
     console.error('Lỗi khi lấy sản phẩm:', err);
@@ -139,16 +167,13 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
         <div className="flex-1 flex flex-col z-10 overflow-hidden">
           <CategoryNav categories={categories} activeCategoryId={activeCategoryId} />
           
-          <main className="flex-1 p-6 overflow-y-auto custom-scrollbar">
+          <main id="main-scroll-container" className="flex-1 p-6 overflow-y-auto custom-scrollbar">
           {/* Banner kết quả tìm kiếm */}
           {searchQuery && (
             <SearchResultsBanner query={searchQuery} count={products.length} />
           )}
 
-          {/* Banner khuyến mãi - ẩn khi tìm kiếm, chỉ hiển cho Pizza */}
-          {!searchQuery && isPizzaCategory && (
-            <PromoBanner />
-          )}
+
 
           {/* Trạng thái rỗng */}
           {products.length === 0 && (
@@ -156,7 +181,7 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
           )}
 
           {/* Lưới sản phẩm */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-10 lg:gap-x-12 gap-y-10 lg:gap-y-16 justify-items-center max-w-[1100px] mx-auto px-12 lg:px-20 py-4">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-10 lg:gap-x-16 gap-y-10 lg:gap-y-16 justify-items-center max-w-[1400px] mx-auto px-6 lg:px-12 py-4">
             {products.map((p, index) => (
               <ProductCard
                 key={p.id}
@@ -175,12 +200,15 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
               />
             ))}
           </div>
+
+          {/* Footer */}
+          <Footer />
         </main>
         </div>
-
-        {/* Bên phải: Giỏ hàng */}
-        <CartSidebar />
       </div>
+
+      {/* Giỏ hàng (fixed overlay) */}
+      <CartSidebar />
     </div>
   );
 }

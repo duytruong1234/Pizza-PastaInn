@@ -17,7 +17,7 @@ const CustomSelect = ({ value, options, onChange }: { value: any, options: { val
         className="w-full bg-white/10 border border-white/20 text-white rounded-lg p-2.5 flex items-center justify-between cursor-pointer hover:bg-white/15 transition-colors"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="text-sm truncate">{selectedOption ? selectedOption.label : "Chọn..."}</span>
+        <span className="text-sm truncate">{selectedOption ? selectedOption.label : "Select..."}</span>
         <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </div>
 
@@ -29,8 +29,8 @@ const CustomSelect = ({ value, options, onChange }: { value: any, options: { val
               <div
                 key={option.value}
                 className={`px-3 py-2.5 text-sm cursor-pointer transition-colors ${value === option.value
-                    ? 'bg-white/20 font-bold'
-                    : 'hover:bg-white/10'
+                  ? 'bg-white/20 font-bold'
+                  : 'hover:bg-white/10'
                   }`}
                 onClick={() => {
                   onChange(option.value);
@@ -59,7 +59,7 @@ interface ComboModalProps {
 
 export default function ComboModal({ isOpen, onClose, comboId, comboName, comboPrice, comboDescription, imageUrl }: ComboModalProps) {
   const { addToCart } = useCartStore();
-  const { toggleCart, isCartOpen, tMenu, tIngredient } = useUI();
+  const { toggleCart, isCartOpen } = useUI();
 
   const [comboDetail, setComboDetail] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -152,7 +152,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
             } else if (isPizzaGroup) {
               const firstItem = group.combo_items[0];
               initialPizzaDishes[group.group_id] = firstItem.dish_price.dish_id;
-              
+
               const secondItem = group.combo_items.find((i: any) => i.dish_price.dish_id !== firstItem.dish_price.dish_id) || firstItem;
               initialPizzaDishes2[group.group_id] = secondItem.dish_price.dish_id;
               initialPizzaHalf[group.group_id] = false;
@@ -212,18 +212,18 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
     group.combo_items.forEach((item: any) => {
       if (selectedItemIds.includes(String(item.combo_item_id))) {
         let itemExtra = item.price_extra || 0;
-        
+
         if (isHalf && dish2Id) {
-           const dish2Item = group.combo_items.find((i: any) => 
-               i.dish_price?.dish_id === dish2Id && 
-               i.dish_price?.size_id === item.dish_price?.size_id &&
-               i.dish_price?.crust_id === item.dish_price?.crust_id
-           );
-           const item2Extra = dish2Item?.price_extra || 0;
-           // Theo mặc định, lấy mức phụ thu cao hơn giữa 2 nửa (có thể đổi sang trung bình cộng nếu cần)
-           extraItemsPrice += Math.max(itemExtra, item2Extra);
+          const dish2Item = group.combo_items.find((i: any) =>
+            i.dish_price?.dish_id === dish2Id &&
+            i.dish_price?.size_id === item.dish_price?.size_id &&
+            i.dish_price?.crust_id === item.dish_price?.crust_id
+          );
+          const item2Extra = dish2Item?.price_extra || 0;
+          // Theo mặc định, lấy mức phụ thu cao hơn giữa 2 nửa (có thể đổi sang trung bình cộng nếu cần)
+          extraItemsPrice += Math.max(itemExtra, item2Extra);
         } else {
-           extraItemsPrice += itemExtra;
+          extraItemsPrice += itemExtra;
         }
       }
     });
@@ -238,9 +238,22 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
 
   const totalPrice = (comboPrice + extraItemsPrice + extraToppingsPrice) * quantity;
 
+  const sortedGroups = [...(comboDetail?.groups || [])].sort((a: any, b: any) => {
+    const getScore = (name: string) => {
+      const lower = name.toLowerCase();
+      if (lower.includes('pizza')) return 1;
+      if (lower.includes('salad')) return 2;
+      if (lower.includes('gratin') || lower.includes('grantin') || lower.includes('risotto') || lower.includes('spaghetti')) return 3;
+      return 4;
+    };
+    return getScore(a.group_name) - getScore(b.group_name);
+  });
+
   const handleAddToCart = () => {
     const selectedItemNames: string[] = [];
-    comboDetail?.groups?.forEach((group: any) => {
+    const structuredItems: any[] = [];
+
+    sortedGroups.forEach((group: any) => {
       const selectedItemIds = selections[group.group_id] || [];
       group.combo_items.forEach((item: any) => {
         if (selectedItemIds.includes(String(item.combo_item_id))) {
@@ -253,39 +266,56 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
           let label = '';
           const isHalf = pizzaHalfSelections[group.group_id];
           const dish2Id = pizzaDish2Selections[group.group_id];
+          let finalDishName = dishName;
+
           if (isHalf && dish2Id) {
-             const dish2Name = group.combo_items.find((i:any) => i.dish_price?.dish_id === dish2Id)?.dish_price?.dish?.dish_name || '';
-             label = `[Half-Half] ${tMenu(dishName)} / ${tMenu(dish2Name)}`;
+            const dish2Name = group.combo_items.find((i: any) => i.dish_price?.dish_id === dish2Id)?.dish_price?.dish?.dish_name || '';
+            finalDishName = `[Half-Half] ${dishName} / ${dish2Name}`;
+            label = finalDishName;
           } else {
-             label = tMenu(dishName);
+            label = dishName;
           }
 
           if (crustName && crustName !== 'None') label += ` (${crustName})`;
-          if (sizeName && sizeName !== 'Standard') label += ` - ${tMenu(sizeName)}`;
+          if (sizeName && sizeName !== 'Standard') label += ` - ${sizeName}`;
 
           const groupToppings = selectedToppings[group.group_id] || [];
           if (groupToppings.length > 0) {
-            label += ` + [${groupToppings.map(t => tMenu(t.topping_name)).join(', ')}]`;
+            label += ` + [${groupToppings.map(t => t.topping_name).join(', ')}]`;
           }
 
+          let qtyPrefix = '';
           if (group.max_select > 1 && group.combo_items.length === 1) {
-            label = `${group.max_select} x ${label}`;
+            qtyPrefix = `${group.max_select} x `;
+            label = `${qtyPrefix}${label}`;
+          } else if (comboName.toLowerCase().includes('happy family') && dishName.toLowerCase() === 'pepsi') {
+            // Ngoại lệ cho Combo Happy Family: tự động hiển thị 4 x khi thêm vào giỏ hàng
+            qtyPrefix = '4 x ';
+            label = `${qtyPrefix}${label}`;
           }
 
           selectedItemNames.push(label);
+
+          structuredItems.push({
+            name: qtyPrefix + finalDishName,
+            size: sizeName && sizeName !== 'Standard' ? sizeName : undefined,
+            crust: crustName && crustName !== 'None' ? crustName : undefined,
+            toppings: groupToppings.map(t => ({ name: t.topping_name, price: t.price_topping || 0 }))
+          });
         }
       });
     });
 
     addToCart({
       dish_id: comboId,
-      dish_price_id: `combo_${comboId}`,
+      dish_price_id: `combo_${comboId}_${Date.now()}`,
       name: comboName,
       price: comboPrice + extraItemsPrice + extraToppingsPrice,
       quantity,
       imageUrl,
       options: {
         toppings: selectedItemNames.join(' | '),
+        comboItems: structuredItems,
         notes: note,
         extraPrice: extraItemsPrice + extraToppingsPrice,
       }
@@ -298,10 +328,11 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
   const fixedGroups: any[] = [];
   const choiceGroups: any[] = [];
 
-  comboDetail?.groups?.forEach((group: any) => {
-    // Lọc ra những món (dish) còn đang kích hoạt (dish_status = true)
-    const activeItems = group.combo_items?.filter((item: any) => item.dish_price?.dish?.dish_status === true);
-    if (!activeItems || activeItems.length === 0) return; // Nếu nhóm không có món nào active thì bỏ qua
+
+  sortedGroups.forEach((group: any) => {
+    // Không lọc theo dish_status nữa để hiển thị cả những món ẩn/hết hàng nhưng thuộc combo
+    const activeItems = group.combo_items || [];
+    if (!activeItems || activeItems.length === 0) return; // Nếu nhóm không có món nào thì bỏ qua
 
     const activeGroup = { ...group, combo_items: activeItems };
     const isFixed = activeItems.length === 1 && activeGroup.min_select === activeGroup.max_select;
@@ -322,15 +353,15 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
           >
             <X size={18} />
           </button>
-          <h2 className="text-2xl md:text-3xl font-bold uppercase tracking-wide pr-8 mb-2">{tMenu(comboName)?.normalize('NFC')}</h2>
+          <h2 className="text-2xl md:text-3xl font-bold uppercase tracking-wide pr-8 mb-2">{comboName?.normalize('NFC')}</h2>
           <div className="text-white/90 text-[15px] mb-3 flex items-baseline gap-2">
-            <span>Giá:</span>
+            <span>Price:</span>
             <span className="text-2xl font-bold text-[#f0c14b] tracking-wide">
-              {formatPrice(comboPrice + extraItemsPrice + extraToppingsPrice)}
+              {formatPrice(comboPrice)}
             </span>
           </div>
           {comboDescription && (
-            <p className="text-white/80 text-sm">{tIngredient(comboDescription)?.normalize('NFC')}</p>
+            <p className="text-white/80 text-sm">{comboDescription?.normalize('NFC')}</p>
           )}
         </div>
 
@@ -341,19 +372,20 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
               <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             </div>
           ) : (
-            <div className="max-w-2xl mx-auto space-y-6">
+            <div className="max-w-2xl mx-auto flex flex-col gap-6">
               {choiceGroups.map((group, index) => {
                 const groupNameLower = group.group_name.toLowerCase();
                 const isPizzaGroup = groupNameLower.includes('pizza');
                 const isPastaGroup = groupNameLower.includes('spaghetti') || groupNameLower.includes('grantin') || groupNameLower.includes('risotto') || groupNameLower.includes('gratin');
 
+                const isDrink = groupNameLower.includes('pepsi') || groupNameLower.includes('coca') || groupNameLower.includes('nước') || groupNameLower.includes('drink');
                 return (
-                  <div key={group.group_id}>
-                    <h3 className="font-bold text-lg mb-1 border-b border-white/20 pb-1">{tMenu(group.group_name)}</h3>
+                  <div key={group.group_id} className={isDrink ? 'order-3' : 'order-1'}>
+                    <h3 className="font-bold text-lg mb-1 border-b border-white/20 pb-1">{group.group_name}</h3>
                     <p className="text-xs text-white/60 mb-4">
                       {group.min_select === group.max_select
-                        ? `Chọn ${group.min_select}`
-                        : `Chọn từ ${group.min_select} - ${group.max_select}`
+                        ? `Select ${group.min_select}`
+                        : `Select ${group.min_select} - ${group.max_select}`
                       }
                     </p>
 
@@ -372,10 +404,12 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                         const currentDishData = dishMap.get(selectedDishId);
                         const selectedComboItemId = selections[group.group_id]?.[0];
 
-                        const dishOptions = uniqueDishes.map((ud: any) => ({
-                          value: ud.dish.dish_id,
-                          label: tMenu(ud.dish.dish_name)
-                        }));
+                        const dishOptions = uniqueDishes
+                          .filter((ud: any) => !ud.dish.dish_name.toLowerCase().includes('half-half') && !ud.dish.dish_name.toLowerCase().includes('half half'))
+                          .map((ud: any) => ({
+                            value: ud.dish.dish_id,
+                            label: ud.dish.dish_name
+                          }));
 
                         const sizeMap = new Map();
                         const isHalf = pizzaHalfSelections[group.group_id] || false;
@@ -387,7 +421,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                           const crustId = item1.dish_price.crust_id || 0;
 
                           if (isHalf && currentDishData2) {
-                            const hasMatch = currentDishData2.items.some((item2: any) => 
+                            const hasMatch = currentDishData2.items.some((item2: any) =>
                               (item2.dish_price.size_id || 0) === sizeId
                             );
                             if (!hasMatch) return; // Nửa 2 không có size này thì bỏ qua
@@ -399,7 +433,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                           sizeMap.get(sizeId).items.push(item1);
                         });
                         const uniqueSizes = Array.from(sizeMap.values());
-                        
+
                         // Lấy size đang chọn hoặc mặc định size đầu tiên nếu chưa chọn
                         const rawSelectedSizeId = pizzaSizeSelections[group.group_id];
                         let activeSizeData = sizeMap.get(rawSelectedSizeId);
@@ -412,14 +446,14 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                           <div>
                             {crustsList.length > 0 && (
                               <div className="mb-6 pb-6 border-b border-white/10">
-                                <label className="block text-sm font-bold text-white mb-3">Đế bánh (*)</label>
+                                <label className="block text-sm font-bold text-white mb-3">Crust (*)</label>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                   {crustsList.filter(c => c.is_visible !== false && c.crust_name !== 'None').map(crust => {
                                     const selectedCrustId = pizzaCrustSelections[group.group_id] || 0;
                                     return (
                                       <label key={crust.crust_id} className="flex items-center gap-3 cursor-pointer group" onClick={() => {
                                         setPizzaCrustSelections(prev => ({ ...prev, [group.group_id]: crust.crust_id }));
-                                        const match = group.combo_items.find((i:any) => i.dish_price?.dish_id === selectedDishId && (i.dish_price?.size_id || 0) === activeSizeId && (i.dish_price?.crust_id || 0) === crust.crust_id);
+                                        const match = group.combo_items.find((i: any) => i.dish_price?.dish_id === selectedDishId && (i.dish_price?.size_id || 0) === activeSizeId && (i.dish_price?.crust_id || 0) === crust.crust_id);
                                         if (match) handleSelection(group.group_id, String(match.combo_item_id));
                                       }}>
                                         <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${selectedCrustId === crust.crust_id ? 'border-white' : 'border-white/50 group-hover:border-white/80'}`}>
@@ -446,16 +480,16 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                                         )}
                                       </div>
                                       <span className="text-sm font-semibold text-white">Half-Half</span>
-                                      <input 
-                                        type="checkbox" 
-                                        className="hidden" 
-                                        checked={isHalf} 
-                                        onChange={() => setPizzaHalfSelections(prev => ({ ...prev, [group.group_id]: !prev[group.group_id] }))} 
+                                      <input
+                                        type="checkbox"
+                                        className="hidden"
+                                        checked={isHalf}
+                                        onChange={() => setPizzaHalfSelections(prev => ({ ...prev, [group.group_id]: !prev[group.group_id] }))}
                                       />
                                     </label>
                                   )}
                                 </div>
-                                
+
                                 {!isHalf ? (
                                   <CustomSelect
                                     value={selectedDishId}
@@ -497,21 +531,20 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                                   </div>
                                 )}
                               </div>
-                              
+
                               {uniqueSizes.length > 1 && (
                                 <div>
-                                  <label className="block text-sm font-bold text-white mb-2">Kích thước (*)</label>
+                                  <label className="block text-sm font-bold text-white mb-2">Size (*)</label>
                                   <div className="flex gap-3">
                                     {uniqueSizes.map((szData: any) => {
                                       const sId = szData.size?.size_id || 0;
                                       return (
                                         <button
                                           key={sId}
-                                          className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${
-                                            activeSizeId === sId
-                                              ? 'bg-white text-[#9f280a]' 
-                                              : 'bg-black/20 text-white hover:bg-black/30'
-                                          }`}
+                                          className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${activeSizeId === sId
+                                            ? 'bg-white text-[#9f280a]'
+                                            : 'bg-black/20 text-white hover:bg-black/30'
+                                            }`}
                                           onClick={() => {
                                             setPizzaSizeSelections(prev => ({ ...prev, [group.group_id]: sId }));
                                             if (szData.items.length > 0) {
@@ -519,7 +552,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                                             }
                                           }}
                                         >
-                                          {szData.size ? tMenu(szData.size.size_name) : 'Standard'}
+                                          {szData.size ? szData.size.size_name : 'Standard'}
                                         </button>
                                       );
                                     })}
@@ -538,7 +571,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                               if (availableToppings.length === 0) return null;
                               return (
                                 <div className="mt-6">
-                                  <label className="block text-sm font-bold text-white mb-3">Món thêm</label>
+                                  <label className="block text-sm font-bold text-white mb-3">Extra Toppings</label>
                                   <div className="space-y-3">
                                     {availableToppings.map(topping => {
                                       const isSelected = (selectedToppings[group.group_id] || []).some(t => t.topping_id === topping.topping_id);
@@ -549,10 +582,10 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                                               {isSelected && <Check size={10} className="text-[#9f280a]" />}
                                             </div>
                                             <span className="text-white text-sm">
-                                              {tMenu(topping.topping_name)}
+                                              {topping.topping_name}
                                               {(() => {
                                                 const matchingItem = currentDishData?.items.find((item: any) => item.dish_price?.size_id === topping.size_id);
-                                                return matchingItem?.dish_price?.size ? ` - Size ${tMenu(matchingItem.dish_price.size.size_name)}` : '';
+                                                return matchingItem?.dish_price?.size ? ` - Size ${matchingItem.dish_price.size.size_name}` : '';
                                               })()}
                                             </span>
                                           </div>
@@ -591,18 +624,18 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                                       <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedCat === cat ? 'border-white' : 'border-white/50 group-hover:border-white/80'}`}>
                                         {selectedCat === cat && <div className="w-2 h-2 bg-white rounded-full" />}
                                       </div>
-                                      <span className="text-white text-sm">{tMenu(cat)}</span>
+                                      <span className="text-white text-sm">{cat}</span>
                                     </label>
                                   ))}
                                 </div>
                               </div>
                               <div>
-                                <label className="block text-sm font-bold text-white mb-2">Tùy chọn</label>
+                                <label className="block text-sm font-bold text-white mb-2">Options</label>
                                 <CustomSelect
                                   value={selectedComboItemId}
                                   options={itemsInCat.map((item: any) => ({
                                     value: String(item.combo_item_id),
-                                    label: tMenu(item.dish_price.dish.dish_name)
+                                    label: item.dish_price.dish.dish_name
                                   }))}
                                   onChange={(newComboItemId) => handleSelection(group.group_id, String(newComboItemId))}
                                 />
@@ -612,29 +645,14 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                             {(() => {
                               const selectedItem = itemsInCat.find((i: any) => String(i.combo_item_id) === selectedComboItemId);
                               const selectedSizeIdTopping = selectedItem?.dish_price?.size_id;
-                              
-                              const availableToppings: any[] = [];
-                              const seenNames = new Set();
-                              
-                              spaghettiToppingsList.forEach(t => {
-                                if (selectedSizeIdTopping) {
-                                  // Nếu món Pasta có size (hiếm), lọc đúng theo size đó hoặc topping dùng chung
-                                  if (!t.size_id || t.size_id === selectedSizeIdTopping) {
-                                    availableToppings.push(t);
-                                  }
-                                } else {
-                                  // Nếu món Pasta không có size, lọc trùng tên để tránh hiện 2 lần cùng 1 món thêm (do khác size của Pizza)
-                                  if (!seenNames.has(t.topping_name)) {
-                                    seenNames.add(t.topping_name);
-                                    availableToppings.push(t);
-                                  }
-                                }
-                              });
+
+                              // Hiện tất cả topping is_for_spaghetti từ API
+                              const availableToppings = spaghettiToppingsList;
 
                               if (availableToppings.length === 0) return null;
                               return (
                                 <div className="mt-6">
-                                  <label className="block text-sm font-bold text-white mb-3">Món thêm</label>
+                                  <label className="block text-sm font-bold text-white mb-3">Extra Toppings</label>
                                   <div className="space-y-3">
                                     {availableToppings.map(topping => {
                                       const isSelected = (selectedToppings[group.group_id] || []).some(t => t.topping_id === topping.topping_id);
@@ -644,7 +662,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                                             <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${isSelected ? 'border-white bg-white' : 'border-white/50 group-hover:border-white/80'}`}>
                                               {isSelected && <Check size={10} className="text-[#9f280a]" />}
                                             </div>
-                                            <span className="text-white text-sm">{tMenu(topping.topping_name)}</span>
+                                            <span className="text-white text-sm">{topping.topping_name}</span>
                                           </div>
                                           <span className="text-white font-bold text-sm">{formatPrice(topping.price_topping)}</span>
                                         </label>
@@ -662,16 +680,22 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                         const selectedComboItemId = selections[group.group_id]?.[0];
                         return (
                           <div className="space-y-3">
-                            {group.combo_items.map((item: any) => (
-                              <label key={item.combo_item_id} className="flex items-center justify-between cursor-pointer group" onClick={() => handleSelection(group.group_id, String(item.combo_item_id))}>
-                                <div className="flex items-center gap-3">
-                                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedComboItemId === String(item.combo_item_id) ? 'border-white' : 'border-white/50 group-hover:border-white/80'}`}>
-                                    {selectedComboItemId === String(item.combo_item_id) && <div className="w-2 h-2 bg-white rounded-full" />}
+                            {group.combo_items.map((item: any) => {
+                              let displayDishName = item.dish_price.dish.dish_name;
+                              if (comboName.toLowerCase().includes('happy family') && displayDishName.toLowerCase() === 'pepsi') {
+                                displayDishName = '4 x ' + displayDishName;
+                              }
+                              return (
+                                <label key={item.combo_item_id} className="flex items-center justify-between cursor-pointer group" onClick={() => handleSelection(group.group_id, String(item.combo_item_id))}>
+                                  <div className="flex items-center gap-3">
+                                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedComboItemId === String(item.combo_item_id) ? 'border-white' : 'border-white/50 group-hover:border-white/80'}`}>
+                                      {selectedComboItemId === String(item.combo_item_id) && <div className="w-2 h-2 bg-white rounded-full" />}
+                                    </div>
+                                    <span className="text-white text-sm">{displayDishName}</span>
                                   </div>
-                                  <span className="text-white text-sm">{tMenu(item.dish_price.dish.dish_name)}</span>
-                                </div>
-                              </label>
-                            ))}
+                                </label>
+                              );
+                            })}
                           </div>
                         );
                       })()
@@ -680,51 +704,45 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                 );
               })}
 
-              {/* Fixed items & Note */}
-              <div>
+              {/* Fixed items */}
+              <div className="order-2">
                 {fixedGroups.length > 0 && (
                   <div className="mb-6">
-                    <h3 className="font-bold text-lg mb-2 border-b border-white/20 pb-1">Bao gồm trong Combo</h3>
+                    <h3 className="font-bold text-lg mb-2 border-b border-white/20 pb-1">Included in Combo</h3>
                     <ul className="list-disc pl-5 space-y-1 mt-3">
                       {fixedGroups.map(g => {
                         const groupNameLower = g.group_name.toLowerCase();
                         const isPizza = groupNameLower.includes('pizza');
                         const isPasta = groupNameLower.includes('spaghetti') || groupNameLower.includes('grantin') || groupNameLower.includes('risotto') || groupNameLower.includes('gratin');
                         const selectedSizeIdTopping = g.combo_items[0]?.dish_price?.size_id;
-                        
+
                         let availableToppings: any[] = [];
                         if (isPizza) {
-                           availableToppings = pizzaToppingsList.filter(t => !t.size_id || t.size_id === selectedSizeIdTopping);
+                          availableToppings = pizzaToppingsList.filter(t => !t.size_id || t.size_id === selectedSizeIdTopping);
                         } else if (isPasta) {
-                           const seenNames = new Set();
-                           spaghettiToppingsList.forEach(t => {
-                             if (selectedSizeIdTopping) {
-                               if (!t.size_id || t.size_id === selectedSizeIdTopping) availableToppings.push(t);
-                             } else {
-                               if (!seenNames.has(t.topping_name)) {
-                                 seenNames.add(t.topping_name);
-                                 availableToppings.push(t);
-                               }
-                             }
-                           });
+                          // Hiện tất cả topping is_for_spaghetti từ API
+                          availableToppings = [...spaghettiToppingsList];
                         }
 
                         return (
                           <li key={g.group_id} className="text-white text-sm mb-3">
-                            <span className="font-semibold leading-relaxed">{tMenu(g.group_name)}</span>
+                            <span className="font-semibold leading-relaxed">{g.group_name}</span>
                             {availableToppings.length > 0 && (
-                              <div className="mt-2 ml-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {availableToppings.map(topping => {
-                                  const isSelected = (selectedToppings[g.group_id] || []).some(t => t.topping_id === topping.topping_id);
-                                  return (
-                                    <label key={topping.topping_id} className="flex items-center gap-3 cursor-pointer group" onClick={() => handleToppingToggle(g.group_id, topping)}>
-                                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-white bg-white' : 'border-white/50 group-hover:border-white/80'}`}>
-                                        {isSelected && <Check size={10} className="text-[#9f280a]" />}
-                                      </div>
-                                      <span className="text-white text-xs">{tMenu(topping.topping_name)} <span className="font-bold text-[#f0c14b] ml-1">+{formatPrice(topping.price_topping)}</span></span>
-                                    </label>
-                                  );
-                                })}
+                              <div className="mt-2 ml-4">
+                                <label className="block text-xs font-bold text-white/70 mb-2">Extra Toppings:</label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  {availableToppings.map(topping => {
+                                    const isSelected = (selectedToppings[g.group_id] || []).some(t => t.topping_id === topping.topping_id);
+                                    return (
+                                      <label key={topping.topping_id} className="flex items-center gap-3 cursor-pointer group" onClick={() => handleToppingToggle(g.group_id, topping)}>
+                                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-white bg-white' : 'border-white/50 group-hover:border-white/80'}`}>
+                                          {isSelected && <Check size={10} className="text-[#9f280a]" />}
+                                        </div>
+                                        <span className="text-white text-xs">{topping.topping_name} <span className="font-bold text-[#f0c14b] ml-1">+{formatPrice(topping.price_topping)}</span></span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
                               </div>
                             )}
                           </li>
@@ -733,17 +751,17 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                     </ul>
                   </div>
                 )}
+              </div>
 
-                <div>
-                  <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">Ghi chú</h3>
-                  <input
-                    type="text"
-                    placeholder="Hãy để lại ghi chú về lưu ý món ăn của bạn nhé!!!"
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    className="w-full bg-white text-black rounded-lg p-3 outline-none text-sm mt-2"
-                  />
-                </div>
+              <div className="order-4">
+                <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">Note</h3>
+                <input
+                  type="text"
+                  placeholder="Leave a note about your order here..."
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  className="w-full bg-white text-black rounded-lg p-3 outline-none text-sm mt-2"
+                />
               </div>
             </div>
           )}
@@ -751,14 +769,14 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
 
         {/* Footer */}
         <div className="p-4 border-t border-white/20 flex flex-col items-center gap-4 shrink-0">
-          <div className="flex items-center justify-center bg-white text-black rounded-xl overflow-hidden font-bold h-10 w-32 shadow-md">
+          <div className="flex items-center justify-center bg-white text-black rounded-xl overflow-hidden font-bold h-10 w-20 shadow-md">
             <button
               onClick={() => setQuantity(q => Math.max(1, q - 1))}
               className="flex-1 h-full hover:bg-gray-200 transition-colors flex items-center justify-center text-xl"
             >
               -
             </button>
-            <span className="w-10 text-center text-lg">{quantity}</span>
+            <span className="w-8 text-center text-lg">{quantity}</span>
             <button
               onClick={() => setQuantity(q => q + 1)}
               className="flex-1 h-full hover:bg-gray-200 transition-colors flex items-center justify-center text-xl"
@@ -772,7 +790,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
             className="w-auto px-8 sm:px-12 bg-[#f0c14b] hover:bg-[#e2b036] text-black font-bold h-12 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2.5 text-base"
           >
             <ShoppingCart size={20} />
-            Thêm vào giỏ hàng : {formatPrice(totalPrice)}
+            Add to Cart : {formatPrice(totalPrice)}
           </button>
         </div>
 

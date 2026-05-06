@@ -32,7 +32,7 @@ export default function LoginPage() {
         router.push('/');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Đã có lỗi xảy ra khi đăng nhập');
+      setError(err.response?.data?.message || 'An error occurred while logging in');
     } finally {
       setLoading(false);
     }
@@ -43,7 +43,7 @@ export default function LoginPage() {
       <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8 border border-pizza-card/10">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-pizza-darkred mb-2">Pizza & Pasta Inn</h1>
-          <p className="text-gray-500">Đăng nhập để tiếp tục</p>
+          <p className="text-gray-500">Sign in to continue</p>
         </div>
 
         {error && (
@@ -61,12 +61,12 @@ export default function LoginPage() {
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-pizza-red focus:border-pizza-red text-black"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Nhập email của bạn"
+              placeholder="Enter your email"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
             <input
               type="password"
               required
@@ -82,14 +82,14 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-pizza-red text-white py-2 px-4 rounded-md hover:bg-pizza-darkred focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pizza-red transition-colors disabled:opacity-50"
           >
-            {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-600">
-          Chưa có tài khoản?{' '}
+          Don't have an account?{' '}
           <Link href="/register" className="text-pizza-red hover:underline font-semibold">
-            Đăng ký ngay
+            Register now
           </Link>
         </div>
       </div>

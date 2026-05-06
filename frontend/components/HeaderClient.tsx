@@ -3,13 +3,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { User, LogOut, ChevronDown } from 'lucide-react';
-import CartButton from './CartButton';
-import LanguageSelector from './LanguageSelector';
-import { useUI } from './UIProvider';
 import { useAuthStore } from '@/store/authStore';
+import CartButton from './CartButton';
 
 export default function HeaderClient({ storeName }: { storeName: string }) {
-  const { t } = useUI();
   const { user, clearAuth } = useAuthStore();
   const [isMounted, setIsMounted] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -48,15 +45,12 @@ export default function HeaderClient({ storeName }: { storeName: string }) {
 
       {/* Navigation (Desktop only) */}
       <nav className="hidden md:flex items-center gap-10 text-sm font-bold text-white/90">
-        <Link href="/" className="hover:text-white transition-colors">{t('nav.menu')}</Link>
-        <Link href="/about" className="hover:text-white transition-colors">{t('nav.about')}</Link>
+        <Link href="/" className="hover:text-white transition-colors">{"Menu"}</Link>
+        <Link href="/about" className="hover:text-white transition-colors">{"About"}</Link>
       </nav>
 
       {/* Right side icons */}
       <div className="flex items-center gap-4 md:gap-6">
-        {/* Language Flags */}
-        <LanguageSelector />
-
         {/* Cart Icon */}
         <CartButton />
 
@@ -88,7 +82,7 @@ export default function HeaderClient({ storeName }: { storeName: string }) {
                   className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
                 >
                   <LogOut size={16} />
-                  {t('nav.logout') || 'Đăng xuất'}
+                  {"Log out"}
                 </button>
               </div>
             )}
@@ -96,7 +90,7 @@ export default function HeaderClient({ storeName }: { storeName: string }) {
         ) : (
           <Link href="/login" className="flex flex-col items-center justify-center text-gray-300 hover:text-white transition-colors">
             <User size={18} className="fill-current" />
-            <span className="text-[10px] mt-0.5 font-semibold hidden md:block">{t('nav.login')}</span>
+            <span className="text-[10px] mt-0.5 font-semibold hidden md:block">{"Sign in"}</span>
           </Link>
         )}
       </div>
