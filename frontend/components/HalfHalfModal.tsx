@@ -63,6 +63,7 @@ export default function HalfHalfModal({ isOpen, onClose }: { isOpen: boolean; on
   };
   const { addToCart } = useCartStore();
 
+  const [allDishes, setAllDishes] = useState<any[]>([]);
   const [pizzas, setPizzas] = useState<any[]>([]);
   const [sizes, setSizes] = useState<any[]>([]);
   const [crusts, setCrusts] = useState<any[]>([]);
@@ -102,7 +103,7 @@ export default function HalfHalfModal({ isOpen, onClose }: { isOpen: boolean; on
       const pizzaCat = catData.data?.find((c: any) => c.category_name?.toLowerCase() === 'pizza');
 
       const [dishesRes, sizesRes, crustsRes, toppingsRes] = await Promise.all([
-        fetch(`http://localhost:4000/api/menu/dishes?category_id=${pizzaCat?.category_id || ''}`),
+        fetch(`http://localhost:4000/api/menu/dishes?category_id=${pizzaCat?.category_id || ''}&all=true`),
         fetch('http://localhost:4000/api/menu/sizes'),
         fetch('http://localhost:4000/api/menu/crusts'),
         fetch('http://localhost:4000/api/menu/toppings?type=pizza')
@@ -114,6 +115,7 @@ export default function HalfHalfModal({ isOpen, onClose }: { isOpen: boolean; on
       const tp = await toppingsRes.json();
 
       if (dishes.success) {
+        setAllDishes(dishes.data);
         const validPizzas = dishes.data.filter((p: any) => !p.dish_name.toLowerCase().includes('half-half') && !p.dish_name.toLowerCase().includes('half half'));
         setPizzas(validPizzas);
         if (validPizzas.length > 0) {
@@ -175,22 +177,37 @@ export default function HalfHalfModal({ isOpen, onClose }: { isOpen: boolean; on
 
     let label = `[Half-Half] ${dish1?.dish_name} / ${dish2?.dish_name}`;
 
-    // Tìm dish_price_id để lưu vào cart (chỉ lưu cho thống kê nếu cần, dùng tạm của nửa 1)
-    const dp = dish1?.prices?.find((p: any) => p.size_id === selectedSizeId && p.crust_id === selectedCrustId);
+    const baseHalfHalfDish = allDishes.find(p => p.dish_name.toLowerCase().includes('half-half') || p.dish_name.toLowerCase().includes('half half'));
+    let dishPriceId: string | undefined = undefined;
+    
+    // 100% Database Driven - No hardcoded fallbacks
+    if (baseHalfHalfDish && baseHalfHalfDish.prices) {
+      const dp = baseHalfHalfDish.prices.find((p: any) => p.size_id === selectedSizeId && p.crust_id === selectedCrustId);
+      if (dp) dishPriceId = dp.dish_price_id;
+    }
 
     addToCart({
+      type: 'half_half',
       dish_id: dish1?.dish_id || 0,
+      dish_price_id: dishPriceId,
       name: label,
-      price: basePrice,
+      price: basePrice + toppingsPrice,
       quantity,
       imageUrl: dish1?.image || '',
-      dish_price_id: dp ? dp.dish_price_id : '',
+      // Dữ liệu 2 nửa pizza để lưu vào bảng cart_item_half
+      halves: [
+        { dish_id: dish1?.dish_id || 0, name: dish1?.dish_name || '' },
+        { dish_id: dish2?.dish_id || 0, name: dish2?.dish_name || '' }
+      ],
       options: {
         size: sizeObj?.size_name,
         crust: crustObj?.crust_name,
-        toppings: selectedToppingsObjs.map(t => ({ name: t.topping_name, price: t.price_topping || 0 })),
+        toppings: selectedToppingsObjs.map(t => ({
+          topping_id: t.topping_id,
+          name: t.topping_name,
+          price: t.price_topping || 0
+        })),
         notes: note,
-        extraPrice: toppingsPrice > 0 ? toppingsPrice : undefined
       }
     });
 

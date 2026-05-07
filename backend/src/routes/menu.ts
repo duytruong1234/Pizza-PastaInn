@@ -71,8 +71,11 @@ router.get('/toppings', async (req, res) => {
 // Lấy danh sách món ăn
 router.get('/dishes', async (req, res) => {
   try {
-    const { category_id } = req.query;
-    const where = { dish_status: true, ...(category_id && { category_id: Number(category_id) }) };
+    const { category_id, all } = req.query;
+    const where: any = { ...(category_id && { category_id: Number(category_id) }) };
+    if (all !== 'true') {
+      where.dish_status = true;
+    }
     const dishes = await prisma.dish.findMany({
       where,
       include: {
@@ -82,6 +85,19 @@ router.get('/dishes', async (req, res) => {
     sendSuccess(res, { data: dishes });
   } catch (error) {
     sendError(res, 'Lỗi lấy món ăn', 500);
+  }
+});
+
+// Lấy danh sách giá theo dish_id (dùng cho Half-Half mapping)
+router.get('/dishes/:id/prices', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const prices = await prisma.dishPrice.findMany({
+      where: { dish_id: Number(id) }
+    });
+    sendSuccess(res, { data: prices });
+  } catch (error) {
+    sendError(res, 'Lỗi lấy giá món', 500);
   }
 });
 

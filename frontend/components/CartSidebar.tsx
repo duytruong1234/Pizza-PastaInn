@@ -4,12 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { formatPrice } from '@/lib/utils';
 import Image from 'next/image';
 import { useUI } from './UIProvider';
-import { X } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 
 export default function CartSidebar() {
   const { isCartOpen, toggleCart } = useUI();
-  const { items, removeFromCart, updateQuantity, totalItems, totalPrice } = useCartStore();
+  const { items, removeFromCart, updateQuantity, clearCart, totalItems, totalPrice } = useCartStore();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -25,23 +25,34 @@ export default function CartSidebar() {
       {/* Overlay khi sidebar mở */}
       {isCartOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40" 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden" 
           onClick={toggleCart}
         />
       )}
       
       <aside className={`
         fixed inset-y-0 right-0 z-50 w-[85vw] max-w-[400px] bg-black/95 md:bg-black/80 backdrop-blur-md border-l border-white/10 flex flex-col shadow-2xl transition-transform duration-300 ease-in-out
-        ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}
-        md:w-[300px] lg:w-[350px]
+        ${isCartOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+        md:w-[300px] lg:relative lg:inset-auto lg:w-[350px] lg:z-10
       `}>
         <div className="p-4 border-b border-white/10 flex justify-between items-center bg-[#111] md:bg-transparent">
           <div className="text-left md:text-center flex-1">
             <h2 className="text-white font-bold text-xl mb-1">{"Cart"}</h2>
-            <p className="text-gray-400 text-sm">{"Quantity:"} {displayTotalItems} {"items"}</p>
+            <div className="flex items-center justify-start md:justify-center gap-3">
+              <p className="text-gray-400 text-sm">{"Quantity:"} {displayTotalItems} {"items"}</p>
+              {displayItems.length > 0 && (
+                <button 
+                  onClick={clearCart}
+                  className="text-red-400 hover:text-red-300 text-xs flex items-center gap-1 transition-colors"
+                >
+                  <Trash2 size={12} />
+                  {"Clear All"}
+                </button>
+              )}
+            </div>
           </div>
           {/* Nút đóng - hiển thị trên cả mobile và desktop */}
-          <button onClick={toggleCart} className="p-2 text-gray-300 hover:text-white transition-colors">
+          <button onClick={toggleCart} className="p-2 text-gray-300 hover:text-white transition-colors lg:hidden">
             <X size={24} />
           </button>
         </div>
@@ -118,17 +129,17 @@ export default function CartSidebar() {
                 <div className="flex justify-between items-end mt-auto pt-2">
                   <div className="flex items-center gap-2">
                     <div className="bg-[#fcebb6] flex items-center rounded text-black font-bold h-5 text-[11px]">
-                      <button onClick={() => updateQuantity(item.id, item.dish_price_id, item.quantity - 1)} className="px-1.5 hover:bg-yellow-200 rounded-l">-</button>
+                      <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="px-1.5 hover:bg-yellow-200 rounded-l">-</button>
                       <span className="px-1">{item.quantity}</span>
-                      <button onClick={() => updateQuantity(item.id, item.dish_price_id, item.quantity + 1)} className="px-1.5 hover:bg-yellow-200 rounded-r">+</button>
+                      <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="px-1.5 hover:bg-yellow-200 rounded-r">+</button>
                     </div>
                     <button className="bg-[#007a3f] text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">{"Edit"}</button>
-                    <button onClick={() => removeFromCart(item.id, item.dish_price_id)} className="bg-[#ee2828] text-white font-bold text-[10px] px-2 py-0.5 rounded shadow">{"Delete"}</button>
+                    <button onClick={() => removeFromCart(item.id)} className="bg-[#ee2828] text-white font-bold text-[10px] px-2 py-0.5 rounded shadow">{"Delete"}</button>
                   </div>
                   
                   <div className="text-right flex flex-col justify-end">
                     <div className="bg-white px-2 py-0.5 rounded text-black font-bold mt-1 text-xs text-center min-w-[70px]">
-                      {formatPrice((item.price + (item.options?.extraPrice || 0)) * item.quantity)}
+                      {formatPrice(item.price * item.quantity)}
                     </div>
                   </div>
                 </div>

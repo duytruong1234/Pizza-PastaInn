@@ -150,7 +150,7 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
       <div className="h-4 md:h-[22px] w-full z-20 bg-[#ee2828] relative shadow-md"></div>
 
       {/* Khu vực nội dung chính */}
-      <div className="flex flex-1 flex-col md:flex-row overflow-hidden relative">
+      <div className="flex flex-1 flex-col lg:flex-row overflow-hidden relative">
         {/* Hình nền mờ */}
         <div className="absolute inset-0 z-0">
           <Image 
@@ -205,10 +205,10 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
           <Footer />
         </main>
         </div>
-      </div>
 
-      {/* Giỏ hàng (fixed overlay) */}
-      <CartSidebar />
+        {/* Giỏ hàng (fixed overlay on mobile, column on desktop) */}
+        <CartSidebar />
+      </div>
     </div>
   );
 }

@@ -19,7 +19,7 @@ export default function CartButton() {
   return (
     <button 
       onClick={toggleCart}
-      className="relative p-2 bg-[#f4ebd0] text-black rounded-full hover:bg-white transition-colors"
+      className="relative p-2 bg-[#f4ebd0] text-black rounded-full hover:bg-white transition-colors lg:hidden"
     >
       <ShoppingCart size={20} className="fill-black" />
       {count > 0 && (

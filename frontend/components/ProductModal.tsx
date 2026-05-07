@@ -149,18 +149,22 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
       || `${product.id}_default`;
 
     addToCart({
+      type: 'regular',
       dish_id: product.id,
       dish_price_id,
       name: product.name,
-      price: currentBasePrice,
+      price: currentBasePrice + extraToppingsPrice,
       quantity,
       imageUrl: product.imageUrl,
       options: {
         size: selectedSize?.size_name,
         crust: selectedCrust?.crust_name,
-        toppings: selectedToppings.map(t => ({ name: t.topping_name, price: t.price_topping || 0 })),
+        toppings: selectedToppings.map(t => ({
+          topping_id: t.topping_id,
+          name: t.topping_name,
+          price: t.price_topping || 0
+        })),
         notes: note,
-        extraPrice: extraToppingsPrice
       }
     });
 

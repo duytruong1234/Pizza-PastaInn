@@ -75,6 +75,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
   const [pizzaToppingsList, setPizzaToppingsList] = useState<any[]>([]);
   const [spaghettiToppingsList, setSpaghettiToppingsList] = useState<any[]>([]);
   const [crustsList, setCrustsList] = useState<any[]>([]);
+  const [halfHalfPrices, setHalfHalfPrices] = useState<any[]>([]);
   const [selectedToppings, setSelectedToppings] = useState<Record<string, any[]>>({});
 
   const [note, setNote] = useState('');
@@ -99,17 +100,20 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
 
   const fetchToppings = async () => {
     try {
-      const [pizzaRes, spaRes, crustsRes] = await Promise.all([
+      const [pizzaRes, spaRes, crustsRes, hhRes] = await Promise.all([
         fetch('http://localhost:4000/api/menu/toppings?type=pizza'),
         fetch('http://localhost:4000/api/menu/toppings?type=spaghetti'),
-        fetch('http://localhost:4000/api/menu/crusts')
+        fetch('http://localhost:4000/api/menu/crusts'),
+        fetch('http://localhost:4000/api/menu/dishes/65/prices')
       ]);
       const pizzaData = await pizzaRes.json();
       const spaData = await spaRes.json();
       const crustsData = await crustsRes.json();
+      const hhData = await hhRes.json();
       if (pizzaData.success) setPizzaToppingsList(pizzaData.data);
       if (spaData.success) setSpaghettiToppingsList(spaData.data);
       if (crustsData.success) setCrustsList(crustsData.data);
+      if (hhData.success) setHalfHalfPrices(hhData.data || []);
     } catch (e) { }
   };
 
@@ -252,6 +256,8 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
   const handleAddToCart = () => {
     const selectedItemNames: string[] = [];
     const structuredItems: any[] = [];
+    // Dữ liệu lựa chọn combo để lưu vào bảng cart_item_combos
+    const comboSelectionsForDB: any[] = [];
 
     sortedGroups.forEach((group: any) => {
       const selectedItemIds = selections[group.group_id] || [];
@@ -300,24 +306,57 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
             name: qtyPrefix + finalDishName,
             size: sizeName && sizeName !== 'Standard' ? sizeName : undefined,
             crust: crustName && crustName !== 'None' ? crustName : undefined,
-            toppings: groupToppings.map(t => ({ name: t.topping_name, price: t.price_topping || 0 }))
+            toppings: groupToppings.map(t => ({ topping_id: t.topping_id, name: t.topping_name, price: t.price_topping || 0 }))
           });
+
+          // Xây dựng dữ liệu combo_selection cho DB
+          // Nếu half-half: tìm dish_price_id của món Half-Half (dish_id=65) theo size_id + crust_id
+          let finalDishPriceId = item.dish_price_id || '';
+          if (isHalf && dish2Id) {
+            const sizeId = item.dish_price?.size_id;
+            const crustId = selectedCrustId || item.dish_price?.crust_id;
+            const hhMatch = halfHalfPrices.find(
+              (hh: any) => hh.size_id === sizeId && hh.crust_id === crustId
+            );
+            if (hhMatch) finalDishPriceId = hhMatch.dish_price_id;
+          }
+
+          const comboSelection: any = {
+            group_id: group.group_id,
+            dish_price_id: finalDishPriceId,
+            is_half_half: !!(isHalf && dish2Id),
+            toppings: groupToppings.map(t => ({
+              topping_id: t.topping_id,
+              quantity: 1
+            }))
+          };
+
+          // Nếu pizza half-half trong combo
+          if (isHalf && dish2Id) {
+            comboSelection.halves = [
+              { dish_id: item.dish_price?.dish_id || 0, name: dishName },
+              { dish_id: dish2Id, name: group.combo_items.find((i: any) => i.dish_price?.dish_id === dish2Id)?.dish_price?.dish?.dish_name || '' }
+            ];
+          }
+
+          comboSelectionsForDB.push(comboSelection);
         }
       });
     });
 
     addToCart({
+      type: 'combo',
+      combo_id: comboId,
       dish_id: comboId,
-      dish_price_id: `combo_${comboId}_${Date.now()}`,
       name: comboName,
       price: comboPrice + extraItemsPrice + extraToppingsPrice,
       quantity,
       imageUrl,
+      // Dữ liệu lựa chọn combo để lưu vào DB (bảng cart_item_combos + cart_item_half + cart_item_topping)
+      combo_selections: comboSelectionsForDB,
       options: {
-        toppings: selectedItemNames.join(' | '),
         comboItems: structuredItems,
         notes: note,
-        extraPrice: extraItemsPrice + extraToppingsPrice,
       }
     });
 

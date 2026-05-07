@@ -154,7 +154,6 @@ model Cart {
   cart_id          Int        @id @default(autoincrement())
   user_id          Int?
   created_at       DateTime?  @db.Timestamp(6)
-  order_note       String?
   total_price_cart Int?
   items            CartItem[]
   user             User?      @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
