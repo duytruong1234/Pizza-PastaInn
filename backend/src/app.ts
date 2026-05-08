@@ -15,10 +15,21 @@ const PORT = process.env.PORT || 4000;
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 
-// CORS — cho phép frontend truy cập
+// CORS — cho phép frontend + admin truy cập
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:3000',
+  process.env.ADMIN_URL || 'http://localhost:3001',
+];
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: function (origin, callback) {
+      // Cho phép requests không có origin (mobile apps, curl, etc.)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Cho phép tất cả trong dev
+      }
+    },
     credentials: true,
   })
 );
@@ -54,6 +65,10 @@ app.use('/api/stores', storeRoutes);
 // Cart routes
 import cartRoutes from './routes/cart';
 app.use('/api/cart', cartRoutes);
+
+// Admin routes (dashboard quản trị)
+import adminRoutes from './routes/admin';
+app.use('/api/admin', adminRoutes);
 
 // ─── Global Error Handler ────────────────────────────────────────────────────
 
