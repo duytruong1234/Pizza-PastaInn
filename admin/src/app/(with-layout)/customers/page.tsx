@@ -4,6 +4,7 @@
 import { api } from "@/lib/api";
 import { useEffect, useState } from "react";
 import dayjs from "dayjs";
+import { Badge } from "@/components/ui/badge";
 
 interface Customer {
   user_id: number;
@@ -68,13 +69,9 @@ export default function CustomersPage() {
                   <td className="px-6 py-4 text-sm">{c.phone || "N/A"}</td>
                   <td className="px-6 py-4 text-sm font-medium">{c._count.orders}</td>
                   <td className="px-6 py-4">
-                    <span className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${
-                      c.user_status
-                        ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                        : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                    }`}>
+                    <Badge variant={c.user_status ? "success" : "danger"}>
                       {c.user_status ? "Hoạt động" : "Bị khóa"}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">
                     {c.created_at ? dayjs(c.created_at).format("DD/MM/YYYY") : "N/A"}

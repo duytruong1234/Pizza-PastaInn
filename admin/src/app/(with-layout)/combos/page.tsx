@@ -2,6 +2,7 @@
 "use client";
 import { api } from "@/lib/api";
 import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 
 interface Combo {
   combo_id: number; combo_name: string; combo_price: number;
@@ -44,9 +45,9 @@ export default function CombosPage() {
               <div className="text-right">
                 <span className="text-lg font-bold text-primary">{combo.combo_price.toLocaleString()}đ</span>
                 <div>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${combo.is_active ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800'}`}>
+                  <Badge variant={combo.is_active ? "success" : "danger"}>
                     {combo.is_active ? 'Đang bán' : 'Ngưng'}
-                  </span>
+                  </Badge>
                 </div>
               </div>
             </div>

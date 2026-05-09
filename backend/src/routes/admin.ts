@@ -291,6 +291,52 @@ router.delete('/dishes/:id', async (req: AuthRequest, res: Response): Promise<vo
   }
 });
 
+/**
+ * PUT /api/admin/dish-prices/:id
+ * Cập nhật biến thể giá (size, crust, giá)
+ */
+router.put('/dish-prices/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = String(req.params.id);
+    const { size_id, crust_id, dish_price } = req.body;
+    const updated = await prisma.dishPrice.update({
+      where: { dish_price_id: id },
+      data: {
+        ...(size_id !== undefined && { size_id }),
+        ...(crust_id !== undefined && { crust_id }),
+        ...(dish_price !== undefined && { dish_price }),
+      },
+    });
+    sendSuccess(res, { data: updated, message: 'Cập nhật biến thể thành công' });
+  } catch (err) {
+    logger.error('Admin update dish-price error:', err);
+    sendError(res, 'Lỗi khi cập nhật biến thể', 500);
+  }
+});
+
+/**
+ * POST /api/admin/dish-prices
+ * Tạo biến thể giá mới cho món ăn
+ */
+router.post('/dish-prices', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { dish_price_id, dish_id, size_id, crust_id, dish_price } = req.body;
+    const created = await prisma.dishPrice.create({
+      data: {
+        dish_price_id,
+        dish_id,
+        size_id: size_id || null,
+        crust_id: crust_id || null,
+        dish_price: dish_price || 0,
+      },
+    });
+    sendSuccess(res, { data: created, message: 'Tạo biến thể thành công' }, 201);
+  } catch (err) {
+    logger.error('Admin create dish-price error:', err);
+    sendError(res, 'Lỗi khi tạo biến thể', 500);
+  }
+});
+
 // ─── QUẢN LÝ SIZE / CRUST / TOPPING ─────────────────────────────────────────
 
 // GET sizes

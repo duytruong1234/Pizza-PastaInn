@@ -3,6 +3,7 @@
 
 import { api } from "@/lib/api";
 import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 
 interface Store {
   store_id: number;
@@ -47,13 +48,9 @@ export default function StoresPage() {
                 <h3 className="text-lg font-bold text-dark dark:text-white">
                   {store.store_name || `Chi nhánh #${store.store_id}`}
                 </h3>
-                <span className={`rounded-full px-3 py-1 text-xs font-medium ${
-                  store.is_active
-                    ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                    : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                }`}>
+                <Badge variant={store.is_active ? "success" : "danger"}>
                   {store.is_active ? "Hoạt động" : "Đóng cửa"}
-                </span>
+                </Badge>
               </div>
               {store.address && (
                 <p className="mt-2 text-sm text-gray-500">{store.address}</p>

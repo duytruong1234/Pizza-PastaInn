@@ -4,23 +4,21 @@ import { ChevronUpIcon } from "@/assets/icons";
 import { cn } from "@/lib/utils";
 import { useId, useState } from "react";
 
-type PropsType = {
+type PropsType = React.SelectHTMLAttributes<HTMLSelectElement> & {
   label: string;
-  items: { value: string; label: string }[];
+  items: { value: string | number; label: string }[];
   prefixIcon?: React.ReactNode;
   className?: string;
-} & (
-  | { placeholder?: string; defaultValue: string }
-  | { placeholder: string; defaultValue?: string }
-);
+  placeholder?: string;
+};
 
 export function Select({
   items,
   label,
-  defaultValue,
   placeholder,
   prefixIcon,
   className,
+  ...props
 }: PropsType) {
   const id = useId();
 
@@ -44,11 +42,14 @@ export function Select({
 
         <select
           id={id}
-          defaultValue={defaultValue || ""}
-          onChange={() => setIsOptionSelected(true)}
+          {...props}
+          onChange={(e) => {
+            setIsOptionSelected(true);
+            props.onChange?.(e);
+          }}
           className={cn(
             "w-full appearance-none rounded-lg border border-stroke bg-transparent px-5.5 py-3 outline-none transition focus:border-primary active:border-primary dark:border-dark-3 dark:bg-dark-2 dark:focus:border-primary [&>option]:text-dark-5 dark:[&>option]:text-dark-6",
-            isOptionSelected && "text-dark dark:text-white",
+            (isOptionSelected || props.value) && "text-dark dark:text-white",
             prefixIcon && "pl-11.5",
           )}
         >

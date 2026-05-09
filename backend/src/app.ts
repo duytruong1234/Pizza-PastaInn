@@ -40,6 +40,48 @@ app.use(express.json({ limit: '10mb' }));
 // Parse URL-encoded body (form data)
 app.use(express.urlencoded({ extended: true }));
 
+// Serve uploaded files
+import path from 'path';
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+
+// ─── Upload route ────────────────────────────────────────────────────────────
+import multer from 'multer';
+import fs from 'fs';
+
+const uploadsDir = path.join(__dirname, '..', 'uploads', 'dishes');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const name = `dish_${Date.now()}${ext}`;
+    cb(null, name);
+  },
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (_req, file, cb) => {
+    const allowed = /\.(jpg|jpeg|png|gif|webp)$/i;
+    if (allowed.test(path.extname(file.originalname))) {
+      cb(null, true);
+    } else {
+      cb(new Error('Chỉ chấp nhận file ảnh (jpg, png, gif, webp)'));
+    }
+  },
+});
+
+app.post('/api/upload', upload.single('image'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: 'Không có file nào được tải lên' });
+  }
+  const imageUrl = `/uploads/dishes/${req.file.filename}`;
+  res.json({ success: true, data: { url: imageUrl } });
+});
+
 // ─── Routes ──────────────────────────────────────────────────────────────────
 
 // Health check

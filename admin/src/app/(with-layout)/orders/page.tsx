@@ -4,6 +4,7 @@
 import { api } from "@/lib/api";
 import { useEffect, useState } from "react";
 import dayjs from "dayjs";
+import { Badge } from "@/components/ui/badge";
 
 interface Order {
   order_id: number;
@@ -15,13 +16,13 @@ interface Order {
   order_type: string;
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  confirmed: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  preparing: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
-  shipped: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
-  completed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  cancelled: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+const STATUS_COLORS: Record<string, "warning" | "info" | "primary" | "secondary" | "success" | "danger"> = {
+  pending: "warning",
+  confirmed: "info",
+  preparing: "primary",
+  shipped: "secondary",
+  completed: "success",
+  cancelled: "danger",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -172,9 +173,9 @@ export default function OrdersPage() {
                       {order.payment_method || "N/A"}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${STATUS_COLORS[order.order_status] || "bg-gray-100 text-gray-700"}`}>
+                      <Badge variant={STATUS_COLORS[order.order_status] || "gray"}>
                         {STATUS_LABELS[order.order_status] || order.order_status}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
                       {order.created_at ? dayjs(order.created_at).format("DD/MM/YYYY HH:mm") : "N/A"}

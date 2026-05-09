@@ -1,30 +1,28 @@
 import { CheckIcon, XIcon } from "@/assets/icons";
 import { cn } from "@/lib/utils";
-import { useId } from "react";
+import { useId, InputHTMLAttributes } from "react";
 
-type PropsType = {
+interface PropsType extends InputHTMLAttributes<HTMLInputElement> {
   withIcon?: "check" | "x";
   withBg?: boolean;
   label: string;
-  name?: string;
   minimal?: boolean;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   radius?: "default" | "md";
-};
+}
 
 export function Checkbox({
   withIcon,
   label,
-  name,
   withBg,
   minimal,
-  onChange,
   radius,
+  className,
+  ...props
 }: PropsType) {
   const id = useId();
 
   return (
-    <div>
+    <div className={className}>
       <label
         htmlFor={id}
         className={cn(
@@ -35,10 +33,9 @@ export function Checkbox({
         <div className="relative">
           <input
             type="checkbox"
-            onChange={onChange}
-            name={name}
             id={id}
             className="peer sr-only"
+            {...props}
           />
 
           <div
@@ -62,7 +59,7 @@ export function Checkbox({
             {withIcon === "x" && <XIcon className="hidden text-primary" />}
           </div>
         </div>
-        <span>{label}</span>
+        <span className="text-sm font-normal text-dark dark:text-white">{label}</span>
       </label>
     </div>
   );
