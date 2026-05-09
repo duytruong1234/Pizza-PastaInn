@@ -50,14 +50,13 @@ export const NAV_DATA = [
             title: "Topping",
             url: "/menu/toppings",
           },
+          {
+            title: "Combo",
+            url: "/combos",
+          },
         ],
       },
-      {
-        title: "Combo",
-        url: "/combos",
-        icon: Icons.FourCircle,
-        items: [],
-      },
+
       {
         title: "Chi nhánh",
         url: "/stores",

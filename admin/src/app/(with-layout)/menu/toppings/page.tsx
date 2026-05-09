@@ -60,16 +60,17 @@ export default function ToppingsPage() {
           </div>
         </div>
 
-        <div className="max-w-full overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
+        <div className="overflow-hidden rounded-xl border border-stroke dark:border-dark-3">
+          <div className="max-w-full overflow-x-auto">
+            <table className="w-full text-left">
+            <thead className="bg-primary text-white">
               <tr>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500">ID</th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500">Tên topping</th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500">Giá</th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500">Size</th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500">Pizza</th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500">Spaghetti</th>
+                <th className="rounded-tl-lg px-6 py-4 text-sm font-semibold uppercase tracking-wide">ID</th>
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Tên topping</th>
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Giá</th>
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Size</th>
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Pizza</th>
+                <th className="rounded-tr-lg px-6 py-4 text-sm font-semibold uppercase tracking-wide">Spaghetti</th>
               </tr>
             </thead>
             <tbody>
@@ -81,7 +82,7 @@ export default function ToppingsPage() {
                 <tr key={t.topping_id} className="border-b border-stroke last:border-0 dark:border-dark-3">
                   <td className="px-6 py-4 text-dark dark:text-white">{t.topping_id}</td>
                   <td className="px-6 py-4 font-medium text-dark dark:text-white">{t.topping_name}</td>
-                  <td className="px-6 py-4">{(t.price_topping || 0).toLocaleString()}đ</td>
+                  <td className="px-6 py-4">{(t.price_topping || 0).toLocaleString()} đ</td>
                   <td className="px-6 py-4 text-sm">{t.sizes?.size_name || 'Tất cả'}</td>
                   <td className="px-6 py-4">
                     <Badge variant={t.is_for_pizza ? "success" : "light"}>
@@ -97,6 +98,7 @@ export default function ToppingsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Pagination */}

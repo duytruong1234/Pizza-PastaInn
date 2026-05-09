@@ -45,15 +45,15 @@ export default function CustomersPage() {
       <div className="rounded-2xl border border-stroke bg-white shadow-sm dark:border-dark-3 dark:bg-gray-dark">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead>
+            <thead className="bg-primary text-white">
               <tr className="border-b border-stroke dark:border-dark-3">
-                <th className="px-6 py-4 text-sm font-medium text-gray-500">ID</th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500">Tên</th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500">Email</th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500">Điện thoại</th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500">Số đơn</th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500">Trạng thái</th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500">Ngày tạo</th>
+                <th className="rounded-tl-lg px-6 py-4 text-sm font-semibold uppercase tracking-wide">ID</th>
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Tên</th>
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Email</th>
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Điện thoại</th>
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Số đơn</th>
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Trạng thái</th>
+                <th className="rounded-tr-lg px-6 py-4 text-sm font-semibold uppercase tracking-wide">Ngày tạo</th>
               </tr>
             </thead>
             <tbody>

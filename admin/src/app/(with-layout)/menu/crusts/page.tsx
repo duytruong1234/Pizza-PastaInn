@@ -35,16 +35,16 @@ export default function CrustsPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-dark dark:text-white">Quản lý đế bánh</h1>
-      
+
       <div className="rounded-2xl border border-stroke bg-white px-5 pb-5 pt-6 shadow-sm sm:px-7.5 dark:border-dark-3 dark:bg-gray-dark">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex w-full max-w-sm items-center">
-            <input 
-              type="text" 
-              placeholder="Tìm kiếm..." 
-              value={globalSearch} 
-              onChange={(e) => { setGlobalSearch(e.target.value); setCurrentPage(1); }} 
-              className="w-full rounded-l-lg border border-r-0 border-stroke bg-transparent py-2.5 pl-4 pr-3 outline-none focus:border-primary dark:border-dark-3" 
+            <input
+              type="text"
+              placeholder="Tìm kiếm..."
+              value={globalSearch}
+              onChange={(e) => { setGlobalSearch(e.target.value); setCurrentPage(1); }}
+              className="w-full rounded-l-lg border border-r-0 border-stroke bg-transparent py-2.5 pl-4 pr-3 outline-none focus:border-primary dark:border-dark-3"
             />
             <button className="flex items-center justify-center rounded-r-lg bg-indigo-500 px-4 py-3 text-white transition hover:bg-indigo-600">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
@@ -54,9 +54,9 @@ export default function CrustsPage() {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-dark dark:text-white">Per Page:</span>
-            <select 
-              value={perPage} 
-              onChange={(e) => { setPerPage(Number(e.target.value)); setCurrentPage(1); }} 
+            <select
+              value={perPage}
+              onChange={(e) => { setPerPage(Number(e.target.value)); setCurrentPage(1); }}
               className="rounded-lg border border-stroke bg-transparent py-2 pl-3 pr-8 outline-none focus:border-primary dark:border-dark-3"
             >
               <option value={5}>5</option><option value={10}>10</option><option value={20}>20</option><option value={50}>50</option>
@@ -64,13 +64,14 @@ export default function CrustsPage() {
           </div>
         </div>
 
-        <div className="max-w-full overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
+        <div className="overflow-hidden rounded-xl border border-stroke dark:border-dark-3">
+          <div className="max-w-full overflow-x-auto">
+            <table className="w-full text-left">
+            <thead className="bg-primary text-white">
               <tr>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500">ID</th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500">Tên đế bánh</th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500">Hiển thị</th>
+                <th className="rounded-tl-lg px-6 py-4 text-sm font-semibold uppercase tracking-wide">ID</th>
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Tên đế bánh</th>
+                <th className="rounded-tr-lg px-6 py-4 text-sm font-semibold uppercase tracking-wide">Hiển thị</th>
               </tr>
             </thead>
             <tbody>
@@ -91,6 +92,7 @@ export default function CrustsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Pagination */}

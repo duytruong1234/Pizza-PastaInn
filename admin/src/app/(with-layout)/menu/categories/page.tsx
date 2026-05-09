@@ -259,35 +259,36 @@ export default function CategoriesPage() {
         </div>
 
         {/* Table */}
-        <div className="max-w-full overflow-x-auto">
-          <table className="w-full table-auto">
-            <thead>
+        <div className="overflow-hidden rounded-xl border border-stroke dark:border-dark-3">
+          <div className="max-w-full overflow-x-auto">
+            <table className="w-full table-auto">
+            <thead className="bg-primary text-white">
               <tr className="text-left">
                 <th
-                  className="cursor-pointer whitespace-nowrap px-4 pb-2 pt-4 font-medium text-gray-500 hover:text-dark dark:hover:text-white"
+                  className="cursor-pointer whitespace-nowrap rounded-tl-lg px-4 py-4 font-semibold uppercase tracking-wide hover:bg-indigo-600"
                   onClick={() => handleSort("category_id")}
                 >
                   ID
                 </th>
                 <th
-                  className="cursor-pointer whitespace-nowrap px-4 pb-2 pt-4 font-medium text-gray-500 hover:text-dark dark:hover:text-white"
+                  className="cursor-pointer whitespace-nowrap px-4 py-4 font-semibold uppercase tracking-wide hover:bg-indigo-600"
                   onClick={() => handleSort("category_name")}
                 >
                   Tên danh mục
                 </th>
                 <th
-                  className="cursor-pointer whitespace-nowrap px-4 pb-2 pt-4 font-medium text-gray-500 hover:text-dark dark:hover:text-white"
+                  className="cursor-pointer whitespace-nowrap px-4 py-4 font-semibold uppercase tracking-wide hover:bg-indigo-600"
                   onClick={() => handleSort("dishes")}
                 >
                   Số món
                 </th>
                 <th
-                  className="cursor-pointer whitespace-nowrap px-4 pb-2 pt-4 font-medium text-gray-500 hover:text-dark dark:hover:text-white"
+                  className="cursor-pointer whitespace-nowrap px-4 py-4 font-semibold uppercase tracking-wide hover:bg-indigo-600"
                   onClick={() => handleSort("combos")}
                 >
                   Số combo
                 </th>
-                <th className="px-4 pb-2 pt-4 font-medium text-gray-500">Thao tác</th>
+                <th className="rounded-tr-lg px-4 py-4 font-semibold uppercase tracking-wide">Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -411,6 +412,7 @@ export default function CategoriesPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Pagination */}

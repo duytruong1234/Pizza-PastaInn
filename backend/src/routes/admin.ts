@@ -396,6 +396,61 @@ router.get('/combos', async (_req: AuthRequest, res: Response): Promise<void> =>
   }
 });
 
+/**
+ * POST /api/admin/combos
+ */
+router.post('/combos', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { combo_name, combo_price, description, is_active, category_id, groups } = req.body;
+
+    const combo = await prisma.$transaction(async (tx) => {
+      const newCombo = await tx.combo.create({
+        data: {
+          combo_name,
+          combo_price,
+          description: description || null,
+          is_active: is_active ?? true,
+          category_id: category_id || null,
+        },
+      });
+
+      if (groups && Array.isArray(groups)) {
+        for (const g of groups) {
+          const groupId = `cg_${newCombo.combo_id}_${Math.random().toString(36).substring(2, 9)}`;
+          const newGroup = await tx.comboGroup.create({
+            data: {
+              group_id: groupId,
+              combo_id: newCombo.combo_id,
+              group_name: g.group_name,
+              min_select: g.min_select ?? 1,
+              max_select: g.max_select ?? 1,
+            },
+          });
+
+          if (g.items && Array.isArray(g.items)) {
+            for (const item of g.items) {
+              await tx.comboItem.create({
+                data: {
+                  group_id: newGroup.group_id,
+                  dish_price_id: item.dish_price_id,
+                  price_extra: item.price_extra || 0,
+                },
+              });
+            }
+          }
+        }
+      }
+
+      return newCombo;
+    });
+
+    sendSuccess(res, { data: combo, message: 'Tạo combo thành công' }, 201);
+  } catch (err) {
+    logger.error('Admin create combo error:', err);
+    sendError(res, 'Lỗi khi tạo combo', 500);
+  }
+});
+
 // ─── QUẢN LÝ CHI NHÁNH ──────────────────────────────────────────────────────
 
 router.get('/stores', async (_req: AuthRequest, res: Response): Promise<void> => {

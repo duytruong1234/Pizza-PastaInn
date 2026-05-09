@@ -105,30 +105,30 @@ export default function OrdersPage() {
       <div className="rounded-2xl border border-stroke bg-white shadow-sm dark:border-dark-3 dark:bg-gray-dark">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead>
+            <thead className="bg-primary text-white">
               <tr className="border-b border-stroke dark:border-dark-3">
-                <th className="px-6 py-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                <th className="rounded-tl-lg px-6 py-4 text-sm font-semibold uppercase tracking-wide">
                   Mã đơn
                 </th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">
                   Khách hàng
                 </th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">
                   Loại
                 </th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">
                   Tổng tiền
                 </th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">
                   Thanh toán
                 </th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">
                   Trạng thái
                 </th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">
                   Ngày tạo
                 </th>
-                <th className="px-6 py-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                <th className="rounded-tr-lg px-6 py-4 text-sm font-semibold uppercase tracking-wide">
                   Thao tác
                 </th>
               </tr>
@@ -167,7 +167,7 @@ export default function OrdersPage() {
                       {order.order_type || "delivery"}
                     </td>
                     <td className="px-6 py-4 font-medium text-dark dark:text-white">
-                      {(order.total_order || 0).toLocaleString()}đ
+                      {(order.total_order || 0).toLocaleString()} đ
                     </td>
                     <td className="px-6 py-4 text-sm capitalize">
                       {order.payment_method || "N/A"}

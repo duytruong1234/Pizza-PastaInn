@@ -12,6 +12,7 @@ import InputGroup from "@/components/FormElements/InputGroup";
 import { TextAreaGroup } from "@/components/FormElements/InputGroup/text-area";
 import { Select } from "@/components/FormElements/select";
 import { Checkbox } from "@/components/FormElements/checkbox";
+import { Dropdown, DropdownTrigger, DropdownContent } from "@/components/ui/dropdown";
 
 interface Dish {
   dish_id: number;
@@ -86,6 +87,10 @@ export default function DishesPage() {
   const [selectedSizes, setSelectedSizes] = useState<number[]>([]);
   const [selectedCrusts, setSelectedCrusts] = useState<number[]>([]);
 
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [isSizeOpen, setIsSizeOpen] = useState(false);
+  const [isCrustOpen, setIsCrustOpen] = useState(false);
+
   // Add dish modal
   const [showAddModal, setShowAddModal] = useState(false);
   const [addForm, setAddForm] = useState({
@@ -121,9 +126,9 @@ export default function DishesPage() {
   useEffect(() => {
     fetchDishes();
     // Fetch dropdown data
-    api.get("/api/admin/categories").then((r) => setCategories(r.data.data)).catch(() => {});
-    api.get("/api/admin/sizes").then((r) => setSizes(r.data.data)).catch(() => {});
-    api.get("/api/admin/crusts").then((r) => setCrusts(r.data.data)).catch(() => {});
+    api.get("/api/admin/categories").then((r) => setCategories(r.data.data)).catch(() => { });
+    api.get("/api/admin/sizes").then((r) => setSizes(r.data.data)).catch(() => { });
+    api.get("/api/admin/crusts").then((r) => setCrusts(r.data.data)).catch(() => { });
   }, []);
 
   const handleView = (dish: FlattenedDish) => setViewDish(dish);
@@ -329,7 +334,7 @@ export default function DishesPage() {
   const totalPages = Math.ceil(filteredDishes.length / perPage) || 1;
   const paginatedData = filteredDishes.slice((currentPage - 1) * perPage, currentPage * perPage);
 
-  const formatPrice = (p: number) => p.toLocaleString("vi-VN") + "đ";
+  const formatPrice = (p: number) => p.toLocaleString("vi-VN") + " đ";
 
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
   const getImageUrl = (img: string | null) => {
@@ -346,8 +351,9 @@ export default function DishesPage() {
           <span className="text-sm text-gray-500">Tổng: {flattenedDishes.length} biến thể</span>
           <Button
             onClick={() => setShowAddModal(true)}
-            variant="primary"
-            size="default"
+            variant="outlinePrimary"
+            size="small"
+            shape="full"
             label="Thêm món ăn"
             icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5"><path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" /></svg>}
           />
@@ -375,14 +381,17 @@ export default function DishesPage() {
         </div>
 
         {/* Checkbox Filters */}
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="mb-6 flex flex-wrap gap-4">
           {/* Loại món ăn */}
-          <div>
-            <p className="mb-2.5 text-sm font-semibold text-dark dark:text-white">Loại món ăn</p>
-            <div className="rounded-lg border border-stroke p-3 dark:border-dark-3">
-              <div className="space-y-3 max-h-32 overflow-y-auto custom-scrollbar">
+          <Dropdown isOpen={isCategoryOpen} setIsOpen={setIsCategoryOpen}>
+            <DropdownTrigger className="flex items-center gap-2 rounded-lg border border-stroke bg-transparent px-4 py-2.5 text-sm font-medium text-dark transition hover:bg-gray-100 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2">
+              Loại món ăn {selectedCategories.length > 0 && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-white">{selectedCategories.length}</span>}
+              <svg className={`h-4 w-4 transition-transform ${isCategoryOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </DropdownTrigger>
+            <DropdownContent align="start" className="max-h-60 w-56 overflow-y-auto border border-stroke bg-white p-3 shadow-md dark:border-dark-3 dark:bg-dark-2">
+              <div className="space-y-3">
                 {categories.map((c) => (
-                  <Checkbox 
+                  <Checkbox
                     key={c.category_id}
                     label={c.category_name}
                     withIcon="check"
@@ -391,15 +400,19 @@ export default function DishesPage() {
                   />
                 ))}
               </div>
-            </div>
-          </div>
+            </DropdownContent>
+          </Dropdown>
+
           {/* Kích cỡ */}
-          <div>
-            <p className="mb-2.5 text-sm font-semibold text-dark dark:text-white">Kích cỡ</p>
-            <div className="rounded-lg border border-stroke p-3 dark:border-dark-3">
-              <div className="space-y-3 max-h-32 overflow-y-auto custom-scrollbar">
+          <Dropdown isOpen={isSizeOpen} setIsOpen={setIsSizeOpen}>
+            <DropdownTrigger className="flex items-center gap-2 rounded-lg border border-stroke bg-transparent px-4 py-2.5 text-sm font-medium text-dark transition hover:bg-gray-100 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2">
+              Kích cỡ {selectedSizes.length > 0 && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-white">{selectedSizes.length}</span>}
+              <svg className={`h-4 w-4 transition-transform ${isSizeOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </DropdownTrigger>
+            <DropdownContent align="start" className="max-h-60 w-56 overflow-y-auto border border-stroke bg-white p-3 shadow-md dark:border-dark-3 dark:bg-dark-2">
+              <div className="space-y-3">
                 {sizes.map((s) => (
-                  <Checkbox 
+                  <Checkbox
                     key={s.size_id}
                     label={s.size_name}
                     withIcon="check"
@@ -408,15 +421,19 @@ export default function DishesPage() {
                   />
                 ))}
               </div>
-            </div>
-          </div>
+            </DropdownContent>
+          </Dropdown>
+
           {/* Viền bánh */}
-          <div>
-            <p className="mb-2.5 text-sm font-semibold text-dark dark:text-white">Viền bánh</p>
-            <div className="rounded-lg border border-stroke p-3 dark:border-dark-3">
-              <div className="space-y-3 max-h-32 overflow-y-auto custom-scrollbar">
+          <Dropdown isOpen={isCrustOpen} setIsOpen={setIsCrustOpen}>
+            <DropdownTrigger className="flex items-center gap-2 rounded-lg border border-stroke bg-transparent px-4 py-2.5 text-sm font-medium text-dark transition hover:bg-gray-100 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2">
+              Viền bánh {selectedCrusts.length > 0 && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-white">{selectedCrusts.length}</span>}
+              <svg className={`h-4 w-4 transition-transform ${isCrustOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </DropdownTrigger>
+            <DropdownContent align="start" className="max-h-60 w-56 overflow-y-auto border border-stroke bg-white p-3 shadow-md dark:border-dark-3 dark:bg-dark-2">
+              <div className="space-y-3">
                 {crusts.map((c) => (
-                  <Checkbox 
+                  <Checkbox
                     key={c.crust_id}
                     label={c.crust_name}
                     withIcon="check"
@@ -425,45 +442,50 @@ export default function DishesPage() {
                   />
                 ))}
               </div>
-            </div>
-          </div>
+            </DropdownContent>
+          </Dropdown>
         </div>
 
-        <div className="max-w-full overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr>
-                <th className="w-28 px-4 py-4 text-sm font-medium text-gray-500 dark:text-gray-400">Mã món ăn</th>
-                <th className="px-4 py-4 text-sm font-medium text-gray-500 dark:text-gray-400">Tên món ăn</th>
-                <th className="w-24 px-4 py-4 text-sm font-medium text-gray-500 dark:text-gray-400">Hình ảnh</th>
-                <th className="px-4 py-4 text-sm font-medium text-gray-500 dark:text-gray-400">Loại món ăn</th>
-                <th className="px-4 py-4 text-sm font-medium text-gray-500 dark:text-gray-400">Kích cỡ</th>
-                <th className="px-4 py-4 text-sm font-medium text-gray-500 dark:text-gray-400">Viền bánh</th>
-                <th className="w-32 px-4 py-4 text-sm font-medium text-gray-500 dark:text-gray-400">Thao tác</th>
+        <div className="overflow-hidden rounded-xl border border-stroke dark:border-dark-3">
+          <div className="max-w-full overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-primary text-white">
+                <tr>
+                <th className="rounded-tl-lg py-4 pl-4 pr-3 text-sm font-semibold uppercase tracking-wide">Mã món ăn</th>
+                <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Tên món ăn</th>
+                <th className="px-4 py-4 text-center text-sm font-semibold uppercase tracking-wide">Hình ảnh</th>
+                <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Loại món ăn</th>
+                <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Kích cỡ</th>
+                <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Viền bánh</th>
+                <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Giá (VNĐ)</th>
+                <th className="rounded-tr-lg py-4 pl-3 pr-4 text-center text-sm font-semibold uppercase tracking-wide">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} className="px-4 py-12 text-center"><div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></td></tr>
+                <tr><td colSpan={8} className="px-4 py-12 text-center"><div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></td></tr>
               ) : paginatedData.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-400">Chưa có món ăn</td></tr>
+                <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400">Chưa có món ăn</td></tr>
               ) : (
                 paginatedData.map((dish, idx) => (
                   <tr key={`${dish.dish_price_id}-${idx}`} className="border-b border-stroke last:border-0 dark:border-dark-3">
-                    <td className="px-4 py-4 text-sm text-dark dark:text-white">{dish.dish_price_id}</td>
+                    <td className="py-4 pl-4 pr-3 text-sm text-dark dark:text-white">{dish.dish_price_id}</td>
                     <td className="px-4 py-4 font-medium text-dark dark:text-white">{dish.dish_name}</td>
-                    <td className="px-4 py-4">
-                      {dish.image ? (
-                        <img src={getImageUrl(dish.image)!} alt={dish.dish_name} className="h-10 w-10 rounded-lg object-cover" />
-                      ) : (
-                        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 text-xs font-medium dark:bg-dark-2">Trống</span>
-                      )}
+                    <td className="px-4 py-4 text-center">
+                      <div className="flex justify-center">
+                        {dish.image ? (
+                          <img src={getImageUrl(dish.image)!} alt={dish.dish_name} className="h-10 w-10 rounded-lg object-cover" />
+                        ) : (
+                          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 text-xs font-medium dark:bg-dark-2">Trống</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-4 text-sm">{dish.category_name}</td>
                     <td className="px-4 py-4 text-sm">{dish.size_name}</td>
                     <td className="px-4 py-4 text-sm">{dish.crust_name}</td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
+                    <td className="px-4 py-4 text-sm font-medium text-primary">{formatPrice(dish.dish_price)}</td>
+                    <td className="py-4 pl-3 pr-4">
+                      <div className="flex items-center justify-center gap-2">
                         <button onClick={() => handleView(dish)} title="Xem chi tiết" className="rounded p-1.5 text-blue-600 transition hover:bg-blue-50 dark:hover:bg-blue-900/20">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4.5"><path d="M10 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" /><path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 0 1 0-1.186A10.004 10.004 0 0 1 10 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0 1 10 17c-4.257 0-7.893-2.66-9.336-6.41ZM14 10a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z" clipRule="evenodd" /></svg>
                         </button>
@@ -480,6 +502,7 @@ export default function DishesPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Pagination */}
@@ -658,11 +681,12 @@ export default function DishesPage() {
               />
             </div>
             <div className="flex gap-3">
-              <Button onClick={() => setEditDish(null)} variant="outlineDark" size="default" label="Hủy" className="flex-1" />
+              <Button onClick={() => setEditDish(null)} variant="outlineDark" size="default" shape="rounded" label="Hủy" className="flex-1" />
               <Button
                 onClick={handleSave}
                 variant="primary"
                 size="default"
+                shape="rounded"
                 label={saving ? "Đang lưu..." : "Lưu thay đổi"}
                 className="flex-1"
                 icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" /></svg>}
@@ -695,7 +719,7 @@ export default function DishesPage() {
 
             <h3 className="mb-2 text-xl font-bold text-dark dark:text-white">Delete</h3>
             <p className="mb-8 text-sm text-gray-500 dark:text-gray-400">
-              Are you sure you want to delete <span className="font-semibold text-dark dark:text-white">"{dishToDelete.dish_name}"</span>?<br/>
+              Are you sure you want to delete <span className="font-semibold text-dark dark:text-white">"{dishToDelete.dish_name}"</span>?<br />
             </p>
 
             <div className="flex w-full gap-4">
@@ -779,7 +803,7 @@ export default function DishesPage() {
 
           <TextAreaGroup label="Thành phần (Ingredient)" placeholder="Nhập thành phần của món ăn..." value={addForm.ingredient} onChange={(e) => setAddForm((f) => ({ ...f, ingredient: e.target.value }))} />
         </div>
-        
+
         <div className="flex gap-4">
           <button
             onClick={() => setShowAddModal(false)}

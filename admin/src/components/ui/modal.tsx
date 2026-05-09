@@ -53,7 +53,7 @@ export function Modal({ isOpen, setIsOpen, children, className, title }: ModalPr
       <div
         ref={contentRef}
         className={cn(
-          "w-full max-w-lg rounded-2xl border border-stroke bg-white p-6 shadow-xl dark:border-dark-3 dark:bg-gray-dark",
+          "w-full max-w-lg rounded-2xl border border-stroke bg-white p-4 sm:p-6 shadow-xl dark:border-dark-3 dark:bg-gray-dark max-h-[calc(100vh-2rem)] overflow-y-auto custom-scrollbar",
           className
         )}
       >
