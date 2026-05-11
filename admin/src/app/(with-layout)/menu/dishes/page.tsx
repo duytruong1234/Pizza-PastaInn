@@ -458,14 +458,15 @@ export default function DishesPage() {
                 <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Kích cỡ</th>
                 <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Viền bánh</th>
                 <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Giá (VNĐ)</th>
+                <th className="px-4 py-4 text-center text-sm font-semibold uppercase tracking-wide">Trạng thái</th>
                 <th className="rounded-tr-lg py-4 pl-3 pr-4 text-center text-sm font-semibold uppercase tracking-wide">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className="px-4 py-12 text-center"><div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></td></tr>
+                <tr><td colSpan={9} className="px-4 py-12 text-center"><div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></td></tr>
               ) : paginatedData.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400">Chưa có món ăn</td></tr>
+                <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400">Chưa có món ăn</td></tr>
               ) : (
                 paginatedData.map((dish, idx) => (
                   <tr key={`${dish.dish_price_id}-${idx}`} className="border-b border-stroke last:border-0 dark:border-dark-3">
@@ -484,6 +485,11 @@ export default function DishesPage() {
                     <td className="px-4 py-4 text-sm">{dish.size_name}</td>
                     <td className="px-4 py-4 text-sm">{dish.crust_name}</td>
                     <td className="px-4 py-4 text-sm font-medium text-primary">{formatPrice(dish.dish_price)}</td>
+                    <td className="px-4 py-4 text-center">
+                      <Badge variant={dish.dish_status ? "outlineSuccess" : "outlineDanger"}>
+                        {dish.dish_status ? 'Đang bán' : 'Ngừng bán'}
+                      </Badge>
+                    </td>
                     <td className="py-4 pl-3 pr-4">
                       <div className="flex items-center justify-center gap-2">
                         <button onClick={() => handleView(dish)} title="Xem chi tiết" className="rounded p-1.5 text-blue-600 transition hover:bg-blue-50 dark:hover:bg-blue-900/20">

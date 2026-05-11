@@ -69,7 +69,7 @@ export default function CustomersPage() {
                   <td className="px-6 py-4 text-sm">{c.phone || "N/A"}</td>
                   <td className="px-6 py-4 text-sm font-medium">{c._count.orders}</td>
                   <td className="px-6 py-4">
-                    <Badge variant={c.user_status ? "success" : "danger"}>
+                    <Badge variant={c.user_status ? "outlineSuccess" : "outlineDanger"}>
                       {c.user_status ? "Hoạt động" : "Bị khóa"}
                     </Badge>
                   </td>

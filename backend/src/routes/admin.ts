@@ -349,6 +349,48 @@ router.get('/sizes', async (_req: AuthRequest, res: Response): Promise<void> => 
   }
 });
 
+// POST sizes
+router.post('/sizes', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { size_name, is_visible } = req.body;
+    const size = await prisma.size.create({
+      data: { size_name, is_visible: is_visible ?? true }
+    });
+    sendSuccess(res, { data: size, message: 'Thêm kích cỡ thành công' }, 201);
+  } catch (err) {
+    logger.error('Admin create size error:', err);
+    sendError(res, 'Lỗi khi thêm kích cỡ', 500);
+  }
+});
+
+// PUT sizes/:id
+router.put('/sizes/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(String(req.params.id));
+    const { size_name, is_visible } = req.body;
+    const size = await prisma.size.update({
+      where: { size_id: id },
+      data: { size_name, is_visible },
+    });
+    sendSuccess(res, { data: size, message: 'Cập nhật kích cỡ thành công' });
+  } catch (err) {
+    logger.error('Admin update size error:', err);
+    sendError(res, 'Lỗi khi cập nhật kích cỡ', 500);
+  }
+});
+
+// DELETE sizes/:id
+router.delete('/sizes/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(String(req.params.id));
+    await prisma.size.delete({ where: { size_id: id } });
+    sendSuccess(res, { message: 'Xóa kích cỡ thành công' });
+  } catch (err) {
+    logger.error('Admin delete size error:', err);
+    sendError(res, 'Lỗi khi xóa kích cỡ', 500);
+  }
+});
+
 // GET crusts
 router.get('/crusts', async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -356,6 +398,48 @@ router.get('/crusts', async (_req: AuthRequest, res: Response): Promise<void> =>
     sendSuccess(res, { data: crusts });
   } catch (err) {
     sendError(res, 'Lỗi', 500);
+  }
+});
+
+// POST crusts
+router.post('/crusts', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { crust_name, is_visible } = req.body;
+    const crust = await prisma.crust.create({
+      data: { crust_name, is_visible: is_visible ?? true }
+    });
+    sendSuccess(res, { data: crust, message: 'Thêm đế bánh thành công' }, 201);
+  } catch (err) {
+    logger.error('Admin create crust error:', err);
+    sendError(res, 'Lỗi khi thêm đế bánh', 500);
+  }
+});
+
+// PUT crusts/:id
+router.put('/crusts/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(String(req.params.id));
+    const { crust_name, is_visible } = req.body;
+    const crust = await prisma.crust.update({
+      where: { crust_id: id },
+      data: { crust_name, is_visible },
+    });
+    sendSuccess(res, { data: crust, message: 'Cập nhật đế bánh thành công' });
+  } catch (err) {
+    logger.error('Admin update crust error:', err);
+    sendError(res, 'Lỗi khi cập nhật đế bánh', 500);
+  }
+});
+
+// DELETE crusts/:id
+router.delete('/crusts/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(String(req.params.id));
+    await prisma.crust.delete({ where: { crust_id: id } });
+    sendSuccess(res, { message: 'Xóa đế bánh thành công' });
+  } catch (err) {
+    logger.error('Admin delete crust error:', err);
+    sendError(res, 'Lỗi khi xóa đế bánh', 500);
   }
 });
 
@@ -401,7 +485,7 @@ router.get('/combos', async (_req: AuthRequest, res: Response): Promise<void> =>
  */
 router.post('/combos', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { combo_name, combo_price, description, is_active, category_id, groups } = req.body;
+    const { combo_name, combo_price, description, is_active, category_id, image_combo, groups } = req.body;
 
     const combo = await prisma.$transaction(async (tx) => {
       const newCombo = await tx.combo.create({
@@ -411,6 +495,7 @@ router.post('/combos', async (req: AuthRequest, res: Response): Promise<void> =>
           description: description || null,
           is_active: is_active ?? true,
           category_id: category_id || null,
+          image_combo: image_combo || null,
         },
       });
 
@@ -445,9 +530,85 @@ router.post('/combos', async (req: AuthRequest, res: Response): Promise<void> =>
     });
 
     sendSuccess(res, { data: combo, message: 'Tạo combo thành công' }, 201);
-  } catch (err) {
+  } catch (err: any) {
     logger.error('Admin create combo error:', err);
-    sendError(res, 'Lỗi khi tạo combo', 500);
+    sendError(res, err.message || 'Lỗi khi tạo combo', 500);
+  }
+});
+
+/**
+ * PUT /api/admin/combos/:id
+ */
+router.put('/combos/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(String(req.params.id));
+    const { combo_name, combo_price, description, is_active, category_id, image_combo, groups } = req.body;
+
+    const combo = await prisma.$transaction(async (tx) => {
+      const updated = await tx.combo.update({
+        where: { combo_id: id },
+        data: {
+          combo_name,
+          combo_price,
+          description: description || null,
+          is_active: is_active ?? true,
+          category_id: category_id || null,
+          image_combo: image_combo || null,
+        },
+      });
+
+      // Xóa groups cũ (cascade xóa items)
+      await tx.comboGroup.deleteMany({ where: { combo_id: id } });
+
+      // Tạo lại groups mới
+      if (groups && Array.isArray(groups)) {
+        for (const g of groups) {
+          const groupId = `cg_${id}_${Math.random().toString(36).substring(2, 9)}`;
+          const newGroup = await tx.comboGroup.create({
+            data: {
+              group_id: groupId,
+              combo_id: id,
+              group_name: g.group_name,
+              min_select: g.min_select ?? 1,
+              max_select: g.max_select ?? 1,
+            },
+          });
+
+          if (g.items && Array.isArray(g.items)) {
+            for (const item of g.items) {
+              await tx.comboItem.create({
+                data: {
+                  group_id: newGroup.group_id,
+                  dish_price_id: item.dish_price_id,
+                  price_extra: item.price_extra || 0,
+                },
+              });
+            }
+          }
+        }
+      }
+
+      return updated;
+    });
+
+    sendSuccess(res, { data: combo, message: 'Cập nhật combo thành công' });
+  } catch (err: any) {
+    logger.error('Admin update combo error:', err);
+    sendError(res, err.message || 'Lỗi khi cập nhật combo', 500);
+  }
+});
+
+/**
+ * DELETE /api/admin/combos/:id
+ */
+router.delete('/combos/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(String(req.params.id));
+    await prisma.combo.delete({ where: { combo_id: id } });
+    sendSuccess(res, { message: 'Xóa combo thành công' });
+  } catch (err) {
+    logger.error('Admin delete combo error:', err);
+    sendError(res, 'Lỗi khi xóa combo', 500);
   }
 });
 

@@ -81,6 +81,7 @@ model Combo {
   description String?
   is_active   Boolean?     @default(true)
   category_id Int?
+  image_combo String?
   groups      ComboGroup[]
   categories  Category?    @relation(fields: [category_id], references: [category_id], onDelete: NoAction, onUpdate: NoAction)
 

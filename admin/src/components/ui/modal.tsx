@@ -14,16 +14,14 @@ type ModalProps = {
   title?: string;
 };
 
+let openModalsCount = 0;
+
 export function Modal({ isOpen, setIsOpen, children, className, title }: ModalProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  const contentRef = useClickOutside<HTMLDivElement>(() => {
-    if (isOpen) setIsOpen(false);
-  });
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -33,25 +31,36 @@ export function Modal({ isOpen, setIsOpen, children, className, title }: ModalPr
     };
 
     if (isOpen) {
+      openModalsCount++;
       document.body.style.overflow = "hidden";
       window.addEventListener("keydown", handleKeyDown);
     } else {
-      document.body.style.removeProperty("overflow");
       window.removeEventListener("keydown", handleKeyDown);
     }
 
     return () => {
-      document.body.style.removeProperty("overflow");
       window.removeEventListener("keydown", handleKeyDown);
+      if (isOpen) {
+        openModalsCount--;
+        if (openModalsCount === 0) {
+          document.body.style.removeProperty("overflow");
+        }
+      }
     };
   }, [isOpen, setIsOpen]);
 
   if (!isOpen || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+    <div 
+      className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) {
+          setIsOpen(false);
+        }
+      }}
+    >
       <div
-        ref={contentRef}
         className={cn(
           "w-full max-w-lg rounded-2xl border border-stroke bg-white p-4 sm:p-6 shadow-xl dark:border-dark-3 dark:bg-gray-dark max-h-[calc(100vh-2rem)] overflow-y-auto custom-scrollbar",
           className

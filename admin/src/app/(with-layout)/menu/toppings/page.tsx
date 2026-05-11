@@ -85,12 +85,12 @@ export default function ToppingsPage() {
                   <td className="px-6 py-4">{(t.price_topping || 0).toLocaleString()} đ</td>
                   <td className="px-6 py-4 text-sm">{t.sizes?.size_name || 'Tất cả'}</td>
                   <td className="px-6 py-4">
-                    <Badge variant={t.is_for_pizza ? "success" : "light"}>
+                    <Badge variant={t.is_for_pizza ? "outlineSuccess" : "outlineDanger"}>
                       {t.is_for_pizza ? "Có" : "Không"}
                     </Badge>
                   </td>
                   <td className="px-6 py-4">
-                    <Badge variant={t.is_for_spaghetti ? "success" : "light"}>
+                    <Badge variant={t.is_for_spaghetti ? "outlineSuccess" : "outlineDanger"}>
                       {t.is_for_spaghetti ? "Có" : "Không"}
                     </Badge>
                   </td>
