@@ -39,6 +39,10 @@ export const NAV_DATA = [
             url: "/menu/dishes",
           },
           {
+            title: "Combo",
+            url: "/combos",
+          },
+          {
             title: "Kích thước",
             url: "/menu/sizes",
           },
@@ -49,10 +53,6 @@ export const NAV_DATA = [
           {
             title: "Topping",
             url: "/menu/toppings",
-          },
-          {
-            title: "Combo",
-            url: "/combos",
           },
         ],
       },

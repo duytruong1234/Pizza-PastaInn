@@ -346,9 +346,9 @@ export default function DishesPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-dark dark:text-white">Quản lý món ăn</h1>
+        <h1 className="text-2xl font-bold text-dark dark:text-white">QUẢN LÝ MÓN ĂN</h1>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500">Tổng: {flattenedDishes.length} biến thể</span>
+          <span className="text-sm text-gray-500">Tổng: {flattenedDishes.length} món ăn</span>
           <Button
             onClick={() => setShowAddModal(true)}
             variant="outlinePrimary"
@@ -370,7 +370,7 @@ export default function DishesPage() {
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-dark dark:text-white">Per Page:</span>
+            <span className="text-sm font-medium text-dark dark:text-white">Hiển thị:</span>
             <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setCurrentPage(1); }} className="rounded-lg border border-stroke bg-transparent py-2 pl-3 pr-8 outline-none focus:border-primary dark:border-dark-3">
               <option value={5}>5</option>
               <option value={10}>10</option>
@@ -515,13 +515,13 @@ export default function DishesPage() {
         {!loading && (
           <div className="mt-6 flex flex-col items-center justify-between gap-4 sm:flex-row">
             <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
-            <div className="text-sm text-gray-500">Showing {currentPage} of {totalPages} pages</div>
+            <div className="text-sm text-gray-500">Trang {currentPage} / {totalPages}</div>
           </div>
         )}
       </div>
 
       {/* ── MODAL XEM CHI TIẾT ── */}
-      <Modal isOpen={!!viewDish} setIsOpen={(val) => !val && setViewDish(null)} title="Chi tiết món ăn" className="max-w-xl">
+      <Modal isOpen={!!viewDish} setIsOpen={(val) => !val && setViewDish(null)} title="CHI TIẾT MÓN ĂN" className="max-w-xl">
         {viewDish && (
           <div className="space-y-5 text-sm text-dark dark:text-gray-300">
             {/* Ảnh + info chính */}
@@ -534,7 +534,7 @@ export default function DishesPage() {
                 )}
               </div>
               <div className="flex-1 space-y-2">
-                <p><span className="font-semibold text-gray-500">Mã biến thể:</span> <span className="ml-1 font-mono text-xs">{viewDish.dish_price_id}</span></p>
+                <p><span className="font-semibold text-gray-500">Mã món ăn:</span> <span className="ml-1 font-mono text-xs">{viewDish.dish_price_id}</span></p>
                 <p><span className="font-semibold text-gray-500">Tên món:</span> <span className="ml-1 font-medium text-base">{viewDish.dish_name}</span></p>
                 <p><span className="font-semibold text-gray-500">Danh mục:</span> <span className="ml-1">{viewDish.category_name}</span></p>
                 <p>
@@ -546,9 +546,9 @@ export default function DishesPage() {
               </div>
             </div>
 
-            {/* Biến thể giá */}
+            {/* Thông tin món ăn */}
             <div className="rounded-xl border border-stroke bg-gray-50 p-4 dark:border-dark-3 dark:bg-dark-2">
-              <h4 className="mb-2 font-semibold text-dark dark:text-white">Biến thể hiện tại</h4>
+              <h4 className="mb-2 font-semibold text-dark dark:text-white">Thông tin hiện tại</h4>
               <div className="grid grid-cols-3 gap-3 text-sm">
                 <div><span className="text-gray-500">Kích cỡ:</span> <span className="ml-1 font-medium">{viewDish.size_name}</span></div>
                 <div><span className="text-gray-500">Viền bánh:</span> <span className="ml-1 font-medium">{viewDish.crust_name}</span></div>
@@ -558,7 +558,7 @@ export default function DishesPage() {
 
             {/* Thành phần */}
             <div className="rounded-xl border border-stroke bg-gray-50 p-4 dark:border-dark-3 dark:bg-dark-2">
-              <h4 className="mb-2 font-semibold text-dark dark:text-white">Thành phần (Ingredient)</h4>
+              <h4 className="mb-2 font-semibold text-dark dark:text-white">Thành phần</h4>
               {viewDish.ingredient ? (
                 <p className="whitespace-pre-wrap leading-relaxed text-gray-600 dark:text-gray-400">{viewDish.ingredient}</p>
               ) : (
@@ -570,13 +570,13 @@ export default function DishesPage() {
       </Modal>
 
       {/* ── MODAL SỬA ── */}
-      <Modal isOpen={!!editDish} setIsOpen={(val) => !val && setEditDish(null)} title="Sửa thông tin món ăn" className="max-w-2xl">
+      <Modal isOpen={!!editDish} setIsOpen={(val) => !val && setEditDish(null)} title="SỬA THÔNG TIN MÓN ĂN" className="max-w-2xl">
         {editDish && (
           <>
             <div className="mb-6 space-y-5">
               {/* Row 1: Tên món ăn */}
               <InputGroup
-                label="Tên món ăn"
+                label="TÊN MÓN ĂN"
                 type="text"
                 placeholder="Nhập tên món ăn..."
                 value={editForm.dish_name}
@@ -585,7 +585,7 @@ export default function DishesPage() {
 
               {/* Row 2: Hình ảnh (File Drop Zone) */}
               <div>
-                <label className="mb-2 block text-sm font-medium text-dark dark:text-white">Hình ảnh</label>
+                <label className="mb-2 block text-sm font-medium text-dark dark:text-white">HÌNH ẢNH</label>
                 <div className={`relative rounded-xl border border-dashed border-stroke bg-[#f8fafd] text-center transition-colors hover:border-primary dark:border-dark-3 dark:bg-dark-2/50 ${editForm.image ? "py-4" : "py-8"}`}>
                   {editForm.image ? (
                     <div className="flex flex-col items-center gap-3">
@@ -635,14 +635,14 @@ export default function DishesPage() {
               {/* Row 3: Loại món ăn + Trạng thái */}
               <div className="grid grid-cols-2 gap-4">
                 <Select
-                  label="Loại món ăn"
+                  label="LOẠI MÓN ĂN"
                   value={editForm.category_id ?? ""}
                   onChange={(e) => setEditForm((f) => ({ ...f, category_id: e.target.value ? Number(e.target.value) : null }))}
                   items={categories.map((c) => ({ value: c.category_id, label: c.category_name }))}
                   placeholder="-- Chọn loại --"
                 />
                 <Select
-                  label="Trạng thái"
+                  label="TRẠNG THÁI"
                   value={editForm.dish_status ? "1" : "0"}
                   onChange={(e) => setEditForm((f) => ({ ...f, dish_status: e.target.value === "1" }))}
                   items={[
@@ -654,22 +654,22 @@ export default function DishesPage() {
 
               {/* Row 4: Kích cỡ + Viền bánh + Giá */}
               <div className="rounded-xl border border-stroke bg-gray-50/50 p-4 dark:border-dark-3 dark:bg-dark-2/50">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Thông tin biến thể</p>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Thông tin món ăn</p>
                 <div className="grid grid-cols-3 gap-4">
                   <Select
-                    label="Kích cỡ"
+                    label="KÍCH CỠ"
                     value={editForm.size_id ?? ""}
                     onChange={(e) => setEditForm((f) => ({ ...f, size_id: e.target.value ? Number(e.target.value) : null }))}
                     items={sizes.map((s) => ({ value: s.size_id, label: s.size_name }))}
                   />
                   <Select
-                    label="Viền bánh"
+                    label="VIỀN BÁNH"
                     value={editForm.crust_id ?? ""}
                     onChange={(e) => setEditForm((f) => ({ ...f, crust_id: e.target.value ? Number(e.target.value) : null }))}
                     items={crusts.map((c) => ({ value: c.crust_id, label: c.crust_name }))}
                   />
                   <InputGroup
-                    label="Giá (VNĐ)"
+                    label="GIÁ (VNĐ)"
                     type="number"
                     value={editForm.dish_price}
                     handleChange={(e) => setEditForm((f) => ({ ...f, dish_price: Number(e.target.value) }))}
@@ -680,7 +680,7 @@ export default function DishesPage() {
 
               {/* Row 5: Thành phần */}
               <TextAreaGroup
-                label="Thành phần (Ingredient)"
+                label="THÀNH PHẦN"
                 placeholder="Nhập thành phần của món ăn..."
                 value={editForm.ingredient}
                 onChange={(e) => setEditForm((f) => ({ ...f, ingredient: e.target.value }))}
@@ -723,9 +723,9 @@ export default function DishesPage() {
               </svg>
             </div>
 
-            <h3 className="mb-2 text-xl font-bold text-dark dark:text-white">Delete</h3>
+            <h3 className="mb-2 text-xl font-bold text-dark dark:text-white">Xóa món ăn</h3>
             <p className="mb-8 text-sm text-gray-500 dark:text-gray-400">
-              Are you sure you want to delete <span className="font-semibold text-dark dark:text-white">"{dishToDelete.dish_name}"</span>?<br />
+              Bạn có chắc chắn muốn xóa <span className="font-semibold text-dark dark:text-white">"{dishToDelete.dish_name}"</span> không? Hành động này không thể hoàn tác.
             </p>
 
             <div className="flex w-full gap-4">
@@ -733,13 +733,13 @@ export default function DishesPage() {
                 onClick={() => setDishToDelete(null)}
                 className="flex-1 rounded-xl bg-gray-100 py-3 font-medium text-dark transition hover:bg-gray-200 dark:bg-dark-3 dark:text-white dark:hover:bg-dark-4"
               >
-                Cancel
+                Hủy bỏ
               </button>
               <button
                 onClick={confirmDelete}
                 className="flex-1 rounded-xl bg-[#d34053] py-3 font-medium text-white transition hover:bg-[#ba3849]"
               >
-                {deleting ? "Deleting..." : "Confirm"}
+                {deleting ? "Đang xóa..." : "Đồng ý"}
               </button>
             </div>
           </div>
@@ -749,7 +749,7 @@ export default function DishesPage() {
       {/* ── MODAL THÊM MÓN ĂN ── */}
       <Modal isOpen={showAddModal} setIsOpen={setShowAddModal} className="relative max-w-[600px] p-6 sm:p-8">
         <div className="mb-6 flex items-center justify-between">
-          <h3 className="text-xl font-bold text-dark dark:text-white">Thêm món ăn mới</h3>
+          <h3 className="text-xl font-bold text-dark dark:text-white">THÊM MÓN ĂN MỚI</h3>
           <button
             onClick={() => setShowAddModal(false)}
             className="flex size-8 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-dark-3"
@@ -761,11 +761,11 @@ export default function DishesPage() {
         </div>
 
         <div className="mb-8 space-y-6">
-          <InputGroup label="Tên món ăn" type="text" placeholder="Nhập tên món ăn..." value={addForm.dish_name} handleChange={(e) => setAddForm((f) => ({ ...f, dish_name: e.target.value }))} />
+          <InputGroup label="TÊN MÓN ĂN" type="text" placeholder="Nhập tên món ăn..." value={addForm.dish_name} handleChange={(e) => setAddForm((f) => ({ ...f, dish_name: e.target.value }))} />
 
           {/* Drop Zone */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-dark dark:text-white">Hình ảnh</label>
+            <label className="mb-2 block text-sm font-medium text-dark dark:text-white">HÌNH ẢNH</label>
             <div className={`relative flex items-center justify-center rounded-xl border border-dashed border-stroke bg-[#fafbfe] text-center transition-colors hover:border-primary dark:border-dark-3 dark:bg-dark-2/50 ${addForm.image ? "py-4" : "py-10"}`}>
               {addForm.image ? (
                 <div className="flex flex-col items-center gap-3">
@@ -794,20 +794,20 @@ export default function DishesPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Select label="Loại món ăn" value={addForm.category_id ?? ""} onChange={(e) => setAddForm((f) => ({ ...f, category_id: e.target.value ? Number(e.target.value) : null }))} items={categories.map((c) => ({ value: c.category_id, label: c.category_name }))} placeholder="-- Chọn loại --" />
-            <Select label="Trạng thái" value={addForm.dish_status ? "1" : "0"} onChange={(e) => setAddForm((f) => ({ ...f, dish_status: e.target.value === "1" }))} items={[{ value: "1", label: "Đang bán" }, { value: "0", label: "Ngừng bán" }]} />
+            <Select label="LOẠI MÓN ĂN" value={addForm.category_id ?? ""} onChange={(e) => setAddForm((f) => ({ ...f, category_id: e.target.value ? Number(e.target.value) : null }))} items={categories.map((c) => ({ value: c.category_id, label: c.category_name }))} placeholder="-- Chọn loại --" />
+            <Select label="TRẠNG THÁI" value={addForm.dish_status ? "1" : "0"} onChange={(e) => setAddForm((f) => ({ ...f, dish_status: e.target.value === "1" }))} items={[{ value: "1", label: "Đang bán" }, { value: "0", label: "Ngừng bán" }]} />
           </div>
 
           <div className="rounded-xl border border-stroke bg-white p-5 dark:border-dark-3 dark:bg-dark-2/50">
-            <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-gray-400">Thông tin biến thể</p>
+            <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-gray-400">Thông tin món ăn</p>
             <div className="grid grid-cols-3 gap-4">
-              <Select label="Kích cỡ" value={addForm.size_id ?? ""} onChange={(e) => setAddForm((f) => ({ ...f, size_id: e.target.value ? Number(e.target.value) : null }))} items={sizes.map((s) => ({ value: s.size_id, label: s.size_name }))} placeholder="-- Chọn --" />
-              <Select label="Viền bánh" value={addForm.crust_id ?? ""} onChange={(e) => setAddForm((f) => ({ ...f, crust_id: e.target.value ? Number(e.target.value) : null }))} items={crusts.map((c) => ({ value: c.crust_id, label: c.crust_name }))} placeholder="-- Chọn --" />
-              <InputGroup label="Giá (VNĐ)" type="number" value={addForm.dish_price} handleChange={(e) => setAddForm((f) => ({ ...f, dish_price: Number(e.target.value) }))} placeholder="0" />
+              <Select label="KÍCH CỠ" value={addForm.size_id ?? ""} onChange={(e) => setAddForm((f) => ({ ...f, size_id: e.target.value ? Number(e.target.value) : null }))} items={sizes.map((s) => ({ value: s.size_id, label: s.size_name }))} placeholder="-- Chọn --" />
+              <Select label="VIỀN BÁNH" value={addForm.crust_id ?? ""} onChange={(e) => setAddForm((f) => ({ ...f, crust_id: e.target.value ? Number(e.target.value) : null }))} items={crusts.map((c) => ({ value: c.crust_id, label: c.crust_name }))} placeholder="-- Chọn --" />
+              <InputGroup label="GIÁ (VNĐ)" type="number" value={addForm.dish_price} handleChange={(e) => setAddForm((f) => ({ ...f, dish_price: Number(e.target.value) }))} placeholder="0" />
             </div>
           </div>
 
-          <TextAreaGroup label="Thành phần (Ingredient)" placeholder="Nhập thành phần của món ăn..." value={addForm.ingredient} onChange={(e) => setAddForm((f) => ({ ...f, ingredient: e.target.value }))} />
+          <TextAreaGroup label="THÀNH PHẦN" placeholder="Nhập thành phần của món ăn..." value={addForm.ingredient} onChange={(e) => setAddForm((f) => ({ ...f, ingredient: e.target.value }))} />
         </div>
 
         <div className="flex gap-4">

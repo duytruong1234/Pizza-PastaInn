@@ -9,6 +9,7 @@ import InputGroup from "@/components/FormElements/InputGroup";
 import { TextAreaGroup } from "@/components/FormElements/InputGroup/text-area";
 import { Select } from "@/components/FormElements/select";
 import { toast } from "sonner";
+import { DishPicker } from "@/components/combo/DishPicker";
 
 interface Combo {
   combo_id: number; combo_name: string; combo_price: number;
@@ -30,7 +31,7 @@ export default function CombosPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [viewCombo, setViewCombo] = useState<Combo | null>(null);
 
-  const [categories, setCategories] = useState<{category_id: number; category_name: string}[]>([]);
+  const [categories, setCategories] = useState<{ category_id: number; category_name: string }[]>([]);
   const [dishes, setDishes] = useState<any[]>([]);
 
   // Add/Edit Combo States
@@ -61,6 +62,11 @@ export default function CombosPage() {
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [groupForm, setGroupForm] = useState({ group_name: "", min_select: 1, max_select: 1 });
 
+  // Dish Picker State
+  const [pickerGroupIdx, setPickerGroupIdx] = useState<number | null>(null);
+  const [allSizes, setAllSizes] = useState<string[]>([]);
+  const [allCrusts, setAllCrusts] = useState<string[]>([]);
+
   const fetchCombos = () => {
     setLoading(true);
     api.get("/api/admin/combos").then(r => setCombos(r.data.data)).catch(() => setCombos([])).finally(() => setLoading(false));
@@ -68,8 +74,10 @@ export default function CombosPage() {
 
   useEffect(() => {
     fetchCombos();
-    api.get("/api/admin/categories").then(r => setCategories(r.data.data)).catch(() => {});
-    api.get("/api/admin/dishes").then(r => setDishes(r.data.data)).catch(() => {});
+    api.get("/api/admin/categories").then(r => setCategories(r.data.data)).catch(() => { });
+    api.get("/api/admin/dishes").then(r => setDishes(r.data.data)).catch(() => { });
+    api.get("/api/admin/sizes").then(r => setAllSizes((r.data.data || []).map((s: any) => s.size_name))).catch(() => { });
+    api.get("/api/admin/crusts").then(r => setAllCrusts((r.data.data || []).map((c: any) => c.crust_name))).catch(() => { });
   }, []);
 
   const dishOptions = useMemo(() => {
@@ -80,13 +88,25 @@ export default function CombosPage() {
           options.push({
             value: price.dish_price_id,
             label: `${dish.dish_name} (${price.size?.size_name || 'Mặc định'} - ${price.crust?.crust_name || 'Mặc định'})`,
-            data: { dish_name: dish.dish_name, image: dish.image, size: price.size?.size_name, crust: price.crust?.crust_name }
+            data: { dish_name: dish.dish_name, image: dish.image, size: price.size?.size_name, crust: price.crust?.crust_name, category_name: dish.category?.category_name || null }
           });
         });
       }
     });
     return options;
   }, [dishes]);
+
+  const handlePickerConfirm = (selectedIds: string[]) => {
+    if (pickerGroupIdx === null || pickerGroupIdx >= addForm.groups.length) return;
+    const newG = [...addForm.groups];
+    selectedIds.forEach(id => {
+      if (!newG[pickerGroupIdx].items.find(i => i.dish_price_id === id)) {
+        newG[pickerGroupIdx].items.push({ dish_price_id: id, price_extra: 0 });
+      }
+    });
+    setAddForm(f => ({ ...f, groups: newG }));
+    setPickerGroupIdx(null);
+  };
 
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
   const getImageUrl = (img: string | null) => {
@@ -145,6 +165,8 @@ export default function CombosPage() {
   const handleSaveCombo = async () => {
     if (!addForm.combo_name.trim()) return toast.error("Vui lòng nhập tên combo");
     if (addForm.combo_price <= 0) return toast.error("Giá combo phải lớn hơn 0");
+    if (!addForm.category_id) return toast.error("Vui lòng chọn danh mục cho combo");
+    if (addForm.groups.length === 0) return toast.error("Vui lòng thêm ít nhất một nhóm món cho combo");
 
     for (const group of addForm.groups) {
       if (!group.group_name.trim()) return toast.error("Có nhóm chưa nhập tên");
@@ -216,7 +238,7 @@ export default function CombosPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-dark dark:text-white">Quản lý Combo</h1>
+        <h1 className="text-2xl font-bold text-dark dark:text-white">QUẢN LÝ COMBO</h1>
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500">Tổng: {combos.length} combo</span>
           <Button
@@ -240,7 +262,7 @@ export default function CombosPage() {
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-dark dark:text-white">Per Page:</span>
+            <span className="text-sm font-medium text-dark dark:text-white">Hiển thị:</span>
             <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setCurrentPage(1); }} className="rounded-lg border border-stroke bg-transparent py-2 pl-3 pr-8 outline-none focus:border-primary dark:border-dark-3">
               <option value={5}>5</option>
               <option value={10}>10</option>
@@ -256,13 +278,13 @@ export default function CombosPage() {
             <table className="w-full text-left">
               <thead className="bg-primary text-white">
                 <tr>
-                  <th className="rounded-tl-lg py-4 pl-4 pr-3 text-sm font-semibold uppercase tracking-wide">Mã Combo</th>
-                  <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Tên Combo</th>
-                  <th className="px-4 py-4 text-center text-sm font-semibold uppercase tracking-wide">Hình ảnh</th>
-                  <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Danh mục</th>
-                  <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Giá (VNĐ)</th>
-                  <th className="px-4 py-4 text-center text-sm font-semibold uppercase tracking-wide">Trạng thái</th>
-                  <th className="rounded-tr-lg py-4 pl-3 pr-4 text-center text-sm font-semibold uppercase tracking-wide">Thao tác</th>
+                  <th className="rounded-tl-lg py-4 pl-4 pr-3 text-sm font-semibold uppercase tracking-wide">MÃ COMBO</th>
+                  <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">TÊN COMBO</th>
+                  <th className="px-4 py-4 text-center text-sm font-semibold uppercase tracking-wide">HÌNH ẢNH</th>
+                  <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">DANH MỤC</th>
+                  <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">GIÁ (VNĐ)</th>
+                  <th className="px-4 py-4 text-center text-sm font-semibold uppercase tracking-wide">TRẠNG THÁI</th>
+                  <th className="rounded-tr-lg py-4 pl-3 pr-4 text-center text-sm font-semibold uppercase tracking-wide">THAO TÁC</th>
                 </tr>
               </thead>
               <tbody>
@@ -317,13 +339,13 @@ export default function CombosPage() {
         {!loading && (
           <div className="mt-6 flex flex-col items-center justify-between gap-4 sm:flex-row">
             <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
-            <div className="text-sm text-gray-500">Showing {currentPage} of {totalPages} pages</div>
+            <div className="text-sm text-gray-500">Trang {currentPage} / {totalPages}</div>
           </div>
         )}
       </div>
 
       {/* Modal View Detail */}
-      <Modal isOpen={!!viewCombo} setIsOpen={(val) => !val && setViewCombo(null)} title="Chi tiết Combo" className="max-w-3xl">
+      <Modal isOpen={!!viewCombo} setIsOpen={(val) => !val && setViewCombo(null)} title="CHI TIẾT COMBO" className="max-w-3xl">
         {viewCombo && (
           <div className="space-y-6">
             <div className="flex gap-5 rounded-xl border border-stroke bg-gray-50/50 p-5 dark:border-dark-3 dark:bg-dark-2/20">
@@ -339,7 +361,7 @@ export default function CombosPage() {
                   <h3 className="text-xl font-bold text-dark dark:text-white">{viewCombo.combo_name}</h3>
                   <p className="mt-1 text-sm font-medium text-gray-500">{viewCombo.categories?.category_name}</p>
                   {viewCombo.description && (
-                    <p className="mt-3 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+                    <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-gray-600 dark:text-gray-400">
                       {viewCombo.description}
                     </p>
                   )}
@@ -347,7 +369,7 @@ export default function CombosPage() {
                 <div className="flex flex-col items-end gap-2 text-right">
                   <span className="whitespace-nowrap text-xl font-black text-primary">{viewCombo.combo_price.toLocaleString("vi-VN")} đ</span>
                   <Badge variant={viewCombo.is_active ? "outlineSuccess" : "outlineDanger"} className="shadow-sm">
-                    {viewCombo.is_active ? 'Đang bán' : 'Ngưng bán'}
+                    {viewCombo.is_active ? 'Đang bán' : 'Ngừng bán'}
                   </Badge>
                 </div>
               </div>
@@ -398,7 +420,7 @@ export default function CombosPage() {
       </Modal>
 
       {/* ── MODAL THÊM / SỬA COMBO ── */}
-      <Modal isOpen={showAddModal} setIsOpen={setShowAddModal} title={editId ? "Sửa cấu hình Combo" : "Cấu hình Combo"} className="max-w-[1200px]">
+      <Modal isOpen={showAddModal} setIsOpen={setShowAddModal} title={editId ? "SỬA CẤU HÌNH COMBO" : "CẤU HÌNH COMBO"} className="max-w-[1200px]">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           {/* Cột trái: Thông tin cơ bản */}
           <div className="lg:col-span-4 space-y-5 rounded-2xl border border-stroke bg-gray-50/30 p-5 dark:border-dark-3 dark:bg-dark-2/20">
@@ -407,7 +429,7 @@ export default function CombosPage() {
               Thông tin cơ bản
             </h4>
             <InputGroup label="TÊN COMBO (*)" type="text" placeholder="Nhập tên combo..." value={addForm.combo_name} handleChange={(e) => setAddForm(f => ({ ...f, combo_name: e.target.value }))} />
-            
+
             <div className="flex items-end gap-3">
               <div className="flex-1">
                 <InputGroup label="GIÁ COMBO (*)" type="number" placeholder="0" value={addForm.combo_price || ""} handleChange={(e) => setAddForm(f => ({ ...f, combo_price: Number(e.target.value) }))} />
@@ -415,11 +437,11 @@ export default function CombosPage() {
               <div className="pb-1 text-sm font-medium text-gray-500">VNĐ</div>
             </div>
 
-            <Select label="TRẠNG THÁI" value={addForm.is_active ? "1" : "0"} onChange={(e) => setAddForm(f => ({ ...f, is_active: e.target.value === "1" }))} items={[{ value: "1", label: "Hoạt động" }, { value: "0", label: "Tạm ngưng" }]} />
+            <Select label="TRẠNG THÁI" value={addForm.is_active ? "1" : "0"} onChange={(e) => setAddForm(f => ({ ...f, is_active: e.target.value === "1" }))} items={[{ value: "1", label: "Đang bán" }, { value: "0", label: "Ngừng bán" }]} />
             <Select label="DANH MỤC" value={addForm.category_id ?? ""} onChange={(e) => setAddForm(f => ({ ...f, category_id: e.target.value ? Number(e.target.value) : null }))} items={categories.map(c => ({ value: c.category_id, label: c.category_name }))} placeholder="-- Chọn danh mục --" />
-            
+
             <TextAreaGroup label="MÔ TẢ NGẮN" placeholder="Nhập mô tả combo..." value={addForm.description} onChange={(e) => setAddForm(f => ({ ...f, description: e.target.value }))} />
-            
+
             <div>
               <label className="mb-2 block text-sm font-semibold uppercase text-dark dark:text-white">Hình ảnh đại diện</label>
               <div className={`relative flex items-center justify-center rounded-xl border border-dashed border-stroke bg-white text-center transition-colors hover:border-primary dark:border-dark-3 dark:bg-dark-3 ${addForm.image_combo ? "py-4" : "py-10"}`}>
@@ -460,14 +482,14 @@ export default function CombosPage() {
                     {gIdx + 1}
                   </div>
                   <div className="flex-1">
-                    <input 
-                      type="text" 
-                      placeholder="NHẬP TÊN NHÓM MÓN MỚI..." 
+                    <input
+                      type="text"
+                      placeholder="NHẬP TÊN NHÓM MÓN MỚI..."
                       className="w-full bg-transparent text-sm font-bold uppercase outline-none placeholder:text-gray-400 dark:text-white"
-                      value={g.group_name} 
+                      value={g.group_name}
                       onChange={(e) => {
                         const newG = [...addForm.groups]; newG[gIdx].group_name = e.target.value; setAddForm(f => ({ ...f, groups: newG }));
-                      }} 
+                      }}
                     />
                   </div>
                   <div className="flex items-center gap-4 text-xs font-medium text-gray-500">
@@ -484,6 +506,7 @@ export default function CombosPage() {
                       }} />
                     </div>
                     <button type="button" onClick={() => {
+                      setPickerGroupIdx(null);
                       const newG = [...addForm.groups]; newG.splice(gIdx, 1); setAddForm(f => ({ ...f, groups: newG }));
                     }} className="ml-2 rounded-lg bg-gray-100 p-1.5 text-gray-500 transition hover:bg-red-50 hover:text-red-600 dark:bg-dark-2 dark:hover:bg-red-900/20">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4"><path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4Z" clipRule="evenodd" /></svg>
@@ -499,9 +522,7 @@ export default function CombosPage() {
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5"><path fillRule="evenodd" d="M4.25 2A2.25 2.25 0 0 0 2 4.25v11.5A2.25 2.25 0 0 0 4.25 18h11.5A2.25 2.25 0 0 0 18 15.75V4.25A2.25 2.25 0 0 0 15.75 2H4.25Zm4.03 6.28a.75.75 0 0 0-1.06-1.06L4.97 9.47a.75.75 0 0 0 0 1.06l2.25 2.25a.75.75 0 0 0 1.06-1.06L6.56 10l1.72-1.72Zm4.5-1.06a.75.75 0 1 0-1.06 1.06L13.44 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06l2.25-2.25a.75.75 0 0 0 0-1.06l-2.25-2.25Z" clipRule="evenodd" /></svg>
                       </div>
                       <p className="mb-3 text-sm text-gray-500">Nhóm này chưa có món ăn nào.</p>
-                      <button type="button" onClick={() => {
-                        const newG = [...addForm.groups]; newG[gIdx].items.push({ dish_price_id: "", price_extra: 0 }); setAddForm(f => ({ ...f, groups: newG }));
-                      }} className="rounded-lg border border-stroke bg-white px-4 py-2 text-sm font-medium text-dark transition hover:bg-gray-50 dark:border-dark-3 dark:bg-dark-2 dark:text-white dark:hover:bg-dark-3">+ Chọn món ngay</button>
+                      <button type="button" onClick={() => setPickerGroupIdx(gIdx)} className="rounded-lg border border-stroke bg-white px-4 py-2 text-sm font-medium text-dark transition hover:bg-gray-50 dark:border-dark-3 dark:bg-dark-2 dark:text-white dark:hover:bg-dark-3">+ Chọn món ngay</button>
                     </div>
                   ) : (
                     <>
@@ -521,9 +542,10 @@ export default function CombosPage() {
                                 ) : (
                                   <div className="h-8 w-8 rounded bg-gray-200 dark:bg-dark-3"></div>
                                 )}
-                                <Select label="" value={item.dish_price_id} onChange={(e) => {
-                                  const newG = [...addForm.groups]; newG[gIdx].items[iIdx].dish_price_id = e.target.value; setAddForm(f => ({ ...f, groups: newG }));
-                                }} items={dishOptions} placeholder="-- Chọn món ăn --" className="w-full" />
+                                <div>
+                                  <p className="text-sm font-medium text-dark dark:text-white">{selectedDishOpt?.data.dish_name || 'Chưa chọn'}</p>
+                                  <p className="text-xs text-gray-400">{selectedDishOpt?.data.size || ''} {selectedDishOpt?.data.crust ? `- ${selectedDishOpt.data.crust}` : ''}</p>
+                                </div>
                               </div>
                               <div className="flex w-1/3 justify-end">
                                 <input type="number" placeholder="0" className="w-32 rounded-lg border border-stroke bg-transparent px-3 py-2 text-right text-sm outline-none focus:border-primary dark:border-dark-3" value={item.price_extra || ""} onChange={(e) => {
@@ -541,9 +563,7 @@ export default function CombosPage() {
                           );
                         })}
                       </div>
-                      <button type="button" onClick={() => {
-                        const newG = [...addForm.groups]; newG[gIdx].items.push({ dish_price_id: "", price_extra: 0 }); setAddForm(f => ({ ...f, groups: newG }));
-                      }} className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-green-50/50 py-2.5 text-sm font-bold text-green-700 transition hover:bg-green-50 dark:bg-green-500/10 dark:text-green-500">
+                      <button type="button" onClick={() => setPickerGroupIdx(gIdx)} className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-green-50/50 py-2.5 text-sm font-bold text-green-700 transition hover:bg-green-50 dark:bg-green-500/10 dark:text-green-500">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4"><path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" /></svg>
                         CHỌN MÓN THÊM VÀO NHÓM NÀY
                       </button>
@@ -559,7 +579,7 @@ export default function CombosPage() {
             </button>
           </div>
         </div>
-        
+
         <div className="mt-6 flex justify-end gap-3 border-t border-stroke pt-4 dark:border-dark-3">
           <Button onClick={() => setShowAddModal(false)} variant="outlineDark" label="Hủy không lưu" shape="rounded" />
           <Button onClick={handleSaveCombo} variant="warning" label={addSaving ? "Đang lưu..." : (editId ? "LƯU THAY ĐỔI" : "LƯU COMBO")} disabled={addSaving || addUploading} shape="rounded" className="font-bold uppercase" />
@@ -567,11 +587,11 @@ export default function CombosPage() {
       </Modal>
 
       {/* Modal Thêm nhóm món mới (nhỏ) */}
-      <Modal isOpen={showGroupModal} setIsOpen={setShowGroupModal} title="Thêm nhóm món mới" className="max-w-md">
+      <Modal isOpen={showGroupModal} setIsOpen={setShowGroupModal} title="THÊM NHÓM MÓN MỚI" className="max-w-md">
         <div className="space-y-4">
           <InputGroup label="TÊN NHÓM MÓN (*)" type="text" placeholder="VD: Chọn món phụ 1, Đồ uống đi kèm..." value={groupForm.group_name} handleChange={(e) => setGroupForm(f => ({ ...f, group_name: e.target.value }))} />
           <p className="text-xs italic text-gray-400">Tên này sẽ hiển thị trực tiếp cho khách hàng khi chọn Combo.</p>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="mb-2 block text-xs font-bold uppercase text-dark dark:text-white">CHỌN TỐI THIỂU</label>
@@ -602,6 +622,19 @@ export default function CombosPage() {
           </div>
         </div>
       </Modal>
+
+      {/* ── DISH PICKER MODAL ── */}
+      <DishPicker
+        isOpen={pickerGroupIdx !== null}
+        onClose={() => setPickerGroupIdx(null)}
+        dishOptions={dishOptions}
+        alreadySelected={pickerGroupIdx !== null ? addForm.groups[pickerGroupIdx]?.items.map(i => i.dish_price_id) || [] : []}
+        onConfirm={handlePickerConfirm}
+        getImageUrl={getImageUrl}
+        categories={categories}
+        sizes={allSizes}
+        crusts={allCrusts}
+      />
 
       {/* ── MODAL XÓA ── */}
       <Modal isOpen={!!comboToDelete} setIsOpen={(val) => !val && setComboToDelete(null)} className="relative max-w-[400px] p-8">

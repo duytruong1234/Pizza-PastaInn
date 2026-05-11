@@ -93,7 +93,7 @@ export default function SizesPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-dark dark:text-white">Quản lý kích thước</h1>
+        <h1 className="text-2xl font-bold text-dark dark:text-white">QUẢN LÝ KÍCH THƯỚC</h1>
         <Button
           onClick={() => setShowAdd(true)}
           variant="outlinePrimary"
@@ -121,7 +121,7 @@ export default function SizesPage() {
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-dark dark:text-white">Per Page:</span>
+            <span className="text-sm font-medium text-dark dark:text-white">Hiển thị:</span>
             <select
               value={perPage}
               onChange={(e) => { setPerPage(Number(e.target.value)); setCurrentPage(1); }}
@@ -154,7 +154,7 @@ export default function SizesPage() {
                   <td className="px-6 py-4 font-medium text-dark dark:text-white">{s.size_name}</td>
                   <td className="px-6 py-4 text-center">
                     <Badge variant={s.is_visible ? "outlineSuccess" : "outlineDanger"}>
-                      {s.is_visible ? "Đang bán" : "Ngừng bán"}
+                      {s.is_visible ? "Hiển thị" : "Ẩn"}
                     </Badge>
                   </td>
                   <td className="px-6 py-4 text-center">
@@ -183,18 +183,18 @@ export default function SizesPage() {
               onPageChange={setCurrentPage}
             />
             <div className="text-sm text-gray-500">
-              Showing {currentPage} of {totalPages} pages
+              Trang {currentPage} / {totalPages}
             </div>
           </div>
         )}
       </div>
 
       {/* --- MODALS --- */}
-      <Modal isOpen={showAdd} setIsOpen={setShowAdd} title="Thêm Kích thước">
+      <Modal isOpen={showAdd} setIsOpen={setShowAdd} title="THÊM KÍCH THƯỚC">
         <div className="space-y-4 p-2">
-          <InputGroup label="Tên kích thước" type="text" placeholder="Ví dụ: Size S..." value={addForm.size_name} handleChange={(e) => setAddForm(prev => ({ ...prev, size_name: e.target.value }))} />
+          <InputGroup label="TÊN KÍCH THƯỚC" type="text" placeholder="Ví dụ: Size S..." value={addForm.size_name} handleChange={(e) => setAddForm(prev => ({ ...prev, size_name: e.target.value }))} />
           <div className="flex items-center justify-between">
-            <label className="text-sm font-semibold text-dark dark:text-white">Hiển thị (Đang bán)</label>
+            <label className="text-sm font-semibold text-dark dark:text-white">HIỂN THỊ</label>
             <Switch checked={addForm.is_visible} onChange={(checked) => setAddForm(prev => ({ ...prev, is_visible: checked }))} />
           </div>
           <div className="mt-6 flex justify-end gap-3">
@@ -204,11 +204,11 @@ export default function SizesPage() {
         </div>
       </Modal>
 
-      <Modal isOpen={!!editingSize} setIsOpen={() => setEditingSize(null)} title="Sửa Kích thước">
+      <Modal isOpen={!!editingSize} setIsOpen={() => setEditingSize(null)} title="SỬA KÍCH THƯỚC">
         <div className="space-y-4 p-2">
-          <InputGroup label="Tên kích thước" type="text" value={editingSize?.size_name || ""} handleChange={(e) => setEditingSize(prev => prev ? { ...prev, size_name: e.target.value } : null)} />
+          <InputGroup label="TÊN KÍCH THƯỚC" type="text" value={editingSize?.size_name || ""} handleChange={(e) => setEditingSize(prev => prev ? { ...prev, size_name: e.target.value } : null)} />
           <div className="flex items-center justify-between">
-            <label className="text-sm font-semibold text-dark dark:text-white">Hiển thị (Đang bán)</label>
+            <label className="text-sm font-semibold text-dark dark:text-white">HIỂN THỊ</label>
             <Switch checked={editingSize?.is_visible || false} onChange={(checked) => setEditingSize(prev => prev ? { ...prev, is_visible: checked } : null)} />
           </div>
           <div className="mt-6 flex justify-end gap-3">
@@ -218,7 +218,7 @@ export default function SizesPage() {
         </div>
       </Modal>
 
-      <Modal isOpen={!!deletingSize} setIsOpen={() => setDeletingSize(null)} title="Xóa Kích thước">
+      <Modal isOpen={!!deletingSize} setIsOpen={() => setDeletingSize(null)} title="XÓA KÍCH THƯỚC">
         <div className="p-2">
           <p className="mb-6 text-gray-500">Bạn có chắc chắn muốn xóa kích thước <strong>{deletingSize?.size_name}</strong>? Hành động này không thể hoàn tác.</p>
           <div className="flex justify-end gap-3">

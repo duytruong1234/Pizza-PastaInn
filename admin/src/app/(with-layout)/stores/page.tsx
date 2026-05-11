@@ -27,7 +27,7 @@ export default function StoresPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-dark dark:text-white">Quản lý chi nhánh</h1>
+        <h1 className="text-2xl font-bold text-dark dark:text-white">QUẢN LÝ CHI NHÁNH</h1>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

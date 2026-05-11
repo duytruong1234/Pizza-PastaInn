@@ -456,6 +456,60 @@ router.get('/toppings', async (_req: AuthRequest, res: Response): Promise<void> 
   }
 });
 
+// POST toppings
+router.post('/toppings', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { topping_name, price_topping, is_for_pizza, is_for_spaghetti, size_id } = req.body;
+    const topping = await prisma.topping.create({
+      data: {
+        topping_name,
+        price_topping: price_topping || 0,
+        is_for_pizza: is_for_pizza ?? true,
+        is_for_spaghetti: is_for_spaghetti ?? false,
+        size_id: size_id || null,
+      },
+    });
+    sendSuccess(res, { data: topping, message: 'Thêm topping thành công' }, 201);
+  } catch (err) {
+    logger.error('Admin create topping error:', err);
+    sendError(res, 'Lỗi khi thêm topping', 500);
+  }
+});
+
+// PUT toppings/:id
+router.put('/toppings/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(String(req.params.id));
+    const { topping_name, price_topping, is_for_pizza, is_for_spaghetti, size_id } = req.body;
+    const topping = await prisma.topping.update({
+      where: { topping_id: id },
+      data: {
+        topping_name,
+        price_topping: price_topping || 0,
+        is_for_pizza,
+        is_for_spaghetti,
+        size_id: size_id || null,
+      },
+    });
+    sendSuccess(res, { data: topping, message: 'Cập nhật topping thành công' });
+  } catch (err) {
+    logger.error('Admin update topping error:', err);
+    sendError(res, 'Lỗi khi cập nhật topping', 500);
+  }
+});
+
+// DELETE toppings/:id
+router.delete('/toppings/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(String(req.params.id));
+    await prisma.topping.delete({ where: { topping_id: id } });
+    sendSuccess(res, { message: 'Xóa topping thành công' });
+  } catch (err) {
+    logger.error('Admin delete topping error:', err);
+    sendError(res, 'Lỗi khi xóa topping', 500);
+  }
+});
+
 // ─── QUẢN LÝ COMBO ──────────────────────────────────────────────────────────
 
 router.get('/combos', async (_req: AuthRequest, res: Response): Promise<void> => {

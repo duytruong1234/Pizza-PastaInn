@@ -38,16 +38,16 @@ router.get('/crusts', async (req, res) => {
 router.get('/toppings', async (req, res) => {
   try {
     const { size_id, type } = req.query;
-    
+
     let where: any = {};
-    
+
     if (size_id) {
       where.OR = [
         { size_id: Number(size_id) },
         { size_id: null }
       ];
     }
-    
+
     if (type === 'spaghetti') {
       where.is_for_spaghetti = true;
     } else if (type === 'pizza') {
@@ -60,7 +60,7 @@ router.get('/toppings', async (req, res) => {
         sizes: true
       }
     });
-    
+
     sendSuccess(res, { data: toppings });
   } catch (error: any) {
     console.error('Topping error:', error?.message || error);
@@ -104,7 +104,10 @@ router.get('/dishes/:id/prices', async (req, res) => {
 // Lấy danh sách combo
 router.get('/combos', async (req, res) => {
   try {
-    const combos = await prisma.combo.findMany({ where: { is_active: true } });
+    const combos = await prisma.combo.findMany({
+      where: { is_active: true },
+      include: { groups: { select: { group_name: true } } }
+    });
     sendSuccess(res, { data: combos });
   } catch (error) {
     sendError(res, 'Lỗi lấy combo', 500);

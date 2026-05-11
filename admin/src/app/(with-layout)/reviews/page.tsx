@@ -29,7 +29,7 @@ export default function ReviewsPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-dark dark:text-white">Quản lý đánh giá</h1>
+        <h1 className="text-2xl font-bold text-dark dark:text-white">QUẢN LÝ ĐÁNH GIÁ</h1>
         <span className="text-sm text-gray-500">Tổng: {total} đánh giá</span>
       </div>
 

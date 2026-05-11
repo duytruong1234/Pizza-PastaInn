@@ -93,7 +93,7 @@ export default function CrustsPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-dark dark:text-white">Quản lý đế bánh</h1>
+        <h1 className="text-2xl font-bold text-dark dark:text-white">QUẢN LÝ ĐẾ BÁNH</h1>
         <Button
           onClick={() => setShowAdd(true)}
           variant="outlinePrimary"
@@ -121,7 +121,7 @@ export default function CrustsPage() {
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-dark dark:text-white">Per Page:</span>
+            <span className="text-sm font-medium text-dark dark:text-white">Hiển thị:</span>
             <select
               value={perPage}
               onChange={(e) => { setPerPage(Number(e.target.value)); setCurrentPage(1); }}
@@ -154,7 +154,7 @@ export default function CrustsPage() {
                   <td className="px-6 py-4 font-medium text-dark dark:text-white">{c.crust_name}</td>
                   <td className="px-6 py-4 text-center">
                     <Badge variant={c.is_visible ? "outlineSuccess" : "outlineDanger"}>
-                      {c.is_visible ? "Đang bán" : "Ngừng bán"}
+                      {c.is_visible ? "Hiển thị" : "Ẩn"}
                     </Badge>
                   </td>
                   <td className="px-6 py-4 text-center">
@@ -183,18 +183,18 @@ export default function CrustsPage() {
               onPageChange={setCurrentPage}
             />
             <div className="text-sm text-gray-500">
-              Showing {currentPage} of {totalPages} pages
+              Trang {currentPage} / {totalPages}
             </div>
           </div>
         )}
       </div>
 
       {/* --- MODALS --- */}
-      <Modal isOpen={showAdd} setIsOpen={setShowAdd} title="Thêm Đế bánh">
+      <Modal isOpen={showAdd} setIsOpen={setShowAdd} title="THÊM ĐẾ BÁNH">
         <div className="space-y-4 p-2">
-          <InputGroup label="Tên đế bánh" type="text" placeholder="Ví dụ: Đế dày..." value={addForm.crust_name} handleChange={(e) => setAddForm(prev => ({ ...prev, crust_name: e.target.value }))} />
+          <InputGroup label="TÊN ĐẾ BÁNH" type="text" placeholder="Ví dụ: Đế dày..." value={addForm.crust_name} handleChange={(e) => setAddForm(prev => ({ ...prev, crust_name: e.target.value }))} />
           <div className="flex items-center justify-between">
-            <label className="text-sm font-semibold text-dark dark:text-white">Hiển thị (Đang bán)</label>
+            <label className="text-sm font-semibold text-dark dark:text-white">HIỂN THỊ</label>
             <Switch checked={addForm.is_visible} onChange={(checked) => setAddForm(prev => ({ ...prev, is_visible: checked }))} />
           </div>
           <div className="mt-6 flex justify-end gap-3">
@@ -204,11 +204,11 @@ export default function CrustsPage() {
         </div>
       </Modal>
 
-      <Modal isOpen={!!editingCrust} setIsOpen={() => setEditingCrust(null)} title="Sửa Đế bánh">
+      <Modal isOpen={!!editingCrust} setIsOpen={() => setEditingCrust(null)} title="SỬA ĐẾ BÁNH">
         <div className="space-y-4 p-2">
-          <InputGroup label="Tên đế bánh" type="text" value={editingCrust?.crust_name || ""} handleChange={(e) => setEditingCrust(prev => prev ? { ...prev, crust_name: e.target.value } : null)} />
+          <InputGroup label="TÊN ĐẾ BÁNH" type="text" value={editingCrust?.crust_name || ""} handleChange={(e) => setEditingCrust(prev => prev ? { ...prev, crust_name: e.target.value } : null)} />
           <div className="flex items-center justify-between">
-            <label className="text-sm font-semibold text-dark dark:text-white">Hiển thị (Đang bán)</label>
+            <label className="text-sm font-semibold text-dark dark:text-white">HIỂN THỊ</label>
             <Switch checked={editingCrust?.is_visible || false} onChange={(checked) => setEditingCrust(prev => prev ? { ...prev, is_visible: checked } : null)} />
           </div>
           <div className="mt-6 flex justify-end gap-3">
@@ -218,7 +218,7 @@ export default function CrustsPage() {
         </div>
       </Modal>
 
-      <Modal isOpen={!!deletingCrust} setIsOpen={() => setDeletingCrust(null)} title="Xóa Đế bánh">
+      <Modal isOpen={!!deletingCrust} setIsOpen={() => setDeletingCrust(null)} title="XÓA ĐẾ BÁNH">
         <div className="p-2">
           <p className="mb-6 text-gray-500">Bạn có chắc chắn muốn xóa đế bánh <strong>{deletingCrust?.crust_name}</strong>? Hành động này không thể hoàn tác.</p>
           <div className="flex justify-end gap-3">

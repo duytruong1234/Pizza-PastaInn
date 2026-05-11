@@ -74,7 +74,7 @@ export default function ProductCard({
         <div className={`flex flex-col flex-1 h-full py-1 justify-center ${isImageLeft ? 'ml-36 lg:ml-44 pr-1' : 'mr-36 lg:mr-44 pl-1'}`}>
           <h3 className="text-white font-bold text-base lg:text-lg mb-1 leading-tight line-clamp-1">{name}</h3>
           {ingredients && (
-            <p className="text-gray-300 text-[10px] lg:text-xs leading-snug mb-3">
+            <p className="text-gray-300 text-[10px] lg:text-xs leading-snug mb-3 whitespace-pre-line">
               {ingredients}
             </p>
           )}

@@ -8,7 +8,7 @@ import { SearchResultsBanner, EmptyState } from '@/components/PageComponents';
 
 export default async function Home(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const searchParams = await props.searchParams;
-  
+
   // Lấy dữ liệu từ backend
   let categories = [];
   try {
@@ -44,7 +44,7 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
           products = json.data.map((combo: any, index: number) => ({
             id: combo.combo_id,
             name: combo.combo_name,
-            ingredients: combo.description || '',
+            ingredients: (combo.groups || []).map((g: any) => g.group_name).join('\n') || '',
             price: combo.combo_price || 0,
             dish_price_id: null,
             prices: [],
@@ -65,19 +65,19 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
       } else {
         fetchUrl = 'http://localhost:4000/api/menu/dishes';
       }
-        
+
       if (fetchUrl) {
         const res = await fetch(fetchUrl, { cache: 'no-store' });
         if (res.ok) {
           const json = await res.json();
           if (json.success) {
             let dishData = json.data;
-            
+
             if (activeCategory?.category_name?.toLowerCase().includes('gratin') || activeCategory?.category_name?.toLowerCase().includes('risotto')) {
               const gratins = dishData.filter((d: any) => d.dish_name.toLowerCase().includes('gratin') || d.dish_name.toLowerCase().includes('grantin'));
               const risottos = dishData.filter((d: any) => d.dish_name.toLowerCase().includes('risotto'));
               const other = dishData.filter((d: any) => !d.dish_name.toLowerCase().includes('gratin') && !d.dish_name.toLowerCase().includes('grantin') && !d.dish_name.toLowerCase().includes('risotto'));
-              
+
               const interleaved = [];
               const maxLen = Math.max(gratins.length, risottos.length);
               for (let i = 0; i < maxLen; i++) {
@@ -112,7 +112,7 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
               const comboProducts = comboJson.data.map((combo: any, index: number) => ({
                 id: combo.combo_id,
                 name: combo.combo_name,
-                ingredients: combo.description || '',
+                ingredients: (combo.groups || []).map((g: any) => g.group_name).join('\n') || '',
                 price: combo.combo_price || 0,
                 dish_price_id: null,
                 prices: [],
@@ -136,8 +136,8 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
   // Lọc sản phẩm theo từ khóa tìm kiếm
   if (searchQuery) {
     const lowerQuery = searchQuery.toLowerCase();
-    products = products.filter((p: any) => 
-      p.name.toLowerCase().includes(lowerQuery) || 
+    products = products.filter((p: any) =>
+      p.name.toLowerCase().includes(lowerQuery) ||
       p.ingredients.toLowerCase().includes(lowerQuery)
     );
   }
@@ -153,7 +153,7 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
       <div className="flex flex-1 flex-col lg:flex-row overflow-hidden relative">
         {/* Hình nền mờ */}
         <div className="absolute inset-0 z-0">
-          <Image 
+          <Image
             src="https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=1920&auto=format&fit=crop"
             alt="Background"
             fill
@@ -166,44 +166,44 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
         {/* Bên trái: Danh mục + Lưới sản phẩm */}
         <div className="flex-1 flex flex-col z-10 overflow-hidden">
           <CategoryNav categories={categories} activeCategoryId={activeCategoryId} />
-          
+
           <main id="main-scroll-container" className="flex-1 p-6 overflow-y-auto custom-scrollbar">
-          {/* Banner kết quả tìm kiếm */}
-          {searchQuery && (
-            <SearchResultsBanner query={searchQuery} count={products.length} />
-          )}
+            {/* Banner kết quả tìm kiếm */}
+            {searchQuery && (
+              <SearchResultsBanner query={searchQuery} count={products.length} />
+            )}
 
 
 
-          {/* Trạng thái rỗng */}
-          {products.length === 0 && (
-            <EmptyState />
-          )}
+            {/* Trạng thái rỗng */}
+            {products.length === 0 && (
+              <EmptyState />
+            )}
 
-          {/* Lưới sản phẩm */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-10 lg:gap-x-16 gap-y-10 lg:gap-y-16 justify-items-center max-w-[1400px] mx-auto px-6 lg:px-12 py-4">
-            {products.map((p, index) => (
-              <ProductCard
-                key={p.id}
-                id={p.id}
-                name={p.name}
-                ingredients={p.ingredients}
-                price={p.price}
-                dish_price_id={p.dish_price_id}
-                prices={p.prices}
-                theme={index % 2 === 0 ? 'green' : 'red'}
-                layout={index % 2 === 0 ? 'image-left' : 'image-right'}
-                imageUrl={p.imageUrl}
-                isCombo={p.isCombo || false}
-                isHalfHalf={p.isHalfHalf || false}
-                categoryName={activeCategory?.category_name || ''}
-              />
-            ))}
-          </div>
+            {/* Lưới sản phẩm */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-10 lg:gap-x-16 gap-y-10 lg:gap-y-16 justify-items-center max-w-[1400px] mx-auto px-6 lg:px-12 py-4">
+              {products.map((p, index) => (
+                <ProductCard
+                  key={p.id}
+                  id={p.id}
+                  name={p.name}
+                  ingredients={p.ingredients}
+                  price={p.price}
+                  dish_price_id={p.dish_price_id}
+                  prices={p.prices}
+                  theme={index % 2 === 0 ? 'green' : 'red'}
+                  layout={index % 2 === 0 ? 'image-left' : 'image-right'}
+                  imageUrl={p.imageUrl}
+                  isCombo={p.isCombo || false}
+                  isHalfHalf={p.isHalfHalf || false}
+                  categoryName={activeCategory?.category_name || ''}
+                />
+              ))}
+            </div>
 
-          {/* Footer */}
-          <Footer />
-        </main>
+            {/* Footer */}
+            <Footer />
+          </main>
         </div>
 
         {/* Giỏ hàng (fixed overlay on mobile, column on desktop) */}

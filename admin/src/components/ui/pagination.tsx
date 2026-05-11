@@ -29,7 +29,7 @@ export function Pagination({ currentPage, totalPages, onPageChange, className }:
         disabled={currentPage === 1}
         className="flex h-8 items-center justify-center rounded bg-[#F4F7FF] px-3 text-sm font-medium text-dark transition hover:bg-gray-200 disabled:opacity-50 dark:bg-dark-3 dark:text-white dark:hover:bg-dark-2"
       >
-        Previous
+        Trước
       </button>
 
       {pages.map((p, index, array) => (
@@ -56,7 +56,7 @@ export function Pagination({ currentPage, totalPages, onPageChange, className }:
         disabled={currentPage === totalPages}
         className="flex h-8 items-center justify-center rounded bg-[#F4F7FF] px-3 text-sm font-medium text-dark transition hover:bg-gray-200 disabled:opacity-50 dark:bg-dark-3 dark:text-white dark:hover:bg-dark-2"
       >
-        Next
+        Sau
       </button>
     </div>
   );
