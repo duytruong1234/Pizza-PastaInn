@@ -518,6 +518,7 @@ router.get('/combos', async (_req: AuthRequest, res: Response): Promise<void> =>
       include: {
         categories: { select: { category_name: true } },
         groups: {
+          orderBy: { group_id: 'asc' },
           include: {
             combo_items: {
               include: { dish_price: { include: { dish: true, size: true, crust: true } } },

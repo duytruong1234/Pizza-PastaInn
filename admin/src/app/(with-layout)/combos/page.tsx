@@ -58,9 +58,12 @@ export default function CombosPage() {
   const [comboToDelete, setComboToDelete] = useState<Combo | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  const [addErrors, setAddErrors] = useState<Record<string, string>>({});
+  const [groupErrors, setGroupErrors] = useState<Record<string, string>>({});
+
   // Group Modal State (for adding a new group)
   const [showGroupModal, setShowGroupModal] = useState(false);
-  const [groupForm, setGroupForm] = useState({ group_name: "", min_select: 1, max_select: 1 });
+  const [groupForm, setGroupForm] = useState({ group_id: "", group_name: "", min_select: 1, max_select: 1 });
 
   // Dish Picker State
   const [pickerGroupIdx, setPickerGroupIdx] = useState<number | null>(null);
@@ -134,6 +137,7 @@ export default function CombosPage() {
 
   const openAddModal = () => {
     setEditId(null);
+    setAddErrors({});
     setAddForm({
       combo_name: "", combo_price: 0, description: "", is_active: true, category_id: null, image_combo: null, groups: []
     });
@@ -142,6 +146,7 @@ export default function CombosPage() {
 
   const handleEdit = (combo: Combo) => {
     setEditId(combo.combo_id);
+    setAddErrors({});
     setAddForm({
       combo_name: combo.combo_name,
       combo_price: combo.combo_price,
@@ -163,16 +168,21 @@ export default function CombosPage() {
   };
 
   const handleSaveCombo = async () => {
-    if (!addForm.combo_name.trim()) return toast.error("Vui lòng nhập tên combo");
-    if (addForm.combo_price <= 0) return toast.error("Giá combo phải lớn hơn 0");
-    if (!addForm.category_id) return toast.error("Vui lòng chọn danh mục cho combo");
+    const errors: Record<string, string> = {};
+    if (!addForm.combo_name.trim()) errors.combo_name = "Vui lòng nhập tên combo";
+    if (addForm.combo_price <= 0) errors.combo_price = "Giá combo phải lớn hơn 0";
+    if (!addForm.category_id) errors.category_id = "Vui lòng chọn loại món ăn cho combo";
+
+    setAddErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     if (addForm.groups.length === 0) return toast.error("Vui lòng thêm ít nhất một nhóm món cho combo");
 
     for (const group of addForm.groups) {
       if (!group.group_name.trim()) return toast.error("Có nhóm chưa nhập tên");
-      if (group.items.length === 0) return toast.error(`Nhóm "${group.group_name}" chưa có món ăn nào`);
+      if (group.items.length === 0) return toast.error(`Nhóm món ăn "${group.group_name}" chưa có món ăn nào`);
       for (const item of group.items) {
-        if (!item.dish_price_id) return toast.error(`Nhóm "${group.group_name}" có món ăn chưa được chọn`);
+        if (!item.dish_price_id) return toast.error(`Nhóm món ăn "${group.group_name}" có món ăn chưa được chọn`);
       }
     }
 
@@ -211,13 +221,19 @@ export default function CombosPage() {
   };
 
   const handleAddGroup = () => {
-    if (!groupForm.group_name.trim()) return toast.error("Vui lòng nhập tên nhóm");
+    const errors: Record<string, string> = {};
+    if (!groupForm.group_id.trim()) errors.group_id = "Vui lòng nhập mã nhóm món ăn";
+    if (!groupForm.group_name.trim()) errors.group_name = "Vui lòng nhập tên nhóm món ăn";
+    setGroupErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     setAddForm(f => ({
       ...f,
       groups: [...f.groups, { group_name: groupForm.group_name, min_select: groupForm.min_select, max_select: groupForm.max_select, items: [] }]
     }));
     setShowGroupModal(false);
-    setGroupForm({ group_name: "", min_select: 1, max_select: 1 });
+    setGroupForm({ group_id: "", group_name: "", min_select: 1, max_select: 1 });
+    setGroupErrors({});
   };
 
   const filteredCombos = useMemo(() => {
@@ -281,7 +297,7 @@ export default function CombosPage() {
                   <th className="rounded-tl-lg py-4 pl-4 pr-3 text-sm font-semibold uppercase tracking-wide">MÃ COMBO</th>
                   <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">TÊN COMBO</th>
                   <th className="px-4 py-4 text-center text-sm font-semibold uppercase tracking-wide">HÌNH ẢNH</th>
-                  <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">DANH MỤC</th>
+                  <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">LOẠI MÓN ĂN</th>
                   <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">GIÁ (VNĐ)</th>
                   <th className="px-4 py-4 text-center text-sm font-semibold uppercase tracking-wide">TRẠNG THÁI</th>
                   <th className="rounded-tr-lg py-4 pl-3 pr-4 text-center text-sm font-semibold uppercase tracking-wide">THAO TÁC</th>
@@ -426,21 +442,21 @@ export default function CombosPage() {
           <div className="lg:col-span-4 space-y-5 rounded-2xl border border-stroke bg-gray-50/30 p-5 dark:border-dark-3 dark:bg-dark-2/20">
             <h4 className="flex items-center gap-2 font-bold text-dark dark:text-white">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5 text-primary"><path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z" clipRule="evenodd" /></svg>
-              Thông tin cơ bản
+              Thông tin combo
             </h4>
-            <InputGroup label="TÊN COMBO (*)" type="text" placeholder="Nhập tên combo..." value={addForm.combo_name} handleChange={(e) => setAddForm(f => ({ ...f, combo_name: e.target.value }))} />
+            <InputGroup label="TÊN COMBO (*)" type="text" placeholder="Nhập tên combo..." value={addForm.combo_name} handleChange={(e) => { setAddForm(f => ({ ...f, combo_name: e.target.value })); setAddErrors(p => ({ ...p, combo_name: "" })); }} error={addErrors.combo_name} />
 
             <div className="flex items-end gap-3">
               <div className="flex-1">
-                <InputGroup label="GIÁ COMBO (*)" type="number" placeholder="0" value={addForm.combo_price || ""} handleChange={(e) => setAddForm(f => ({ ...f, combo_price: Number(e.target.value) }))} />
+                <InputGroup label="GIÁ COMBO (*)" type="number" placeholder="0" value={addForm.combo_price || ""} handleChange={(e) => { setAddForm(f => ({ ...f, combo_price: Number(e.target.value) })); setAddErrors(p => ({ ...p, combo_price: "" })); }} error={addErrors.combo_price} />
               </div>
               <div className="pb-1 text-sm font-medium text-gray-500">VNĐ</div>
             </div>
 
-            <Select label="TRẠNG THÁI" value={addForm.is_active ? "1" : "0"} onChange={(e) => setAddForm(f => ({ ...f, is_active: e.target.value === "1" }))} items={[{ value: "1", label: "Đang bán" }, { value: "0", label: "Ngừng bán" }]} />
-            <Select label="DANH MỤC" value={addForm.category_id ?? ""} onChange={(e) => setAddForm(f => ({ ...f, category_id: e.target.value ? Number(e.target.value) : null }))} items={categories.map(c => ({ value: c.category_id, label: c.category_name }))} placeholder="-- Chọn danh mục --" />
+            <Select label="TRẠNG THÁI (*)" value={addForm.is_active ? "1" : "0"} onChange={(e) => setAddForm(f => ({ ...f, is_active: e.target.value === "1" }))} items={[{ value: "1", label: "Đang bán" }, { value: "0", label: "Ngừng bán" }]} />
+            <Select label="LOẠI MÓN ĂN (*)" value={addForm.category_id ?? ""} onChange={(e) => { setAddForm(f => ({ ...f, category_id: e.target.value ? Number(e.target.value) : null })); setAddErrors(p => ({ ...p, category_id: "" })); }} items={categories.map(c => ({ value: c.category_id, label: c.category_name }))} placeholder="-- Chọn loại món ăn --" error={addErrors.category_id} />
 
-            <TextAreaGroup label="MÔ TẢ NGẮN" placeholder="Nhập mô tả combo..." value={addForm.description} onChange={(e) => setAddForm(f => ({ ...f, description: e.target.value }))} />
+            <TextAreaGroup label="MÔ TẢ COMBO" placeholder="Nhập mô tả combo..." value={addForm.description} onChange={(e) => setAddForm(f => ({ ...f, description: e.target.value }))} />
 
             <div>
               <label className="mb-2 block text-sm font-semibold uppercase text-dark dark:text-white">Hình ảnh đại diện</label>
@@ -575,7 +591,7 @@ export default function CombosPage() {
 
             <button type="button" onClick={() => setShowGroupModal(true)} className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-stroke bg-[#f8fafd] py-5 text-sm font-bold uppercase text-primary transition hover:border-primary hover:bg-primary/5 dark:border-dark-3 dark:bg-dark-2/50 dark:hover:border-primary">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5"><path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" /></svg>
-              THÊM NHÓM MÓN MỚI
+              THÊM NHÓM MÓN ĂN MỚI
             </button>
           </div>
         </div>
@@ -587,9 +603,10 @@ export default function CombosPage() {
       </Modal>
 
       {/* Modal Thêm nhóm món mới (nhỏ) */}
-      <Modal isOpen={showGroupModal} setIsOpen={setShowGroupModal} title="THÊM NHÓM MÓN MỚI" className="max-w-md">
+      <Modal isOpen={showGroupModal} setIsOpen={setShowGroupModal} title="THÊM NHÓM MÓN ĂN MỚI" className="max-w-md">
         <div className="space-y-4">
-          <InputGroup label="TÊN NHÓM MÓN (*)" type="text" placeholder="VD: Chọn món phụ 1, Đồ uống đi kèm..." value={groupForm.group_name} handleChange={(e) => setGroupForm(f => ({ ...f, group_name: e.target.value }))} />
+          <InputGroup label="MÃ NHÓM MÓN ĂN (*)" type="text" placeholder="Nhập mã nhóm món ăn" value={groupForm.group_id} handleChange={(e) => { setGroupForm(f => ({ ...f, group_id: e.target.value })); setGroupErrors(p => ({ ...p, group_id: "" })); }} error={groupErrors.group_id} />
+          <InputGroup label="TÊN NHÓM MÓN ĂN (*)" type="text" placeholder="Nhập tên nhóm món ăn" value={groupForm.group_name} handleChange={(e) => { setGroupForm(f => ({ ...f, group_name: e.target.value })); setGroupErrors(p => ({ ...p, group_name: "" })); }} error={groupErrors.group_name} />
           <p className="text-xs italic text-gray-400">Tên này sẽ hiển thị trực tiếp cho khách hàng khi chọn Combo.</p>
 
           <div className="grid grid-cols-2 gap-4">
@@ -618,7 +635,7 @@ export default function CombosPage() {
 
           <div className="mt-6 flex justify-end gap-3 pt-2">
             <Button onClick={() => setShowGroupModal(false)} variant="outlineDark" label="Hủy bỏ" shape="rounded" />
-            <Button onClick={handleAddGroup} variant="success" label="TẠO NHÓM MÓN" icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5"><path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" /></svg>} shape="rounded" />
+            <Button onClick={handleAddGroup} variant="success" label="TẠO NHÓM MÓN ĂN" icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5"><path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" /></svg>} shape="rounded" />
           </div>
         </div>
       </Modal>

@@ -37,6 +37,7 @@ export default function ToppingsPage() {
     size_id: null as number | null,
   });
   const [addSaving, setAddSaving] = useState(false);
+  const [addError, setAddError] = useState<Record<string, string>>({});
 
   // Edit Modal
   const [editingTopping, setEditingTopping] = useState<Topping | null>(null);
@@ -46,6 +47,7 @@ export default function ToppingsPage() {
     size_id: null as number | null,
   });
   const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<Record<string, string>>({});
 
   // Delete Modal
   const [deletingTopping, setDeletingTopping] = useState<Topping | null>(null);
@@ -74,7 +76,13 @@ export default function ToppingsPage() {
 
   // Add handler
   const handleAdd = async () => {
-    if (!addForm.topping_name.trim()) return toast.error("Vui lòng nhập tên topping");
+    const errors: Record<string, string> = {};
+    if (!addForm.topping_name.trim()) errors.topping_name = "Vui lòng nhập tên topping";
+    if (!addForm.price_topping || addForm.price_topping <= 0) errors.price_topping = "Vui lòng nhập giá topping";
+    if (!addForm.size_id) errors.size_id = "Vui lòng chọn kích thước";
+    setAddError(errors);
+    if (Object.keys(errors).length > 0) return;
+    if (!addForm.is_for_pizza && !addForm.is_for_spaghetti) return toast.error("Vui lòng bật ít nhất một trạng thái (Dùng cho Pizza hoặc Spaghetti)");
     setAddSaving(true);
     try {
       await api.post("/api/admin/toppings", addForm);
@@ -99,11 +107,18 @@ export default function ToppingsPage() {
       is_for_spaghetti: t.is_for_spaghetti,
       size_id: t.size_id ?? null,
     });
+    setEditError({});
   };
 
   const handleEdit = async () => {
     if (!editingTopping) return;
-    if (!editForm.topping_name.trim()) return toast.error("Vui lòng nhập tên topping");
+    const errors: Record<string, string> = {};
+    if (!editForm.topping_name.trim()) errors.topping_name = "Vui lòng nhập tên topping";
+    if (!editForm.price_topping || editForm.price_topping <= 0) errors.price_topping = "Vui lòng nhập giá topping";
+    if (!editForm.size_id) errors.size_id = "Vui lòng chọn kích thước";
+    setEditError(errors);
+    if (Object.keys(errors).length > 0) return;
+    if (!editForm.is_for_pizza && !editForm.is_for_spaghetti) return toast.error("Vui lòng bật ít nhất một trạng thái (Dùng cho Pizza hoặc Spaghetti)");
     setEditSaving(true);
     try {
       await api.put(`/api/admin/toppings/${editingTopping.topping_id}`, editForm);
@@ -232,9 +247,9 @@ export default function ToppingsPage() {
       {/* ── MODAL THÊM TOPPING ── */}
       <Modal isOpen={showAdd} setIsOpen={setShowAdd} title="THÊM TOPPING MỚI">
         <div className="space-y-5 p-2">
-          <InputGroup label="TÊN TOPPING (*)" type="text" placeholder="Ví dụ: Phô mai Mozzarella..." value={addForm.topping_name} handleChange={(e) => setAddForm(prev => ({ ...prev, topping_name: e.target.value }))} />
-          <InputGroup label="GIÁ TOPPING (VNĐ)" type="number" placeholder="0" value={addForm.price_topping || ""} handleChange={(e) => setAddForm(prev => ({ ...prev, price_topping: Number(e.target.value) }))} />
-          <Select label="KÍCH THƯỚC ÁP DỤNG" value={addForm.size_id ?? ""} onChange={(e) => setAddForm(prev => ({ ...prev, size_id: e.target.value ? Number(e.target.value) : null }))} items={sizes.map(s => ({ value: s.size_id, label: s.size_name }))} placeholder="-- Tất cả kích thước --" />
+          <InputGroup label="TÊN TOPPING (*)" type="text" placeholder="Nhập tên topping" value={addForm.topping_name} handleChange={(e) => { setAddForm(prev => ({ ...prev, topping_name: e.target.value })); setAddError(p => ({ ...p, topping_name: "" })); }} error={addError.topping_name} />
+          <InputGroup label="GIÁ TOPPING (VNĐ) (*)" type="number" placeholder="0" value={addForm.price_topping || ""} handleChange={(e) => { setAddForm(prev => ({ ...prev, price_topping: Number(e.target.value) })); setAddError(p => ({ ...p, price_topping: "" })); }} error={addError.price_topping} />
+          <Select label="KÍCH THƯỚC ÁP DỤNG (*)" value={addForm.size_id ?? ""} onChange={(e) => { setAddForm(prev => ({ ...prev, size_id: e.target.value ? Number(e.target.value) : null })); setAddError(p => ({ ...p, size_id: "" })); }} items={sizes.map(s => ({ value: s.size_id, label: s.size_name }))} placeholder="-- Tất cả kích thước --" error={addError.size_id} />
           
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-center justify-between rounded-lg border border-stroke p-3 dark:border-dark-3">
@@ -257,9 +272,9 @@ export default function ToppingsPage() {
       {/* ── MODAL SỬA TOPPING ── */}
       <Modal isOpen={!!editingTopping} setIsOpen={() => setEditingTopping(null)} title="SỬA TOPPING">
         <div className="space-y-5 p-2">
-          <InputGroup label="TÊN TOPPING (*)" type="text" value={editForm.topping_name} handleChange={(e) => setEditForm(prev => ({ ...prev, topping_name: e.target.value }))} />
-          <InputGroup label="GIÁ TOPPING (VNĐ)" type="number" placeholder="0" value={editForm.price_topping || ""} handleChange={(e) => setEditForm(prev => ({ ...prev, price_topping: Number(e.target.value) }))} />
-          <Select label="KÍCH THƯỚC ÁP DỤNG" value={editForm.size_id ?? ""} onChange={(e) => setEditForm(prev => ({ ...prev, size_id: e.target.value ? Number(e.target.value) : null }))} items={sizes.map(s => ({ value: s.size_id, label: s.size_name }))} placeholder="-- Tất cả kích thước --" />
+          <InputGroup label="TÊN TOPPING (*)" type="text" value={editForm.topping_name} handleChange={(e) => { setEditForm(prev => ({ ...prev, topping_name: e.target.value })); setEditError(p => ({ ...p, topping_name: "" })); }} error={editError.topping_name} />
+          <InputGroup label="GIÁ TOPPING (VNĐ) (*)" type="number" placeholder="0" value={editForm.price_topping || ""} handleChange={(e) => { setEditForm(prev => ({ ...prev, price_topping: Number(e.target.value) })); setEditError(p => ({ ...p, price_topping: "" })); }} error={editError.price_topping} />
+          <Select label="KÍCH THƯỚC ÁP DỤNG (*)" value={editForm.size_id ?? ""} onChange={(e) => { setEditForm(prev => ({ ...prev, size_id: e.target.value ? Number(e.target.value) : null })); setEditError(p => ({ ...p, size_id: "" })); }} items={sizes.map(s => ({ value: s.size_id, label: s.size_name }))} placeholder="-- Tất cả kích thước --" error={editError.size_id} />
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-center justify-between rounded-lg border border-stroke p-3 dark:border-dark-3">

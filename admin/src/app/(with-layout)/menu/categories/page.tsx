@@ -32,11 +32,13 @@ export default function CategoriesPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [addName, setAddName] = useState("");
   const [addSaving, setAddSaving] = useState(false);
+  const [addError, setAddError] = useState("");
 
   // Edit Modal
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editName, setEditName] = useState("");
   const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState("");
 
   // Delete Modal
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
@@ -58,18 +60,23 @@ export default function CategoriesPage() {
   }, []);
 
   const handleAdd = async () => {
-    if (!addName.trim()) return toast.error("Vui lòng nhập tên danh mục");
+    if (!addName.trim()) {
+      setAddError("Vui lòng nhập tên loại món ăn");
+      return;
+    }
+    setAddError("");
     setAddSaving(true);
     try {
       await api.post("/api/admin/categories", {
         category_name: addName.trim(),
       });
       setAddName("");
+      setAddError("");
       setShowAddModal(false);
-      toast.success("Tạo danh mục thành công");
+      toast.success("Tạo loại món ăn thành công");
       fetchCategories();
     } catch {
-      toast.error("Lỗi khi tạo danh mục");
+      toast.error("Lỗi khi tạo loại món ăn");
     } finally {
       setAddSaving(false);
     }
@@ -78,17 +85,23 @@ export default function CategoriesPage() {
   const openEdit = (cat: Category) => {
     setEditingCategory(cat);
     setEditName(cat.category_name);
+    setEditError("");
   };
 
   const handleUpdate = async () => {
-    if (!editingCategory || !editName.trim()) return toast.error("Vui lòng nhập tên danh mục");
+    if (!editingCategory) return;
+    if (!editName.trim()) {
+      setEditError("Vui lòng nhập tên loại món ăn");
+      return;
+    }
+    setEditError("");
     setEditSaving(true);
     try {
       await api.put(`/api/admin/categories/${editingCategory.category_id}`, {
         category_name: editName.trim(),
       });
       setEditingCategory(null);
-      toast.success("Cập nhật thành công");
+      toast.success("Cập nhật loại món ăn thành công");
       fetchCategories();
     } catch {
       toast.error("Lỗi khi cập nhật");
@@ -105,7 +118,7 @@ export default function CategoriesPage() {
       setDeletingCategory(null);
       fetchCategories();
     } catch {
-      toast.error("Lỗi khi xóa — danh mục có thể đang có món ăn");
+      toast.error("Lỗi khi xóa — loại món ăn có thể đang có món ăn");
     }
   };
 
@@ -162,16 +175,16 @@ export default function CategoriesPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-dark dark:text-white">
-          QUẢN LÝ DANH MỤC
+          QUẢN LÝ LOẠI MÓN ĂN
         </h1>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500">Tổng: {categories.length} danh mục</span>
+          <span className="text-sm text-gray-500">Tổng: {categories.length} loại món ăn</span>
           <Button
             onClick={() => setShowAddModal(true)}
             variant="outlinePrimary"
             shape="full"
             size="small"
-            label="Thêm Danh Mục"
+            label="Thêm Loại Món Ăn"
             icon={
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
                 <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
@@ -243,13 +256,13 @@ export default function CategoriesPage() {
                   className="cursor-pointer whitespace-nowrap px-4 py-4 font-semibold uppercase tracking-wide hover:bg-indigo-600"
                   onClick={() => handleSort("category_name")}
                 >
-                  TÊN DANH MỤC
+                  TÊN LOẠI MÓN ĂN
                 </th>
                 <th
                   className="cursor-pointer whitespace-nowrap px-4 py-4 font-semibold uppercase tracking-wide hover:bg-indigo-600"
                   onClick={() => handleSort("dishes")}
                 >
-                  SỐ MÓN
+                  SỐ MÓN ĂN
                 </th>
                 <th
                   className="cursor-pointer whitespace-nowrap px-4 py-4 font-semibold uppercase tracking-wide hover:bg-indigo-600"
@@ -344,14 +357,15 @@ export default function CategoriesPage() {
       </div>
 
       {/* ── MODAL THÊM DANH MỤC ── */}
-      <Modal isOpen={showAddModal} setIsOpen={setShowAddModal} title="THÊM DANH MỤC MỚI">
+      <Modal isOpen={showAddModal} setIsOpen={setShowAddModal} title="THÊM LOẠI MÓN ĂN MỚI">
         <div className="space-y-5 p-2">
           <InputGroup
-            label="TÊN DANH MỤC (*)"
+            label="TÊN LOẠI MÓN ĂN (*)"
             type="text"
-            placeholder="Ví dụ: Pizza, Pasta, Đồ uống..."
+            placeholder="Nhập tên loại món ăn"
             value={addName}
-            handleChange={(e) => setAddName(e.target.value)}
+            handleChange={(e) => { setAddName(e.target.value); setAddError(""); }}
+            error={addError}
           />
           <div className="mt-6 flex justify-end gap-3 border-t border-stroke pt-4 dark:border-dark-3">
             <Button onClick={() => setShowAddModal(false)} variant="outlineDark" label="Hủy" shape="rounded" />
@@ -361,13 +375,14 @@ export default function CategoriesPage() {
       </Modal>
 
       {/* ── MODAL SỬA DANH MỤC ── */}
-      <Modal isOpen={!!editingCategory} setIsOpen={() => setEditingCategory(null)} title="SỬA DANH MỤC">
+      <Modal isOpen={!!editingCategory} setIsOpen={() => setEditingCategory(null)} title="SỬA LOẠI MÓN ĂN">
         <div className="space-y-5 p-2">
           <InputGroup
-            label="TÊN DANH MỤC (*)"
+            label="TÊN LOẠI MÓN ĂN (*)"
             type="text"
             value={editName}
-            handleChange={(e) => setEditName(e.target.value)}
+            handleChange={(e) => { setEditName(e.target.value); setEditError(""); }}
+            error={editError}
           />
           <div className="mt-6 flex justify-end gap-3 border-t border-stroke pt-4 dark:border-dark-3">
             <Button onClick={() => setEditingCategory(null)} variant="outlineDark" label="Hủy" shape="rounded" />
@@ -386,7 +401,7 @@ export default function CategoriesPage() {
             <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 text-[#d34053] dark:bg-red-500/10">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-8"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
             </div>
-            <h3 className="mb-2 text-xl font-bold text-dark dark:text-white">Xóa Danh Mục</h3>
+            <h3 className="mb-2 text-xl font-bold text-dark dark:text-white">Xóa Loại Món Ăn</h3>
             <p className="mb-8 text-sm text-gray-500 dark:text-gray-400">
               Bạn có chắc chắn muốn xóa <span className="font-semibold text-dark dark:text-white">"{deletingCategory.category_name}"</span> không? Hành động này không thể hoàn tác.
             </p>

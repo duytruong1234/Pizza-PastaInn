@@ -17,6 +17,7 @@ type InputGroupProps = {
   iconPosition?: "left" | "right";
   height?: "sm" | "default";
   defaultValue?: string;
+  error?: string;
 };
 
 const InputGroup: React.FC<InputGroupProps> = ({
@@ -29,6 +30,7 @@ const InputGroup: React.FC<InputGroupProps> = ({
   active,
   handleChange,
   icon,
+  error,
   ...props
 }) => {
   const id = useId();
@@ -66,6 +68,7 @@ const InputGroup: React.FC<InputGroupProps> = ({
               : "px-5.5 py-3 text-dark placeholder:text-dark-6 dark:text-white",
             props.iconPosition === "left" && "pl-12.5",
             props.height === "sm" && "py-2.5",
+            error && "!border-red-500 dark:!border-red-500",
           )}
           required={required}
           disabled={disabled}
@@ -74,6 +77,9 @@ const InputGroup: React.FC<InputGroupProps> = ({
 
         {icon}
       </div>
+      {error && (
+        <p className="mt-1.5 text-xs text-red-500">{error}</p>
+      )}
     </div>
   );
 };
@@ -88,3 +94,4 @@ function getFileStyles(variant: "style1" | "style2") {
       return `file:mr-4 file:rounded file:border-[0.5px] file:border-stroke file:bg-stroke file:px-2.5 file:py-1 file:text-body-xs file:font-medium file:text-dark-5 file:focus:border-primary dark:file:border-dark-3 dark:file:bg-white/30 dark:file:text-white px-3 py-[9px]`;
   }
 }
+

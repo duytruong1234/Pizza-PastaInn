@@ -78,6 +78,7 @@ export default function DishesPage() {
     dish_price: 0,
   });
   const [saving, setSaving] = useState(false);
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
   const [deleting, setDeleting] = useState<string | null>(null);
   const [dishToDelete, setDishToDelete] = useState<FlattenedDish | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -102,9 +103,11 @@ export default function DishesPage() {
     size_id: null as number | null,
     crust_id: null as number | null,
     dish_price: 0,
+    dish_price_id: "",
   });
   const [addSaving, setAddSaving] = useState(false);
   const [addUploading, setAddUploading] = useState(false);
+  const [addErrors, setAddErrors] = useState<Record<string, string>>({});
 
   // Dropdown data
   const [categories, setCategories] = useState<Category[]>([]);
@@ -145,6 +148,7 @@ export default function DishesPage() {
       crust_id: dish.crust_id,
       dish_price: dish.dish_price,
     });
+    setEditErrors({});
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -169,6 +173,14 @@ export default function DishesPage() {
 
   const handleSave = async () => {
     if (!editDish) return;
+    const errors: Record<string, string> = {};
+    if (!editForm.dish_name.trim()) errors.dish_name = "Vui lòng nhập tên món ăn";
+    if (!editForm.category_id) errors.category_id = "Vui lòng chọn loại món ăn";
+    if (!editForm.dish_price || editForm.dish_price <= 0) errors.dish_price = "Vui lòng nhập giá món ăn";
+    if (!editForm.size_id) errors.size_id = "Vui lòng chọn kích cỡ";
+    if (!editForm.crust_id) errors.crust_id = "Vui lòng chọn viền bánh";
+    setEditErrors(errors);
+    if (Object.keys(errors).length > 0) return;
     setSaving(true);
     try {
       // Update dish basic info
@@ -234,7 +246,15 @@ export default function DishesPage() {
   };
 
   const handleAddDish = async () => {
-    if (!addForm.dish_name.trim()) { toast.error("Vui lòng nhập tên món ăn"); return; }
+    const errors: Record<string, string> = {};
+    if (!addForm.dish_price_id.trim()) errors.dish_price_id = "Vui lòng nhập mã món ăn";
+    if (!addForm.dish_name.trim()) errors.dish_name = "Vui lòng nhập tên món ăn";
+    if (!addForm.category_id) errors.category_id = "Vui lòng chọn loại món ăn";
+    if (!addForm.dish_price || addForm.dish_price <= 0) errors.dish_price = "Vui lòng nhập giá món ăn";
+    if (!addForm.size_id) errors.size_id = "Vui lòng chọn kích cỡ";
+    if (!addForm.crust_id) errors.crust_id = "Vui lòng chọn viền bánh";
+    setAddErrors(errors);
+    if (Object.keys(errors).length > 0) return;
     setAddSaving(true);
     try {
       const dishRes = await api.post("/api/admin/dishes", {
@@ -247,7 +267,7 @@ export default function DishesPage() {
       const newDishId = dishRes.data.data.dish_id;
       // Create price variant
       if (addForm.size_id || addForm.crust_id || addForm.dish_price) {
-        const priceId = `dp_${newDishId}_${Date.now()}`;
+        const priceId = addForm.dish_price_id.trim() || `dp_${newDishId}_${Date.now()}`;
         await api.post("/api/admin/dish-prices", {
           dish_price_id: priceId,
           dish_id: newDishId,
@@ -258,7 +278,8 @@ export default function DishesPage() {
       }
       toast.success("Thêm món ăn thành công");
       setShowAddModal(false);
-      setAddForm({ dish_name: "", image: null, ingredient: "", dish_status: true, category_id: null, size_id: null, crust_id: null, dish_price: 0 });
+      setAddForm({ dish_name: "", image: null, ingredient: "", dish_status: true, category_id: null, size_id: null, crust_id: null, dish_price: 0, dish_price_id: "" });
+      setAddErrors({});
       fetchDishes();
     } catch {
       toast.error("Lỗi khi thêm món ăn");
@@ -536,7 +557,7 @@ export default function DishesPage() {
               <div className="flex-1 space-y-2">
                 <p><span className="font-semibold text-gray-500">Mã món ăn:</span> <span className="ml-1 font-mono text-xs">{viewDish.dish_price_id}</span></p>
                 <p><span className="font-semibold text-gray-500">Tên món:</span> <span className="ml-1 font-medium text-base">{viewDish.dish_name}</span></p>
-                <p><span className="font-semibold text-gray-500">Danh mục:</span> <span className="ml-1">{viewDish.category_name}</span></p>
+                <p><span className="font-semibold text-gray-500">Loại món ăn:</span> <span className="ml-1">{viewDish.category_name}</span></p>
                 <p>
                   <span className="font-semibold text-gray-500">Trạng thái:</span>
                   <Badge variant={viewDish.dish_status ? "success" : "danger"} className="ml-2">
@@ -576,11 +597,12 @@ export default function DishesPage() {
             <div className="mb-6 space-y-5">
               {/* Row 1: Tên món ăn */}
               <InputGroup
-                label="TÊN MÓN ĂN"
+                label="TÊN MÓN ĂN (*)"
                 type="text"
                 placeholder="Nhập tên món ăn..."
                 value={editForm.dish_name}
-                handleChange={(e) => setEditForm((f) => ({ ...f, dish_name: e.target.value }))}
+                handleChange={(e) => { setEditForm((f) => ({ ...f, dish_name: e.target.value })); setEditErrors((p) => ({ ...p, dish_name: "" })); }}
+                error={editErrors.dish_name}
               />
 
               {/* Row 2: Hình ảnh (File Drop Zone) */}
@@ -635,14 +657,15 @@ export default function DishesPage() {
               {/* Row 3: Loại món ăn + Trạng thái */}
               <div className="grid grid-cols-2 gap-4">
                 <Select
-                  label="LOẠI MÓN ĂN"
+                  label="LOẠI MÓN ĂN (*)"
                   value={editForm.category_id ?? ""}
-                  onChange={(e) => setEditForm((f) => ({ ...f, category_id: e.target.value ? Number(e.target.value) : null }))}
+                  onChange={(e) => { setEditForm((f) => ({ ...f, category_id: e.target.value ? Number(e.target.value) : null })); setEditErrors((p) => ({ ...p, category_id: "" })); }}
                   items={categories.map((c) => ({ value: c.category_id, label: c.category_name }))}
                   placeholder="-- Chọn loại --"
+                  error={editErrors.category_id}
                 />
                 <Select
-                  label="TRẠNG THÁI"
+                  label="TRẠNG THÁI (*)"
                   value={editForm.dish_status ? "1" : "0"}
                   onChange={(e) => setEditForm((f) => ({ ...f, dish_status: e.target.value === "1" }))}
                   items={[
@@ -654,26 +677,29 @@ export default function DishesPage() {
 
               {/* Row 4: Kích cỡ + Viền bánh + Giá */}
               <div className="rounded-xl border border-stroke bg-gray-50/50 p-4 dark:border-dark-3 dark:bg-dark-2/50">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Thông tin món ăn</p>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Thông tin món ăn (*)</p>
                 <div className="grid grid-cols-3 gap-4">
                   <Select
-                    label="KÍCH CỠ"
+                    label="KÍCH CỠ (*)"
                     value={editForm.size_id ?? ""}
-                    onChange={(e) => setEditForm((f) => ({ ...f, size_id: e.target.value ? Number(e.target.value) : null }))}
+                    onChange={(e) => { setEditForm((f) => ({ ...f, size_id: e.target.value ? Number(e.target.value) : null })); setEditErrors((p) => ({ ...p, size_id: "" })); }}
                     items={sizes.map((s) => ({ value: s.size_id, label: s.size_name }))}
+                    error={editErrors.size_id}
                   />
                   <Select
-                    label="VIỀN BÁNH"
+                    label="VIỀN BÁNH (*)"
                     value={editForm.crust_id ?? ""}
-                    onChange={(e) => setEditForm((f) => ({ ...f, crust_id: e.target.value ? Number(e.target.value) : null }))}
+                    onChange={(e) => { setEditForm((f) => ({ ...f, crust_id: e.target.value ? Number(e.target.value) : null })); setEditErrors((p) => ({ ...p, crust_id: "" })); }}
                     items={crusts.map((c) => ({ value: c.crust_id, label: c.crust_name }))}
+                    error={editErrors.crust_id}
                   />
                   <InputGroup
-                    label="GIÁ (VNĐ)"
+                    label="GIÁ (VNĐ) (*)"
                     type="number"
                     value={editForm.dish_price}
-                    handleChange={(e) => setEditForm((f) => ({ ...f, dish_price: Number(e.target.value) }))}
+                    handleChange={(e) => { setEditForm((f) => ({ ...f, dish_price: Number(e.target.value) })); setEditErrors((p) => ({ ...p, dish_price: "" })); }}
                     placeholder="0"
+                    error={editErrors.dish_price}
                   />
                 </div>
               </div>
@@ -761,7 +787,8 @@ export default function DishesPage() {
         </div>
 
         <div className="mb-8 space-y-6">
-          <InputGroup label="TÊN MÓN ĂN" type="text" placeholder="Nhập tên món ăn..." value={addForm.dish_name} handleChange={(e) => setAddForm((f) => ({ ...f, dish_name: e.target.value }))} />
+          <InputGroup label="MÃ MÓN ĂN (*)" type="text" placeholder="Nhập mã món ăn..." value={addForm.dish_price_id} handleChange={(e) => { setAddForm((f) => ({ ...f, dish_price_id: e.target.value })); setAddErrors((p) => ({ ...p, dish_price_id: "" })); }} error={addErrors.dish_price_id} />
+          <InputGroup label="TÊN MÓN ĂN (*)" type="text" placeholder="Nhập tên món ăn..." value={addForm.dish_name} handleChange={(e) => { setAddForm((f) => ({ ...f, dish_name: e.target.value })); setAddErrors((p) => ({ ...p, dish_name: "" })); }} error={addErrors.dish_name} />
 
           {/* Drop Zone */}
           <div>
@@ -794,16 +821,18 @@ export default function DishesPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Select label="LOẠI MÓN ĂN" value={addForm.category_id ?? ""} onChange={(e) => setAddForm((f) => ({ ...f, category_id: e.target.value ? Number(e.target.value) : null }))} items={categories.map((c) => ({ value: c.category_id, label: c.category_name }))} placeholder="-- Chọn loại --" />
-            <Select label="TRẠNG THÁI" value={addForm.dish_status ? "1" : "0"} onChange={(e) => setAddForm((f) => ({ ...f, dish_status: e.target.value === "1" }))} items={[{ value: "1", label: "Đang bán" }, { value: "0", label: "Ngừng bán" }]} />
+            <Select label="LOẠI MÓN ĂN (*)" value={addForm.category_id ?? ""} onChange={(e) => { setAddForm((f) => ({ ...f, category_id: e.target.value ? Number(e.target.value) : null })); setAddErrors((p) => ({ ...p, category_id: "" })); }} items={categories.map((c) => ({ value: c.category_id, label: c.category_name }))} placeholder="-- Chọn loại món ăn --" error={addErrors.category_id} />
+            <Select label="TRẠNG THÁI (*)" value={addForm.dish_status ? "1" : "0"} onChange={(e) => setAddForm((f) => ({ ...f, dish_status: e.target.value === "1" }))} items={[{ value: "1", label: "Đang bán" }, { value: "0", label: "Ngừng bán" }]} />
           </div>
 
           <div className="rounded-xl border border-stroke bg-white p-5 dark:border-dark-3 dark:bg-dark-2/50">
-            <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-gray-400">Thông tin món ăn</p>
-            <div className="grid grid-cols-3 gap-4">
-              <Select label="KÍCH CỠ" value={addForm.size_id ?? ""} onChange={(e) => setAddForm((f) => ({ ...f, size_id: e.target.value ? Number(e.target.value) : null }))} items={sizes.map((s) => ({ value: s.size_id, label: s.size_name }))} placeholder="-- Chọn --" />
-              <Select label="VIỀN BÁNH" value={addForm.crust_id ?? ""} onChange={(e) => setAddForm((f) => ({ ...f, crust_id: e.target.value ? Number(e.target.value) : null }))} items={crusts.map((c) => ({ value: c.crust_id, label: c.crust_name }))} placeholder="-- Chọn --" />
-              <InputGroup label="GIÁ (VNĐ)" type="number" value={addForm.dish_price} handleChange={(e) => setAddForm((f) => ({ ...f, dish_price: Number(e.target.value) }))} placeholder="0" />
+            <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-gray-400">Thông tin món ăn (*)</p>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <InputGroup label="GIÁ (VNĐ) (*)" type="number" value={addForm.dish_price} handleChange={(e) => { setAddForm((f) => ({ ...f, dish_price: Number(e.target.value) })); setAddErrors((p) => ({ ...p, dish_price: "" })); }} placeholder="0" error={addErrors.dish_price} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Select label="KÍCH CỠ (*)" value={addForm.size_id ?? ""} onChange={(e) => { setAddForm((f) => ({ ...f, size_id: e.target.value ? Number(e.target.value) : null })); setAddErrors((p) => ({ ...p, size_id: "" })); }} items={sizes.map((s) => ({ value: s.size_id, label: s.size_name }))} placeholder="-- Chọn --" error={addErrors.size_id} />
+              <Select label="VIỀN BÁNH (*)" value={addForm.crust_id ?? ""} onChange={(e) => { setAddForm((f) => ({ ...f, crust_id: e.target.value ? Number(e.target.value) : null })); setAddErrors((p) => ({ ...p, crust_id: "" })); }} items={crusts.map((c) => ({ value: c.crust_id, label: c.crust_name }))} placeholder="-- Chọn --" error={addErrors.crust_id} />
             </div>
           </div>
 

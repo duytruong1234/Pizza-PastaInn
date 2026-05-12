@@ -34,10 +34,10 @@ export function DishPicker({ isOpen, onClose, dishOptions, alreadySelected, onCo
   const [filterSizes, setFilterSizes] = useState<Set<string>>(new Set());
   const [filterCrusts, setFilterCrusts] = useState<Set<string>>(new Set());
 
-  // Reset when modal opens
+  // Reset when modal opens, but pre-check already selected items
   useEffect(() => {
     if (isOpen) {
-      setSelected(new Set());
+      setSelected(new Set(alreadySelected));
       setSearch("");
       setFilterCats(new Set());
       setFilterSizes(new Set());
@@ -46,7 +46,7 @@ export function DishPicker({ isOpen, onClose, dishOptions, alreadySelected, onCo
   }, [isOpen]);
 
   const filtered = useMemo(() => {
-    let result = dishOptions.filter(d => !alreadySelected.includes(d.value));
+    let result = [...dishOptions];
     if (search) {
       const s = search.toLowerCase();
       result = result.filter(d => d.data.dish_name.toLowerCase().includes(s) || d.value.toLowerCase().includes(s));

@@ -7,7 +7,16 @@ const router = Router();
 // Lấy danh sách danh mục
 router.get('/categories', async (req, res) => {
   try {
-    const categories = await prisma.category.findMany();
+    const categories = await prisma.category.findMany({
+      orderBy: { category_id: 'asc' }
+    });
+    // Sort Pizza to top
+    categories.sort((a: any, b: any) => {
+      const aIsPizza = a.category_name.toLowerCase().includes('pizza') ? 0 : 1;
+      const bIsPizza = b.category_name.toLowerCase().includes('pizza') ? 0 : 1;
+      if (aIsPizza !== bIsPizza) return aIsPizza - bIsPizza;
+      return a.category_id - b.category_id;
+    });
     sendSuccess(res, { data: categories });
   } catch (error) {
     sendError(res, 'Lỗi lấy danh mục', 500);
@@ -106,7 +115,7 @@ router.get('/combos', async (req, res) => {
   try {
     const combos = await prisma.combo.findMany({
       where: { is_active: true },
-      include: { groups: { select: { group_name: true } } }
+      include: { groups: { select: { group_name: true }, orderBy: { group_id: 'asc' } } }
     });
     sendSuccess(res, { data: combos });
   } catch (error) {
@@ -122,6 +131,7 @@ router.get('/combos/:id', async (req, res) => {
       where: { combo_id: Number(id) },
       include: {
         groups: {
+          orderBy: { group_id: 'asc' },
           include: {
             combo_items: {
               include: {

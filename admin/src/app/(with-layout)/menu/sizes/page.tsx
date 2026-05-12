@@ -25,6 +25,8 @@ export default function SizesPage() {
 
   // Forms
   const [addForm, setAddForm] = useState({ size_name: "", is_visible: true });
+  const [addError, setAddError] = useState("");
+  const [editError, setEditError] = useState("");
 
   const fetchData = () => {
     setLoading(true);
@@ -51,7 +53,11 @@ export default function SizesPage() {
   const paginatedData = filteredData.slice((currentPage - 1) * perPage, currentPage * perPage);
 
   const handleAdd = async () => {
-    if (!addForm.size_name.trim()) return toast.error("Vui lòng nhập tên kích thước");
+    if (!addForm.size_name.trim()) {
+      setAddError("Vui lòng nhập tên kích thước");
+      return;
+    }
+    setAddError("");
     try {
       await api.post("/api/admin/sizes", addForm);
       toast.success("Thêm kích thước thành công");
@@ -64,7 +70,11 @@ export default function SizesPage() {
   };
 
   const handleEdit = async () => {
-    if (!editingSize?.size_name.trim()) return toast.error("Vui lòng nhập tên kích thước");
+    if (!editingSize?.size_name.trim()) {
+      setEditError("Vui lòng nhập tên kích thước");
+      return;
+    }
+    setEditError("");
     try {
       await api.put(`/api/admin/sizes/${editingSize.size_id}`, {
         size_name: editingSize.size_name,
@@ -192,7 +202,7 @@ export default function SizesPage() {
       {/* --- MODALS --- */}
       <Modal isOpen={showAdd} setIsOpen={setShowAdd} title="THÊM KÍCH THƯỚC">
         <div className="space-y-4 p-2">
-          <InputGroup label="TÊN KÍCH THƯỚC" type="text" placeholder="Ví dụ: Size S..." value={addForm.size_name} handleChange={(e) => setAddForm(prev => ({ ...prev, size_name: e.target.value }))} />
+          <InputGroup label="TÊN KÍCH THƯỚC (*)" type="text" placeholder="Nhập tên kích thước" value={addForm.size_name} handleChange={(e) => { setAddForm(prev => ({ ...prev, size_name: e.target.value })); setAddError(""); }} error={addError} />
           <div className="flex items-center justify-between">
             <label className="text-sm font-semibold text-dark dark:text-white">HIỂN THỊ</label>
             <Switch checked={addForm.is_visible} onChange={(checked) => setAddForm(prev => ({ ...prev, is_visible: checked }))} />
@@ -206,7 +216,7 @@ export default function SizesPage() {
 
       <Modal isOpen={!!editingSize} setIsOpen={() => setEditingSize(null)} title="SỬA KÍCH THƯỚC">
         <div className="space-y-4 p-2">
-          <InputGroup label="TÊN KÍCH THƯỚC" type="text" value={editingSize?.size_name || ""} handleChange={(e) => setEditingSize(prev => prev ? { ...prev, size_name: e.target.value } : null)} />
+          <InputGroup label="TÊN KÍCH THƯỚC (*)" type="text" value={editingSize?.size_name || ""} handleChange={(e) => { setEditingSize(prev => prev ? { ...prev, size_name: e.target.value } : null); setEditError(""); }} error={editError} />
           <div className="flex items-center justify-between">
             <label className="text-sm font-semibold text-dark dark:text-white">HIỂN THỊ</label>
             <Switch checked={editingSize?.is_visible || false} onChange={(checked) => setEditingSize(prev => prev ? { ...prev, is_visible: checked } : null)} />

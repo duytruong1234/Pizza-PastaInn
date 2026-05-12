@@ -10,6 +10,7 @@ type PropsType = React.SelectHTMLAttributes<HTMLSelectElement> & {
   prefixIcon?: React.ReactNode;
   className?: string;
   placeholder?: string;
+  error?: string;
 };
 
 export function Select({
@@ -18,6 +19,7 @@ export function Select({
   placeholder,
   prefixIcon,
   className,
+  error,
   ...props
 }: PropsType) {
   const id = useId();
@@ -51,6 +53,7 @@ export function Select({
             "w-full appearance-none rounded-lg border border-stroke bg-transparent px-5.5 py-3 outline-none transition focus:border-primary active:border-primary dark:border-dark-3 dark:bg-dark-2 dark:focus:border-primary [&>option]:text-dark-5 dark:[&>option]:text-dark-6",
             (isOptionSelected || props.value) && "text-dark dark:text-white",
             prefixIcon && "pl-11.5",
+            error && "!border-red-500 dark:!border-red-500",
           )}
         >
           {placeholder && (
@@ -68,6 +71,10 @@ export function Select({
 
         <ChevronUpIcon className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 rotate-180" />
       </div>
+      {error && (
+        <p className="mt-1.5 text-xs text-red-500">{error}</p>
+      )}
     </div>
   );
 }
+

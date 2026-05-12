@@ -31,7 +31,7 @@ export const NAV_DATA = [
         icon: Icons.Alphabet,
         items: [
           {
-            title: "Danh mục",
+            title: "Loại món ăn",
             url: "/menu/categories",
           },
           {

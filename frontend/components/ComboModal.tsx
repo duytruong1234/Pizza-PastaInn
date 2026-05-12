@@ -243,14 +243,21 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
   const totalPrice = (comboPrice + extraItemsPrice + extraToppingsPrice) * quantity;
 
   const sortedGroups = [...(comboDetail?.groups || [])].sort((a: any, b: any) => {
-    const getScore = (name: string) => {
-      const lower = name.toLowerCase();
-      if (lower.includes('pizza')) return 1;
-      if (lower.includes('salad')) return 2;
-      if (lower.includes('gratin') || lower.includes('grantin') || lower.includes('risotto') || lower.includes('spaghetti')) return 3;
-      return 4;
+    const desc = (comboDetail?.description || '').toLowerCase();
+    if (!desc) return 0;
+    // Find the position of each group's key content in the description
+    const getPos = (groupName: string) => {
+      const parts = groupName.toLowerCase().split(/\s+/);
+      // Try to find any significant word from the group name in the description
+      for (const part of parts) {
+        if (part.length > 2) {
+          const idx = desc.indexOf(part);
+          if (idx >= 0) return idx;
+        }
+      }
+      return 9999;
     };
-    return getScore(a.group_name) - getScore(b.group_name);
+    return getPos(a.group_name) - getPos(b.group_name);
   });
 
   const handleAddToCart = () => {

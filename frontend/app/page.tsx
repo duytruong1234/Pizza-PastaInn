@@ -44,7 +44,7 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
           products = json.data.map((combo: any, index: number) => ({
             id: combo.combo_id,
             name: combo.combo_name,
-            ingredients: (combo.groups || []).map((g: any) => g.group_name).join('\n') || '',
+            ingredients: (combo.description || '').split(',').map((s: string) => s.trim()).filter(Boolean).join('\n') || (combo.groups || []).map((g: any) => g.group_name).join('\n') || '',
             price: combo.combo_price || 0,
             dish_price_id: null,
             prices: [],
@@ -112,7 +112,7 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
               const comboProducts = comboJson.data.map((combo: any, index: number) => ({
                 id: combo.combo_id,
                 name: combo.combo_name,
-                ingredients: (combo.groups || []).map((g: any) => g.group_name).join('\n') || '',
+                ingredients: (combo.description || '').split(',').map((s: string) => s.trim()).filter(Boolean).join('\n') || (combo.groups || []).map((g: any) => g.group_name).join('\n') || '',
                 price: combo.combo_price || 0,
                 dish_price_id: null,
                 prices: [],
