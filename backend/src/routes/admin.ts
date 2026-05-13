@@ -153,6 +153,53 @@ router.patch('/orders/:id/status', async (req: AuthRequest, res: Response): Prom
   }
 });
 
+/**
+ * GET /api/admin/orders/:id
+ * Chi tiết đơn hàng (JOIN đầy đủ 5 bảng order)
+ */
+router.get('/orders/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const orderId = parseInt(String(req.params.id));
+    const order = await prisma.order.findUnique({
+      where: { order_id: orderId },
+      include: {
+        user: { select: { user_id: true, username: true, email: true, phone: true } },
+        user_address: true,
+        items: {
+          include: {
+            toppings: {
+              include: {
+                order_item: false,
+              },
+            },
+            combos: {
+              include: {
+                toppings: true,
+                halves: {
+                  include: { order_item_toppings: true },
+                },
+              },
+            },
+            halves: {
+              include: { order_item_toppings: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      sendError(res, 'Không tìm thấy đơn hàng', 404);
+      return;
+    }
+
+    sendSuccess(res, { data: order });
+  } catch (err) {
+    logger.error('Admin order detail error:', err);
+    sendError(res, 'Lỗi khi lấy chi tiết đơn hàng', 500);
+  }
+});
+
 // ─── QUẢN LÝ DANH MỤC ──────────────────────────────────────────────────────
 
 /**

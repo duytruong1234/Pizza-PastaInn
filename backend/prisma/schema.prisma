@@ -42,6 +42,7 @@ model Topping {
   size_id          Int?
   is_for_pizza     Boolean? @default(true)
   is_for_spaghetti Boolean? @default(true)
+  stock            Int?     @default(100)
   sizes            Size?    @relation(fields: [size_id], references: [size_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("toppings")
@@ -54,6 +55,7 @@ model Dish {
   image       String?
   ingredient  String?
   dish_status Boolean?
+  stock       Int?     @default(100)
   prices      DishPrice[]
   category    Category?   @relation(fields: [category_id], references: [category_id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -132,6 +134,7 @@ model User {
   role        String?       @db.VarChar(50)
   user_status Boolean?
   created_at  DateTime?     @db.Timestamp(6)
+  is_guest    Boolean?      @default(false)
   cart        Cart[]
   orders      Order[]
   reviews     ShopReview[]

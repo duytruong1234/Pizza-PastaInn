@@ -1,4 +1,4 @@
-// Trang quản lý đơn hàng
+// Trang quản lý đơn hàng — với modal chi tiết đơn hàng
 "use client";
 
 import { api } from "@/lib/api";
@@ -9,11 +9,18 @@ import { Badge } from "@/components/ui/badge";
 interface Order {
   order_id: number;
   user?: { username: string; email: string; phone: string };
+  user_address?: { address_line: string };
   order_status: string;
   payment_method: string;
+  payment_status: string;
+  total_price_dish: number;
+  shipping_fee: number;
+  discount_amount: number;
   total_order: number;
+  order_note: string;
   created_at: string;
   order_type: string;
+  items?: any[];
 }
 
 const STATUS_COLORS: Record<string, "warning" | "info" | "primary" | "secondary" | "success" | "danger"> = {
@@ -34,6 +41,198 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "Đã hủy",
 };
 
+const PAYMENT_LABELS: Record<string, string> = {
+  cod: "Tiền mặt (COD)",
+  vietqr: "Chuyển khoản VietQR",
+};
+
+const ORDER_TYPE_LABELS: Record<string, string> = {
+  delivery: "Giao tận nơi",
+  pickup: "Đến lấy tại quán",
+};
+
+// ── Modal chi tiết đơn hàng ──────────────────────────────────────────────────
+function OrderDetailModal({ order, onClose }: { order: Order | null; onClose: () => void }) {
+  if (!order) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-stroke bg-white shadow-xl dark:border-dark-3 dark:bg-gray-dark mx-4">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-stroke px-6 py-4 dark:border-dark-3">
+          <div>
+            <h2 className="text-lg font-bold text-dark dark:text-white">
+              CHI TIẾT ĐƠN HÀNG #{order.order_id}
+            </h2>
+            <p className="text-xs text-gray-400 mt-1">
+              {order.created_at ? dayjs(order.created_at).format("DD/MM/YYYY HH:mm:ss") : "N/A"}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-lg border border-stroke p-2 text-gray-500 hover:bg-gray-100 dark:border-dark-3 dark:hover:bg-dark-2"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="p-6 space-y-5">
+          {/* Info grid */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Thông tin khách hàng */}
+            <div className="rounded-xl border border-stroke p-4 dark:border-dark-3">
+              <h3 className="text-sm font-bold text-dark dark:text-white mb-3 uppercase tracking-wide">
+                Thông tin khách hàng
+              </h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Tên:</span>
+                  <span className="font-medium text-dark dark:text-white">
+                    {order.user?.username || "N/A"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">SĐT:</span>
+                  <span className="font-medium text-dark dark:text-white">
+                    {order.user?.phone || "N/A"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Email:</span>
+                  <span className="font-medium text-dark dark:text-white">
+                    {order.user?.email || "N/A"}
+                  </span>
+                </div>
+                {order.user_address?.address_line && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Địa chỉ:</span>
+                    <span className="font-medium text-dark dark:text-white text-right max-w-[60%]">
+                      {order.user_address.address_line}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Thông tin đơn hàng */}
+            <div className="rounded-xl border border-stroke p-4 dark:border-dark-3">
+              <h3 className="text-sm font-bold text-dark dark:text-white mb-3 uppercase tracking-wide">
+                Thông tin đơn hàng
+              </h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Trạng thái:</span>
+                  <Badge variant={STATUS_COLORS[order.order_status] || "warning"}>
+                    {STATUS_LABELS[order.order_status] || order.order_status}
+                  </Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Hình thức:</span>
+                  <span className="font-medium text-dark dark:text-white">
+                    {ORDER_TYPE_LABELS[order.order_type] || order.order_type}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Thanh toán:</span>
+                  <span className="font-medium text-dark dark:text-white">
+                    {PAYMENT_LABELS[order.payment_method] || order.payment_method}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">TT thanh toán:</span>
+                  <Badge variant={order.payment_status === "paid" ? "success" : "warning"}>
+                    {order.payment_status === "paid" ? "Đã thanh toán" : "Chưa thanh toán"}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Chi tiết món */}
+          <div className="rounded-xl border border-stroke p-4 dark:border-dark-3">
+            <h3 className="text-sm font-bold text-dark dark:text-white mb-3 uppercase tracking-wide">
+              Chi tiết món ({order.items?.length || 0} món)
+            </h3>
+            <div className="space-y-2">
+              {(order.items || []).map((item: any, idx: number) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between rounded-lg bg-gray-50 p-3 dark:bg-dark-2"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-white">
+                      x{item.quantity}
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-dark dark:text-white">
+                        {item.dish_price_id || (item.combo_id ? `Combo #${item.combo_id}` : "Món")}
+                      </p>
+                      {item.order_item_note && (
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          Ghi chú: {item.order_item_note}
+                        </p>
+                      )}
+                      {item.is_half_half && (
+                        <p className="text-xs text-blue-400 mt-0.5">🍕 Half-Half</p>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-sm font-bold text-dark dark:text-white">
+                    {(item.order_price || 0).toLocaleString()} đ
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Tổng tiền */}
+          <div className="rounded-xl border border-stroke p-4 dark:border-dark-3">
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Tạm tính:</span>
+                <span className="text-dark dark:text-white">
+                  {(order.total_price_dish || 0).toLocaleString()} đ
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Phí vận chuyển:</span>
+                <span className="text-green-500 font-medium">
+                  {order.shipping_fee ? `${order.shipping_fee.toLocaleString()} đ` : "Miễn phí"}
+                </span>
+              </div>
+              {(order.discount_amount || 0) > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Giảm giá:</span>
+                  <span className="text-red-500">
+                    -{(order.discount_amount || 0).toLocaleString()} đ
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between border-t border-stroke pt-2 mt-2 dark:border-dark-3">
+                <span className="font-bold text-dark dark:text-white text-base">Tổng cộng:</span>
+                <span className="font-bold text-primary text-lg">
+                  {(order.total_order || 0).toLocaleString()} đ
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Ghi chú đơn hàng */}
+          {order.order_note && (
+            <div className="rounded-xl border border-stroke p-4 dark:border-dark-3">
+              <h3 className="text-sm font-bold text-dark dark:text-white mb-2 uppercase tracking-wide">
+                Ghi chú đơn hàng
+              </h3>
+              <p className="text-sm text-gray-500 italic">&quot;{order.order_note}&quot;</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ────────────────────────────────────────────────────────────────
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [total, setTotal] = useState(0);
@@ -41,6 +240,8 @@ export default function OrdersPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
   const [loading, setLoading] = useState(true);
+  const [detailOrder, setDetailOrder] = useState<Order | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -68,8 +269,24 @@ export default function OrdersPage() {
         order_status: newStatus,
       });
       fetchOrders();
+      // Nếu đang xem chi tiết, cập nhật lại
+      if (detailOrder && detailOrder.order_id === orderId) {
+        setDetailOrder({ ...detailOrder, order_status: newStatus });
+      }
     } catch (err) {
       alert("Lỗi khi cập nhật trạng thái");
+    }
+  };
+
+  const viewDetail = async (orderId: number) => {
+    setLoadingDetail(true);
+    try {
+      const res = await api.get(`/api/admin/orders/${orderId}`);
+      setDetailOrder(res.data.data);
+    } catch {
+      alert("Lỗi khi lấy chi tiết đơn hàng");
+    } finally {
+      setLoadingDetail(false);
     }
   };
 
@@ -150,7 +367,8 @@ export default function OrdersPage() {
                 orders.map((order) => (
                   <tr
                     key={order.order_id}
-                    className="border-b border-stroke last:border-0 dark:border-dark-3"
+                    className="border-b border-stroke last:border-0 dark:border-dark-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-dark-2 transition"
+                    onClick={() => viewDetail(order.order_id)}
                   >
                     <td className="px-6 py-4 font-medium text-dark dark:text-white">
                       #{order.order_id}
@@ -163,24 +381,24 @@ export default function OrdersPage() {
                         {order.user?.phone}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm capitalize">
-                      {order.order_type || "delivery"}
+                    <td className="px-6 py-4 text-sm">
+                      {ORDER_TYPE_LABELS[order.order_type] || order.order_type || "delivery"}
                     </td>
                     <td className="px-6 py-4 font-medium text-dark dark:text-white">
                       {(order.total_order || 0).toLocaleString()} đ
                     </td>
-                    <td className="px-6 py-4 text-sm capitalize">
-                      {order.payment_method || "N/A"}
+                    <td className="px-6 py-4 text-sm">
+                      {PAYMENT_LABELS[order.payment_method] || order.payment_method || "N/A"}
                     </td>
                     <td className="px-6 py-4">
-                      <Badge variant={STATUS_COLORS[order.order_status] || "gray"}>
+                      <Badge variant={STATUS_COLORS[order.order_status] || "warning"}>
                         {STATUS_LABELS[order.order_status] || order.order_status}
                       </Badge>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
                       {order.created_at ? dayjs(order.created_at).format("DD/MM/YYYY HH:mm") : "N/A"}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                       <select
                         value={order.order_status}
                         onChange={(e) => updateStatus(order.order_id, e.target.value)}
@@ -225,6 +443,14 @@ export default function OrdersPage() {
           </div>
         )}
       </div>
+
+      {/* Detail Modal */}
+      {detailOrder && (
+        <OrderDetailModal
+          order={detailOrder}
+          onClose={() => setDetailOrder(null)}
+        />
+      )}
     </div>
   );
 }

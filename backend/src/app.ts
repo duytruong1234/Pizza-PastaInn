@@ -108,6 +108,10 @@ app.use('/api/stores', storeRoutes);
 import cartRoutes from './routes/cart';
 app.use('/api/cart', cartRoutes);
 
+// Order routes
+import orderRoutes from './routes/order';
+app.use('/api/orders', orderRoutes);
+
 // Admin routes (dashboard quản trị)
 import adminRoutes from './routes/admin';
 app.use('/api/admin', adminRoutes);

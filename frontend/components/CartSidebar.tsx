@@ -1,16 +1,35 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { formatPrice } from '@/lib/utils';
 import Image from 'next/image';
 import { useUI } from './UIProvider';
 import { X, Trash2 } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
+import { useAuthStore } from '@/store/authStore';
+import { useOrderStore } from '@/store/orderStore';
 
 export default function CartSidebar() {
+  const router = useRouter();
   const { isCartOpen, toggleCart } = useUI();
   const { items, removeFromCart, updateQuantity, clearCart, totalItems, totalPrice } = useCartStore();
   const [isMounted, setIsMounted] = useState(false);
+
+  const handleCheckout = () => {
+    const user = useAuthStore.getState().user;
+    const { updateFormData, resetForm } = useOrderStore.getState();
+    resetForm();
+    if (user) {
+      updateFormData({
+        customer_name: user.username || '',
+        customer_phone: user.phone || '',
+        customer_email: user.email || '',
+      });
+    }
+    toggleCart();
+    router.push('/checkout');
+  };
 
   useEffect(() => {
     setIsMounted(true);
@@ -113,8 +132,8 @@ export default function CartSidebar() {
                               </span>
                             ))}
                           </div>
-                        ) : typeof item.options.toppings === 'string' && item.options.toppings.length > 0 ? (
-                          <p>{"Topping"}: {item.options.toppings}</p>
+                        ) : typeof item.options.toppings === 'string' && (item.options.toppings as string).length > 0 ? (
+                          <p>{"Topping"}: {item.options.toppings as string}</p>
                         ) : null
                       )}
                       {item.options?.notes && (
@@ -149,7 +168,11 @@ export default function CartSidebar() {
         </div>
 
         <div className="p-4 bg-transparent mb-4">
-          <button className="w-full bg-[#cd3645] hover:bg-red-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-colors flex justify-center items-center gap-2">
+          <button 
+            className="w-full bg-[#cd3645] hover:bg-red-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-colors flex justify-center items-center gap-2"
+            onClick={handleCheckout}
+            disabled={displayItems.length === 0}
+          >
             <span>{"Checkout:"}</span>
             <span>{formatPrice(displayTotalPrice)}</span>
           </button>
