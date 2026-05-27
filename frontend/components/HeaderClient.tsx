@@ -44,9 +44,11 @@ export default function HeaderClient({ storeName }: { storeName: string }) {
       </Link>
 
       {/* Navigation (Desktop only) */}
-      <nav className="hidden md:flex items-center gap-10 text-sm font-bold text-white/90">
+      <nav className="hidden md:flex items-center gap-10 text-base font-black uppercase text-white/90">
         <Link href="/" className="hover:text-white transition-colors">{"Menu"}</Link>
+        <Link href="/lookup" className="hover:text-[#f5c043] text-white transition-colors">{"Order Lookup"}</Link>
         <Link href="/about" className="hover:text-white transition-colors">{"About"}</Link>
+        <Link href="/reviews" className="hover:text-white transition-colors">{"Reviews"}</Link>
       </nav>
 
       {/* Right side icons */}

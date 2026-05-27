@@ -1,104 +1,145 @@
-import { MapPin, Phone, Clock, Mail, Globe, Heart, Play } from 'lucide-react';
+import { MapPin, Phone, Clock, Store } from 'lucide-react';
 
-export default async function Footer() {
-  let storeName = 'Pizza&PastaInn';
-  let address = '';
-  let hotline = '';
+// Custom SVG Icons for Social Media to match premium styles
+const FacebookIcon = ({ size = 18 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M9 8H7v3h2v9h4v-9h3.6l.4-3H13V6c0-.5.5-1 1-1h3V2h-3c-2.5 0-5 1.5-5 4v2z" />
+  </svg>
+);
 
-  try {
-    const res = await fetch('http://localhost:4000/api/stores', { next: { revalidate: 60 } });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success && json.data.length > 0) {
-        storeName = json.data[0].store_name || storeName;
-        address = json.data[0].address || '';
-        hotline = json.data[0].hotline || '';
-      }
-    }
-  } catch (err) {
-    console.error('Lỗi khi lấy thông tin cửa hàng cho footer:', err);
-  }
+const InstagramIcon = ({ size = 18 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  </svg>
+);
 
+const TikTokIcon = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.89-.74-3.94-1.78-.22-.22-.43-.47-.62-.73v7.02c0 3.59-1.81 6.78-4.93 7.82-3.13 1.04-6.84-.24-8.49-3.03-1.65-2.79-1.25-6.62 1.01-8.97 2.26-2.35 6.01-2.6 8.57-.6v4.13c-1.58-1.07-3.8-.75-5.01.76-.87 1.08-.94 2.68-.17 3.84.77 1.16 2.29 1.74 3.65 1.34 1.36-.4 2.37-1.68 2.37-3.13V.02z" />
+  </svg>
+);
+
+export default function Footer() {
   return (
-    <footer className="relative z-10 bg-gradient-to-b from-black/90 to-black text-white border-t border-white/10 -mx-6 -mb-6 mt-10">
-      {/* Dải đỏ trang trí */}
-      <div className="h-1 w-full bg-gradient-to-r from-[#9f280a] via-[#ee2828] to-[#9f280a]"></div>
-
-      <div className="max-w-6xl mx-auto px-6 py-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-
-          {/* Cột 1: Thông tin cửa hàng */}
-          <div>
-            <h3 className="text-xl font-extrabold font-serif tracking-tight mb-4">
-              {storeName}
-            </h3>
-            <p className="text-white/60 text-sm leading-relaxed mb-4">
-              Authentic Italian pizza & pasta made with fresh ingredients and traditional recipes. 
-              Every dish is crafted with love and passion.
+    <footer className="relative z-10 bg-black text-white border-t border-zinc-900/60 -mx-6 -mb-6 mt-14 pt-12 pb-8">
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
+          
+          {/* Cột 1: Giới thiệu PIZZA & PASTA INN */}
+          <div className="flex flex-col space-y-4">
+            <h2 className="text-xl font-extrabold tracking-wider font-sans uppercase">
+              <span className="text-white">PIZZA & PASTA </span>
+              <span className="text-[#f5c043]">INN</span>
+            </h2>
+            <p className="text-zinc-400 text-sm leading-relaxed max-w-sm">
+              Come to Pizza & Pasta Inn, where you can enjoy hot, delicious, and flavorful dishes in a warm and friendly atmosphere.
             </p>
-            <div className="flex gap-3 mt-4">
-              <a href="#" className="w-9 h-9 rounded-full bg-white/10 hover:bg-[#1877F2] flex items-center justify-center transition-all duration-300 hover:scale-110">
-                <Globe size={16} />
+            
+            {/* Mạng xã hội */}
+            <div className="flex gap-3 pt-2">
+              <a 
+                href="#" 
+                className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800/60 flex items-center justify-center text-zinc-300 hover:text-white hover:bg-zinc-800/80 hover:border-zinc-700 transition-all duration-200 shadow-sm"
+              >
+                <FacebookIcon size={18} />
               </a>
-              <a href="#" className="w-9 h-9 rounded-full bg-white/10 hover:bg-gradient-to-br hover:from-[#f09433] hover:to-[#bc1888] flex items-center justify-center transition-all duration-300 hover:scale-110">
-                <Heart size={16} />
+              <a 
+                href="#" 
+                className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800/60 flex items-center justify-center text-zinc-300 hover:text-white hover:bg-zinc-800/80 hover:border-zinc-700 transition-all duration-200 shadow-sm"
+              >
+                <InstagramIcon size={18} />
               </a>
-              <a href="#" className="w-9 h-9 rounded-full bg-white/10 hover:bg-[#FF0000] flex items-center justify-center transition-all duration-300 hover:scale-110">
-                <Play size={16} />
+              <a 
+                href="#" 
+                className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800/60 flex items-center justify-center text-zinc-300 hover:text-white hover:bg-zinc-800/80 hover:border-zinc-700 transition-all duration-200 shadow-sm"
+              >
+                <TikTokIcon size={16} />
               </a>
             </div>
           </div>
 
-          {/* Cột 2: Liên hệ */}
-          <div>
-            <h3 className="text-lg font-bold mb-4 text-[#f0c14b]">Contact Us</h3>
-            <ul className="space-y-3 text-sm text-white/70">
-              {address && (
-                <li className="flex items-start gap-3">
-                  <MapPin size={16} className="text-[#ee2828] mt-0.5 flex-shrink-0" />
-                  <span>{address}</span>
-                </li>
-              )}
-              {hotline && (
-                <li className="flex items-center gap-3">
-                  <Phone size={16} className="text-[#ee2828] flex-shrink-0" />
-                  <span>{hotline}</span>
-                </li>
-              )}
-              <li className="flex items-center gap-3">
-                <Mail size={16} className="text-[#ee2828] flex-shrink-0" />
-                <span>contact@pizzapastainn.com</span>
-              </li>
-            </ul>
+          {/* Cột 2: Chi nhánh Quận 5 */}
+          <div className="flex flex-col space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[#E5A93C] flex items-center justify-center text-black flex-shrink-0 shadow-md">
+                <Store size={18} className="stroke-[2.5]" />
+              </div>
+              <h3 className="text-sm font-black text-white tracking-widest uppercase">
+                DISTRICT 5 BRANCH
+              </h3>
+            </div>
+            
+            <div className="space-y-3.5 pt-1">
+              <div className="flex items-start gap-3">
+                <MapPin size={18} className="text-[#64748B] mt-0.5 flex-shrink-0" />
+                <span className="text-zinc-400 text-sm leading-relaxed max-w-[280px]">
+                  21 Dao Tan Street, An Dong Ward, Ho Chi Minh City, Vietnam
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <Phone size={18} className="text-[#64748B] flex-shrink-0" />
+                <span className="text-zinc-400 text-sm font-semibold">
+                  028 3924 0343
+                </span>
+              </div>
+              
+              <div className="pt-1.5">
+                <div className="inline-flex items-center gap-2 bg-[#121212] border border-zinc-800/85 px-4 py-2.5 rounded-xl shadow-inner">
+                  <Clock size={15} className="text-[#f5c043]" />
+                  <span className="text-[12.5px] text-zinc-400 font-medium">
+                    Opening Hours: <strong className="text-white font-bold">10:00 AM — 10:00 PM</strong>
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Cột 3: Giờ mở cửa */}
-          <div>
-            <h3 className="text-lg font-bold mb-4 text-[#f0c14b]">Opening Hours</h3>
-            <ul className="space-y-3 text-sm text-white/70">
-              <li className="flex items-center gap-3">
-                <Clock size={16} className="text-[#ee2828] flex-shrink-0" />
-                <div>
-                  <p className="font-semibold text-white/90">Mon - Fri</p>
-                  <p>10:00 AM - 10:00 PM</p>
+          {/* Cột 3: Chi nhánh Quận 7 */}
+          <div className="flex flex-col space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[#E5A93C] flex items-center justify-center text-black flex-shrink-0 shadow-md">
+                <Store size={18} className="stroke-[2.5]" />
+              </div>
+              <h3 className="text-sm font-black text-white tracking-widest uppercase">
+                DISTRICT 7 BRANCH
+              </h3>
+            </div>
+            
+            <div className="space-y-3.5 pt-1">
+              <div className="flex items-start gap-3">
+                <MapPin size={18} className="text-[#64748B] mt-0.5 flex-shrink-0" />
+                <span className="text-zinc-400 text-sm leading-relaxed max-w-[280px]">
+                  C001 Pham Thai Buong Street, Tan Hung Ward, Ho Chi Minh City, Vietnam
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <Phone size={18} className="text-[#64748B] flex-shrink-0" />
+                <span className="text-zinc-400 text-sm font-semibold">
+                  028 5412 1197 - 028 5412 1196
+                </span>
+              </div>
+              
+              <div className="pt-1.5">
+                <div className="inline-flex items-center gap-2 bg-[#121212] border border-zinc-800/85 px-4 py-2.5 rounded-xl shadow-inner">
+                  <Clock size={15} className="text-[#f5c043]" />
+                  <span className="text-[12.5px] text-zinc-400 font-medium">
+                    Opening Hours: <strong className="text-white font-bold">09:00 AM — 09:00 PM</strong>
+                  </span>
                 </div>
-              </li>
-              <li className="flex items-center gap-3">
-                <Clock size={16} className="text-[#ee2828] flex-shrink-0" />
-                <div>
-                  <p className="font-semibold text-white/90">Sat - Sun</p>
-                  <p>9:00 AM - 11:00 PM</p>
-                </div>
-              </li>
-            </ul>
+              </div>
+            </div>
           </div>
 
         </div>
-      </div>
-
-      {/* Copyright */}
-      <div className="border-t border-white/10 py-4 text-center text-xs text-white/40">
-        <p>© {new Date().getFullYear()} {storeName}. All rights reserved.</p>
+        
+        {/* Copyright */}
+        <div className="border-t border-zinc-900/60 mt-12 pt-6 text-center text-xs text-zinc-500">
+          <p>© {new Date().getFullYear()} Pizza & Pasta Inn. All rights reserved.</p>
+        </div>
       </div>
     </footer>
   );

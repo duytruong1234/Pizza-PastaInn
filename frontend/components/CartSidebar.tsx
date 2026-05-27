@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatPrice } from '@/lib/utils';
 import Image from 'next/image';
-import { useUI } from './UIProvider';
+import { useUI } from '@/components/UIProvider';
 import { X, Trash2 } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
@@ -43,12 +43,12 @@ export default function CartSidebar() {
     <>
       {/* Overlay khi sidebar mở */}
       {isCartOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden" 
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={toggleCart}
         />
       )}
-      
+
       <aside className={`
         fixed inset-y-0 right-0 z-50 w-[85vw] max-w-[400px] bg-black/95 md:bg-black/80 backdrop-blur-md border-l border-white/10 flex flex-col shadow-2xl transition-transform duration-300 ease-in-out
         ${isCartOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
@@ -60,7 +60,7 @@ export default function CartSidebar() {
             <div className="flex items-center justify-start md:justify-center gap-3">
               <p className="text-gray-400 text-sm">{"Quantity:"} {displayTotalItems} {"items"}</p>
               {displayItems.length > 0 && (
-                <button 
+                <button
                   onClick={clearCart}
                   className="text-red-400 hover:text-red-300 text-xs flex items-center gap-1 transition-colors"
                 >
@@ -87,15 +87,15 @@ export default function CartSidebar() {
                 <div className="flex justify-between items-start mb-1">
                   <h3 className="text-white font-bold text-base w-3/4 drop-shadow-md">{item.name}</h3>
                   <div className="w-12 h-12 rounded-full overflow-hidden absolute top-2 right-2 border-2 border-white/20 shadow-sm">
-                    <Image 
-                      src={item.imageUrl || "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=100&auto=format&fit=crop"} 
-                      alt={item.name} 
-                      fill 
-                      className="object-cover" 
+                    <Image
+                      src={item.imageUrl || "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=100&auto=format&fit=crop"}
+                      alt={item.name}
+                      fill
+                      className="object-cover"
                     />
                   </div>
                 </div>
-                
+
                 <div className="text-[11px] font-bold text-white/90 space-y-0.5 mb-2 w-full">
                   {item.options?.comboItems ? (
                     <div className="flex flex-col gap-1.5 mt-1">
@@ -103,8 +103,8 @@ export default function CartSidebar() {
                         <div key={idx} className="flex flex-col">
                           <span className="text-white font-extrabold">{idx + 1}. {ci.name}</span>
                           <div className="ml-3 font-normal text-white/80 space-y-0.5">
-                            {ci.size && <span>Size: {ci.size}<br/></span>}
-                            {ci.crust && <span>Crust: {ci.crust}<br/></span>}
+                            {ci.size && <span>Size: {ci.size}<br /></span>}
+                            {ci.crust && <span>Crust: {ci.crust}<br /></span>}
                             {ci.toppings && ci.toppings.length > 0 && ci.toppings.map((tp: any, tidx: number) => (
                               <span key={tidx} className="italic text-white/70 ml-2 block">
                                 • topping: {tp.name} (+{formatPrice(tp.price)})
@@ -155,7 +155,7 @@ export default function CartSidebar() {
                     <button className="bg-[#007a3f] text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">{"Edit"}</button>
                     <button onClick={() => removeFromCart(item.id)} className="bg-[#ee2828] text-white font-bold text-[10px] px-2 py-0.5 rounded shadow">{"Delete"}</button>
                   </div>
-                  
+
                   <div className="text-right flex flex-col justify-end">
                     <div className="bg-white px-2 py-0.5 rounded text-black font-bold mt-1 text-xs text-center min-w-[70px]">
                       {formatPrice(item.price * item.quantity)}
@@ -168,7 +168,7 @@ export default function CartSidebar() {
         </div>
 
         <div className="p-4 bg-transparent mb-4">
-          <button 
+          <button
             className="w-full bg-[#cd3645] hover:bg-red-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-colors flex justify-center items-center gap-2"
             onClick={handleCheckout}
             disabled={displayItems.length === 0}

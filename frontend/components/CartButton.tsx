@@ -1,7 +1,7 @@
 'use client';
 
 import { ShoppingCart } from 'lucide-react';
-import { useUI } from './UIProvider';
+import { useUI } from '@/components/UIProvider';
 import { useCartStore } from '@/store/cartStore';
 import { useState, useEffect } from 'react';
 

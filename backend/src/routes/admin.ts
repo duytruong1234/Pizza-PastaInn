@@ -132,7 +132,7 @@ router.get('/orders', async (req: AuthRequest, res: Response): Promise<void> => 
 router.patch('/orders/:id/status', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const orderId = parseInt(String(req.params.id));
-    const { order_status } = req.body;
+    const { order_status, discount_amount, shipping_fee, estimated_delivery_time } = req.body;
 
     const updateData: Record<string, unknown> = { order_status };
 
@@ -140,6 +140,26 @@ router.patch('/orders/:id/status', async (req: AuthRequest, res: Response): Prom
     if (order_status === 'shipped') updateData.shipped_at = new Date();
     if (order_status === 'arrived') updateData.arrived_at = new Date();
     if (order_status === 'completed') updateData.completed_at = new Date();
+
+    if (discount_amount !== undefined) updateData.discount_amount = parseInt(String(discount_amount)) || 0;
+    if (shipping_fee !== undefined) updateData.shipping_fee = parseInt(String(shipping_fee)) || 0;
+    if (estimated_delivery_time !== undefined) {
+      updateData.estimated_delivery_time = estimated_delivery_time ? new Date(estimated_delivery_time) : null;
+    }
+
+    // Nếu thay đổi discount hay shipping fee, tính lại total_order
+    if (discount_amount !== undefined || shipping_fee !== undefined) {
+      const currentOrder = await prisma.order.findUnique({
+        where: { order_id: orderId },
+        select: { total_price_dish: true, discount_amount: true, shipping_fee: true }
+      });
+      if (currentOrder) {
+        const total_price_dish = currentOrder.total_price_dish || 0;
+        const finalDiscount = discount_amount !== undefined ? (parseInt(String(discount_amount)) || 0) : (currentOrder.discount_amount || 0);
+        const finalShipping = shipping_fee !== undefined ? (parseInt(String(shipping_fee)) || 0) : (currentOrder.shipping_fee || 0);
+        updateData.total_order = Math.max(0, total_price_dish + finalShipping - finalDiscount);
+      }
+    }
 
     const order = await prisma.order.update({
       where: { order_id: orderId },
@@ -152,6 +172,21 @@ router.patch('/orders/:id/status', async (req: AuthRequest, res: Response): Prom
     sendError(res, 'Lỗi khi cập nhật đơn hàng', 500);
   }
 });
+
+function cleanAddressLine(addressLine: string | null): string {
+  if (!addressLine) return '';
+  try {
+    if (addressLine.startsWith('{') && addressLine.endsWith('}')) {
+      const parsed = JSON.parse(addressLine);
+      if (parsed && typeof parsed === 'object') {
+        return parsed.address || '';
+      }
+    }
+  } catch (e) {
+    // Return original
+  }
+  return addressLine;
+}
 
 /**
  * GET /api/admin/orders/:id
@@ -167,21 +202,54 @@ router.get('/orders/:id', async (req: AuthRequest, res: Response): Promise<void>
         user_address: true,
         items: {
           include: {
+            dish_price: {
+              include: {
+                dish: true,
+                size: true,
+                crust: true,
+              },
+            },
+            combo: true,
             toppings: {
               include: {
-                order_item: false,
+                topping: true,
               },
             },
             combos: {
               include: {
-                toppings: true,
+                dish_price: {
+                  include: {
+                    dish: true,
+                    size: true,
+                    crust: true,
+                  },
+                },
+                toppings: {
+                  include: {
+                    topping: true,
+                  },
+                },
                 halves: {
-                  include: { order_item_toppings: true },
+                  include: {
+                    dish: true,
+                    order_item_toppings: {
+                      include: {
+                        topping: true,
+                      },
+                    },
+                  },
                 },
               },
             },
             halves: {
-              include: { order_item_toppings: true },
+              include: {
+                dish: true,
+                order_item_toppings: {
+                  include: {
+                    topping: true,
+                  },
+                },
+              },
             },
           },
         },
@@ -191,6 +259,10 @@ router.get('/orders/:id', async (req: AuthRequest, res: Response): Promise<void>
     if (!order) {
       sendError(res, 'Không tìm thấy đơn hàng', 404);
       return;
+    }
+
+    if (order.user_address) {
+      order.user_address.address_line = cleanAddressLine(order.user_address.address_line);
     }
 
     sendSuccess(res, { data: order });
@@ -722,6 +794,70 @@ router.get('/stores', async (_req: AuthRequest, res: Response): Promise<void> =>
     sendSuccess(res, { data: stores });
   } catch (err) {
     sendError(res, 'Lỗi', 500);
+  }
+});
+
+// POST stores
+router.post('/stores', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { store_name, address, hotline, latitude, longitude, is_active } = req.body;
+    if (!store_name || !store_name.trim()) {
+      sendError(res, 'Tên chi nhánh không được để trống', 400);
+      return;
+    }
+    const store = await prisma.store.create({
+      data: {
+        store_name: store_name.trim(),
+        address: address?.trim() || null,
+        hotline: hotline?.trim() || null,
+        latitude: latitude || null,
+        longitude: longitude || null,
+        is_active: is_active ?? true,
+      },
+    });
+    sendSuccess(res, { data: store, message: 'Thêm chi nhánh thành công' }, 201);
+  } catch (err) {
+    logger.error('Admin create store error:', err);
+    sendError(res, 'Lỗi khi thêm chi nhánh', 500);
+  }
+});
+
+// PUT stores/:id
+router.put('/stores/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(String(req.params.id));
+    const { store_name, address, hotline, latitude, longitude, is_active } = req.body;
+    if (!store_name || !store_name.trim()) {
+      sendError(res, 'Tên chi nhánh không được để trống', 400);
+      return;
+    }
+    const store = await prisma.store.update({
+      where: { store_id: id },
+      data: {
+        store_name: store_name.trim(),
+        address: address?.trim() || null,
+        hotline: hotline?.trim() || null,
+        latitude: latitude || null,
+        longitude: longitude || null,
+        is_active,
+      },
+    });
+    sendSuccess(res, { data: store, message: 'Cập nhật chi nhánh thành công' });
+  } catch (err) {
+    logger.error('Admin update store error:', err);
+    sendError(res, 'Lỗi khi cập nhật chi nhánh', 500);
+  }
+});
+
+// DELETE stores/:id
+router.delete('/stores/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(String(req.params.id));
+    await prisma.store.delete({ where: { store_id: id } });
+    sendSuccess(res, { message: 'Xóa chi nhánh thành công' });
+  } catch (err) {
+    logger.error('Admin delete store error:', err);
+    sendError(res, 'Lỗi khi xóa chi nhánh', 500);
   }
 });
 

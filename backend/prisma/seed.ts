@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -23,6 +24,25 @@ async function main() {
   await prisma.user.deleteMany();
   
   await prisma.store.deleteMany();
+  
+  // Tạo các chi nhánh cửa hàng
+  await prisma.store.create({
+    data: {
+      store_name: 'District 5 Branch',
+      address: '21 Dao Tan Street, An Dong Ward, Ho Chi Minh City, Vietnam',
+      hotline: '028 3924 0343',
+      is_active: true,
+    },
+  });
+
+  await prisma.store.create({
+    data: {
+      store_name: 'District 7 Branch',
+      address: 'C001 Pham Thai Buong Street, Tan Hung Ward, Ho Chi Minh City, Vietnam',
+      hotline: '028 5412 1197 - 028 5412 1196',
+      is_active: true,
+    },
+  });
   
   await prisma.comboItem.deleteMany();
   await prisma.comboGroup.deleteMany();
@@ -52,9 +72,9 @@ async function main() {
   // Tạo Toppings
   await prisma.topping.createMany({
     data: [
-      { name: 'Thêm Phô Mai', price: 15000 },
-      { name: 'Thêm Xúc Xích', price: 20000 },
-      { name: 'Thêm Dứa', price: 10000 },
+      { topping_name: 'Thêm Phô Mai', price_topping: 15000 },
+      { topping_name: 'Thêm Xúc Xích', price_topping: 20000 },
+      { topping_name: 'Thêm Dứa', price_topping: 10000 },
     ],
   });
 
@@ -101,11 +121,12 @@ async function main() {
   });
 
   // Admin user
+  const adminPassword = await bcrypt.hash('admin', 10);
   await prisma.user.create({
     data: {
       username: 'Admin',
-      email: 'admin@pizzapastainn.com',
-      password: 'hashed_password_here', // Sẽ cần tự hash hoặc dùng bcrypt nếu tạo bằng tool
+      email: 'admin@gmail.com',
+      password: adminPassword,
       role: 'admin',
       user_status: true,
     }

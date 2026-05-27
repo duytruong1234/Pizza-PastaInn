@@ -13,6 +13,7 @@ export const metadata: Metadata = {
 };
 
 import { UIProvider } from "@/components/UIProvider";
+import QuickDock from "@/components/QuickDock";
 
 export default function RootLayout({
   children,
@@ -25,7 +26,10 @@ export default function RootLayout({
       className={`${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
-        <UIProvider>{children}</UIProvider>
+        <UIProvider>
+          {children}
+          <QuickDock />
+        </UIProvider>
       </body>
     </html>
   );

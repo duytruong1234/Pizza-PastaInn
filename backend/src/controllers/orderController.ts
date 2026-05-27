@@ -106,4 +106,24 @@ export class OrderController {
       return sendError(res, 'Lỗi lấy đơn hàng', 500);
     }
   }
+
+  /**
+   * Lấy danh sách đơn hàng theo số điện thoại.
+   * GET /api/orders/phone/:phone
+   */
+  static async getOrdersByPhone(req: Request, res: Response) {
+    try {
+      const phone = String(req.params.phone).trim();
+      if (!phone) {
+        return sendError(res, 'Số điện thoại không hợp lệ', 400);
+      }
+
+      const orders = await OrderService.getOrdersByPhone(phone);
+      return sendSuccess(res, { data: orders });
+    } catch (error) {
+      console.error('Orders by phone error:', error);
+      return sendError(res, 'Lỗi lấy đơn hàng theo số điện thoại', 500);
+    }
+  }
 }
+

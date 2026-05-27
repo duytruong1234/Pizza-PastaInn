@@ -181,7 +181,7 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
             )}
 
             {/* Lưới sản phẩm */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-10 lg:gap-x-16 gap-y-10 lg:gap-y-16 justify-items-center max-w-[1400px] mx-auto px-6 lg:px-12 py-4">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-10 lg:gap-x-12 gap-y-10 lg:gap-y-16 justify-items-center max-w-[1100px] mx-auto px-12 lg:px-20 py-4">
               {products.map((p, index) => (
                 <ProductCard
                   key={p.id}

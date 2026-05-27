@@ -187,6 +187,23 @@ export class OrderService {
         }
       }
 
+      // Resolve customer details for orders table columns
+      let customerName = input.customer_name;
+      let customerPhone = input.customer_phone;
+      let customerEmail = input.customer_email;
+
+      if (userId && (!customerName || !customerPhone || !customerEmail)) {
+        const u = await tx.user.findUnique({
+          where: { user_id: userId },
+          select: { username: true, phone: true, email: true }
+        });
+        if (u) {
+          if (!customerName) customerName = u.username || 'Khách';
+          if (!customerPhone) customerPhone = u.phone || '';
+          if (!customerEmail) customerEmail = u.email || '';
+        }
+      }
+
       // 4. Tạo đơn hàng
       const order = await tx.order.create({
         data: {
@@ -206,6 +223,9 @@ export class OrderService {
             ? new Date(input.estimated_delivery_time)
             : null,
           pickup_time: input.pickup_time ? new Date(input.pickup_time) : null,
+          customer_name: customerName || null,
+          customer_phone: customerPhone || null,
+          customer_email: customerEmail || null,
         },
       });
 
@@ -328,8 +348,23 @@ export class OrderService {
 
   // ── Lấy chi tiết đơn hàng (JOIN đầy đủ 5 bảng) ──────────────────────────
 
+  static cleanAddressLine(addressLine: string | null): string {
+    if (!addressLine) return '';
+    try {
+      if (addressLine.startsWith('{') && addressLine.endsWith('}')) {
+        const parsed = JSON.parse(addressLine);
+        if (parsed && typeof parsed === 'object') {
+          return parsed.address || '';
+        }
+      }
+    } catch (e) {
+      // Return original
+    }
+    return addressLine;
+  }
+
   static async getOrderById(order_id: number) {
-    return prisma.order.findUnique({
+    const order = await prisma.order.findUnique({
       where: { order_id },
       include: {
         user: {
@@ -363,6 +398,11 @@ export class OrderService {
         },
       },
     });
+
+    if (order && order.user_address) {
+      order.user_address.address_line = this.cleanAddressLine(order.user_address.address_line);
+    }
+    return order;
   }
 
   // ── Lấy danh sách đơn hàng theo user ──────────────────────────────────────
@@ -394,6 +434,88 @@ export class OrderService {
       },
       orderBy: { created_at: 'desc' },
     });
+  }
+
+  // ── Lấy danh sách đơn hàng theo số điện thoại ────────────────────────────────
+
+  static async getOrdersByPhone(phone: string) {
+    const orders = await prisma.order.findMany({
+      where: {
+        OR: [
+          { customer_phone: phone },
+          {
+            user: {
+              phone: phone,
+            },
+          },
+        ],
+      },
+      include: {
+        user_address: true,
+        items: {
+          include: {
+            dish_price: {
+              include: {
+                dish: true,
+                size: true,
+                crust: true,
+              },
+            },
+            combo: true,
+            toppings: {
+              include: {
+                topping: true,
+              },
+            },
+            combos: {
+              include: {
+                dish_price: {
+                  include: {
+                    dish: true,
+                    size: true,
+                    crust: true,
+                  },
+                },
+                toppings: {
+                  include: {
+                    topping: true,
+                  },
+                },
+                halves: {
+                  include: {
+                    dish: true,
+                    order_item_toppings: {
+                      include: {
+                        topping: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            halves: {
+              include: {
+                dish: true,
+                order_item_toppings: {
+                  include: {
+                    topping: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+
+    for (const order of orders) {
+      if (order.user_address) {
+        order.user_address.address_line = this.cleanAddressLine(order.user_address.address_line);
+      }
+    }
+
+    return orders;
   }
 
   // ── Cập nhật trạng thái ────────────────────────────────────────────────────

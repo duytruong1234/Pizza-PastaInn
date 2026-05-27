@@ -244,100 +244,100 @@ export default function CategoriesPage() {
         <div className="overflow-hidden rounded-xl border border-stroke dark:border-dark-3">
           <div className="max-w-full overflow-x-auto">
             <table className="w-full table-auto">
-            <thead className="bg-primary text-white">
-              <tr className="text-left">
-                <th
-                  className="cursor-pointer whitespace-nowrap rounded-tl-lg px-4 py-4 font-semibold uppercase tracking-wide hover:bg-indigo-600"
-                  onClick={() => handleSort("category_id")}
-                >
-                  ID
-                </th>
-                <th
-                  className="cursor-pointer whitespace-nowrap px-4 py-4 font-semibold uppercase tracking-wide hover:bg-indigo-600"
-                  onClick={() => handleSort("category_name")}
-                >
-                  TÊN LOẠI MÓN ĂN
-                </th>
-                <th
-                  className="cursor-pointer whitespace-nowrap px-4 py-4 font-semibold uppercase tracking-wide hover:bg-indigo-600"
-                  onClick={() => handleSort("dishes")}
-                >
-                  SỐ MÓN ĂN
-                </th>
-                <th
-                  className="cursor-pointer whitespace-nowrap px-4 py-4 font-semibold uppercase tracking-wide hover:bg-indigo-600"
-                  onClick={() => handleSort("combos")}
-                >
-                  SỐ COMBO
-                </th>
-                <th className="rounded-tr-lg px-4 py-4 text-center font-semibold uppercase tracking-wide">THAO TÁC</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="py-12 text-center">
-                    <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-                  </td>
-                </tr>
-              ) : paginatedData.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-12 text-center text-gray-500">
-                    Không có dữ liệu
-                  </td>
-                </tr>
-              ) : (
-                paginatedData.map((cat) => (
-                  <tr
-                    key={cat.category_id}
-                    className="border-b border-stroke text-sm text-dark last:border-0 dark:border-dark-3 dark:text-white"
+              <thead className="bg-primary text-white">
+                <tr className="text-left">
+                  <th
+                    className="cursor-pointer whitespace-nowrap rounded-tl-lg px-4 py-4 font-semibold uppercase tracking-wide hover:bg-indigo-600"
+                    onClick={() => handleSort("category_id")}
                   >
-                    <td className="px-4 py-4">{cat.category_id}</td>
-                    <td className="px-4 py-4 font-medium">{cat.category_name}</td>
-                    <td className="px-4 py-4">{cat._count.dishes}</td>
-                    <td className="px-4 py-4">{cat._count.combos}</td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => openEdit(cat)}
-                          title="Sửa"
-                          className="rounded p-1.5 text-amber-600 transition hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                            className="size-4.5"
-                          >
-                            <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
-                            <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => setDeletingCategory(cat)}
-                          title="Xóa"
-                          className="rounded p-1.5 text-red-600 transition hover:bg-red-50 dark:hover:bg-red-900/20"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                            className="size-4.5"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </button>
-                      </div>
+                    ID
+                  </th>
+                  <th
+                    className="cursor-pointer whitespace-nowrap px-4 py-4 font-semibold uppercase tracking-wide hover:bg-indigo-600"
+                    onClick={() => handleSort("category_name")}
+                  >
+                    TÊN LOẠI MÓN ĂN
+                  </th>
+                  <th
+                    className="cursor-pointer whitespace-nowrap px-4 py-4 font-semibold uppercase tracking-wide hover:bg-indigo-600"
+                    onClick={() => handleSort("dishes")}
+                  >
+                    SỐ MÓN ĂN
+                  </th>
+                  <th
+                    className="cursor-pointer whitespace-nowrap px-4 py-4 font-semibold uppercase tracking-wide hover:bg-indigo-600"
+                    onClick={() => handleSort("combos")}
+                  >
+                    SỐ COMBO
+                  </th>
+                  <th className="rounded-tr-lg px-4 py-4 text-center font-semibold uppercase tracking-wide">THAO TÁC</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center">
+                      <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : paginatedData.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center text-gray-500">
+                      Không có dữ liệu
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedData.map((cat) => (
+                    <tr
+                      key={cat.category_id}
+                      className="border-b border-stroke text-sm text-dark last:border-0 dark:border-dark-3 dark:text-white"
+                    >
+                      <td className="px-4 py-4">{cat.category_id}</td>
+                      <td className="px-4 py-4 font-medium">{cat.category_name}</td>
+                      <td className="px-4 py-4">{cat._count.dishes}</td>
+                      <td className="px-4 py-4">{cat._count.combos}</td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => openEdit(cat)}
+                            title="Sửa"
+                            className="rounded p-1.5 text-amber-600 transition hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                              className="size-4.5"
+                            >
+                              <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
+                              <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => setDeletingCategory(cat)}
+                            title="Xóa"
+                            className="rounded p-1.5 text-red-600 transition hover:bg-red-50 dark:hover:bg-red-900/20"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                              className="size-4.5"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 

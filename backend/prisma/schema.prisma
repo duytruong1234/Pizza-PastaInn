@@ -44,6 +44,7 @@ model Topping {
   is_for_spaghetti Boolean? @default(true)
   stock            Int?     @default(100)
   sizes            Size?    @relation(fields: [size_id], references: [size_id], onDelete: NoAction, onUpdate: NoAction)
+  order_item_toppings OrderItemTopping[]
 
   @@map("toppings")
 }
@@ -58,6 +59,7 @@ model Dish {
   stock       Int?     @default(100)
   prices      DishPrice[]
   category    Category?   @relation(fields: [category_id], references: [category_id], onDelete: NoAction, onUpdate: NoAction)
+  order_item_halves OrderItemHalf[]
 
   @@map("dishes")
 }
@@ -72,6 +74,8 @@ model DishPrice {
   crust         Crust?      @relation(fields: [crust_id], references: [crust_id], onDelete: NoAction, onUpdate: NoAction)
   dish          Dish?       @relation(fields: [dish_id], references: [dish_id], onDelete: Cascade, onUpdate: NoAction)
   size          Size?       @relation(fields: [size_id], references: [size_id], onDelete: NoAction, onUpdate: NoAction)
+  order_items   OrderItem[]
+  order_item_combos OrderItemCombo[]
 
   @@map("dish_prices")
 }
@@ -86,6 +90,7 @@ model Combo {
   image_combo String?
   groups      ComboGroup[]
   categories  Category?    @relation(fields: [category_id], references: [category_id], onDelete: NoAction, onUpdate: NoAction)
+  order_items   OrderItem[]
 
   @@map("combos")
 }
@@ -242,6 +247,9 @@ model Order {
   completed_at            DateTime?    @db.Timestamp(6)
   order_type              String?      @db.VarChar(50)
   pickup_time             DateTime?    @db.Timestamp(6)
+  customer_name           String?      @db.VarChar(255)
+  customer_phone          String?      @db.VarChar(20)
+  customer_email          String?      @db.VarChar(255)
   items                   OrderItem[]
   user_address            UserAddress? @relation(fields: [user_address_id], references: [user_address_id], onDelete: NoAction, onUpdate: NoAction)
   user                    User?        @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
@@ -263,6 +271,8 @@ model OrderItem {
   halves          OrderItemHalf[]
   toppings        OrderItemTopping[]
   order           Order?             @relation(fields: [order_id], references: [order_id], onDelete: NoAction, onUpdate: NoAction)
+  dish_price      DishPrice?         @relation(fields: [dish_price_id], references: [dish_price_id], onDelete: NoAction, onUpdate: NoAction)
+  combo           Combo?             @relation(fields: [combo_id], references: [combo_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("order_items")
 }
@@ -278,6 +288,7 @@ model OrderItemTopping {
   order_item_combo      OrderItemCombo? @relation(fields: [order_item_combo_id], references: [order_item_combo_id], onDelete: NoAction, onUpdate: NoAction)
   order_item_half       OrderItemHalf?  @relation(fields: [order_item_half_id], references: [order_item_half_id], onDelete: NoAction, onUpdate: NoAction)
   order_item            OrderItem?      @relation(fields: [order_item_id], references: [order_item_id], onDelete: NoAction, onUpdate: NoAction)
+  topping               Topping?        @relation(fields: [topping_id], references: [topping_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("order_item_toppings")
 }
@@ -292,6 +303,7 @@ model OrderItemCombo {
   order_item          OrderItem?         @relation(fields: [order_item_id], references: [order_item_id], onDelete: NoAction, onUpdate: NoAction)
   halves              OrderItemHalf[]
   toppings            OrderItemTopping[]
+  dish_price          DishPrice?         @relation(fields: [dish_price_id], references: [dish_price_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("order_item_combos")
 }
@@ -305,6 +317,7 @@ model OrderItemHalf {
   order_item_combo    OrderItemCombo?    @relation(fields: [order_item_combo_id], references: [order_item_combo_id], onDelete: NoAction, onUpdate: NoAction)
   order_item          OrderItem?         @relation(fields: [order_item_id], references: [order_item_id], onDelete: NoAction, onUpdate: NoAction)
   order_item_toppings OrderItemTopping[]
+  dish                Dish?              @relation(fields: [dish_id], references: [dish_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("order_item_half")
 }

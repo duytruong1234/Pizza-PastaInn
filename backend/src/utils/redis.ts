@@ -40,8 +40,11 @@ export async function connectRedis(): Promise<void> {
   if (!redis) return;
   try {
     await redis.connect();
-  } catch {
+  } catch (err) {
     logger.warn('⚠️ Không thể kết nối Redis, tiếp tục chạy không có cache');
+    try {
+      redis.disconnect();
+    } catch (e) {}
     redis = null;
   }
 }

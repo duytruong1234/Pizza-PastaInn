@@ -13,6 +13,7 @@ export function useAddToCart() {
     imageUrl: string;
   }) => {
     addToCart({
+      type: 'regular',
       dish_id: item.id,
       dish_price_id: item.dish_price_id || '', 
       name: item.name,

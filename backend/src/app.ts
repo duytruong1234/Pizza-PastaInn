@@ -112,6 +112,14 @@ app.use('/api/cart', cartRoutes);
 import orderRoutes from './routes/order';
 app.use('/api/orders', orderRoutes);
 
+// User address routes
+import addressRoutes from './routes/address';
+app.use('/api/addresses', addressRoutes);
+
+// Customer review routes
+import reviewRoutes from './routes/review';
+app.use('/api/reviews', reviewRoutes);
+
 // Admin routes (dashboard quản trị)
 import adminRoutes from './routes/admin';
 app.use('/api/admin', adminRoutes);
@@ -137,4 +145,5 @@ startServer().catch((err) => {
   process.exit(1);
 });
 
+// Trigger restart after freeing port 4000
 export default app;

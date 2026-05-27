@@ -13,8 +13,14 @@ export type OrderFormData = {
   customer_email: string;
   // Delivery
   customer_address: string;
+  customer_lat?: number | null;
+  customer_lon?: number | null;
+  shipping_fee?: number;
+  distance?: number;
+  nearest_store_name?: string;
   // Pickup
   store_id: number | null;
+  user_address_id?: number | null;
   // Type
   order_type: OrderType;
   // Schedule
@@ -27,7 +33,7 @@ export type OrderFormData = {
   payment_method: PaymentMethod;
 };
 
-export type CheckoutStep = 'info' | 'payment' | 'success';
+export type CheckoutStep = 'info' | 'payment' | 'success' | 'failure';
 
 export type OrderResult = {
   order_id: number;
@@ -44,11 +50,12 @@ type OrderStore = {
   orderResult: OrderResult | null;
   isSubmitting: boolean;
   error: string | null;
+  vietqrAttempt: number;
 
   setStep: (step: CheckoutStep) => void;
   updateFormData: (data: Partial<OrderFormData>) => void;
   resetForm: () => void;
-  submitOrder: () => Promise<boolean>;
+  submitOrder: (bypassVietQRStep?: boolean) => Promise<boolean>;
 };
 
 const initialFormData: OrderFormData = {
@@ -56,7 +63,13 @@ const initialFormData: OrderFormData = {
   customer_phone: '',
   customer_email: '',
   customer_address: '',
+  customer_lat: null,
+  customer_lon: null,
+  shipping_fee: 0,
+  distance: 0,
+  nearest_store_name: '',
   store_id: null,
+  user_address_id: null,
   order_type: 'delivery',
   deliver_now: true,
   scheduled_date: '',
@@ -73,6 +86,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
   orderResult: null,
   isSubmitting: false,
   error: null,
+  vietqrAttempt: 0,
 
   setStep: (step) => set({ step }),
 
@@ -89,11 +103,12 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
       orderResult: null,
       isSubmitting: false,
       error: null,
+      vietqrAttempt: 0,
     }),
 
   // ── Submit đơn hàng ─────────────────────────────────────────────────────
-  submitOrder: async () => {
-    const { formData } = get();
+  submitOrder: async (bypassVietQRStep = false) => {
+    const { formData, vietqrAttempt } = get();
     const cartStore = useCartStore.getState();
     const authStore = useAuthStore.getState();
 
@@ -116,6 +131,16 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
     }
 
     set({ isSubmitting: true, error: null });
+
+    // Chuyển hướng sang màn hình thanh toán VietQR toàn màn hình nếu chọn VietQR và không bỏ qua bước này
+    if (formData.payment_method === 'vietqr' && !bypassVietQRStep) {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      set({
+        step: 'payment',
+        isSubmitting: false,
+      });
+      return true;
+    }
 
     try {
       // Chuyển đổi CartItem → OrderItemInput
@@ -160,7 +185,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
       }));
 
       const totalPrice = cartStore.totalPrice();
-      const shippingFee = 0; // Miễn phí vận chuyển
+      const shippingFee = formData.order_type === 'delivery' ? (formData.shipping_fee || 0) : 0;
 
       // Xử lý pickup_time
       let pickup_time: string | undefined;
@@ -172,6 +197,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
 
       const body = {
         user_id: authStore.user?.user_id || null,
+        user_address_id: formData.user_address_id || null,
         cart_id: cartStore.cart_id,
         payment_method: formData.payment_method,
         total_price_dish: totalPrice,
