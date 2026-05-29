@@ -72,7 +72,18 @@ export const NAV_DATA = [
       {
         title: "Đánh giá",
         url: "/reviews",
-        icon: Icons.Calendar,
+        icon: Icons.StarIcon,
+        items: [],
+      },
+    ],
+  },
+  {
+    label: "HỖ TRỢ",
+    items: [
+      {
+        title: "Tin nhắn",
+        url: "/messages",
+        icon: Icons.ChatIcon,
         items: [],
       },
     ],

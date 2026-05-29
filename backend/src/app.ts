@@ -120,6 +120,10 @@ app.use('/api/addresses', addressRoutes);
 import reviewRoutes from './routes/review';
 app.use('/api/reviews', reviewRoutes);
 
+// Chat routes
+import chatRoutes from './routes/chat';
+app.use('/api/chat', chatRoutes);
+
 // Admin routes (dashboard quản trị)
 import adminRoutes from './routes/admin';
 app.use('/api/admin', adminRoutes);

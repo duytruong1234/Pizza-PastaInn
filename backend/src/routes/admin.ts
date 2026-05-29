@@ -922,6 +922,50 @@ router.get('/reviews', async (req: AuthRequest, res: Response): Promise<void> =>
 });
 
 /**
+ * PATCH /api/admin/reviews/:id
+ * Cập nhật trạng thái hiển thị hoặc nội dung phản hồi đánh giá
+ */
+router.patch('/reviews/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(String(req.params.id));
+    const { is_visible, shop_reply } = req.body;
+
+    const updateData: Record<string, any> = {};
+    if (is_visible !== undefined) updateData.is_visible = Boolean(is_visible);
+    if (shop_reply !== undefined) {
+      updateData.shop_reply = shop_reply;
+    }
+
+    const updated = await prisma.shopReview.update({
+      where: { review_id: id },
+      data: updateData,
+    });
+
+    sendSuccess(res, { data: updated, message: 'Cập nhật đánh giá thành công' });
+  } catch (err) {
+    logger.error('Admin update review error:', err);
+    sendError(res, 'Lỗi khi cập nhật đánh giá', 500);
+  }
+});
+
+/**
+ * DELETE /api/admin/reviews/:id
+ * Xóa hoàn toàn đánh giá khỏi hệ thống
+ */
+router.delete('/reviews/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(String(req.params.id));
+    await prisma.shopReview.delete({
+      where: { review_id: id },
+    });
+    sendSuccess(res, { message: 'Xóa đánh giá thành công' });
+  } catch (err) {
+    logger.error('Admin delete review error:', err);
+    sendError(res, 'Lỗi khi xóa đánh giá', 500);
+  }
+});
+
+/**
  * GET /api/admin/top-dishes
  * Top món ăn bán chạy
  */
@@ -958,6 +1002,238 @@ router.get('/top-dishes', async (_req: AuthRequest, res: Response): Promise<void
   } catch (err) {
     logger.error('Admin top dishes error:', err);
     sendError(res, 'Lỗi', 500);
+  }
+});
+
+// ─── QUẢN LÝ CHAT TRỰC TUYẾN (ADMIN LIVE CHAT) ────────────────────────────────
+
+/**
+ * GET /api/admin/chat/rooms
+ * Lấy danh sách các phòng chat kèm tin nhắn cuối và số lượng tin nhắn chưa đọc
+ */
+router.get('/chat/rooms', async (_req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const rooms = await prisma.chatRoom.findMany({
+      include: {
+        customer: {
+          select: {
+            user_id: true,
+            username: true,
+            email: true,
+            phone: true,
+            avatar: true,
+            addresses: {
+              select: {
+                address_line: true,
+                is_default: true
+              }
+            }
+          }
+        },
+        messages: {
+          orderBy: { created_at: 'desc' },
+          take: 1,
+          include: {
+            images: true,
+          },
+        },
+      },
+      orderBy: { updated_at: 'desc' },
+    });
+
+    // Tính toán số lượng tin nhắn chưa đọc (từ khách hàng gửi) cho từng phòng
+    const roomsWithUnreadCount = await Promise.all(
+      rooms.map(async (room) => {
+        const unreadCount = await prisma.message.count({
+          where: {
+            room_id: room.room_id,
+            sender_type: 'customer',
+            is_read: false,
+          },
+        });
+        return {
+          ...room,
+          unreadCount,
+        };
+      })
+    );
+
+    sendSuccess(res, { data: roomsWithUnreadCount });
+  } catch (err) {
+    logger.error('Admin fetch chat rooms error:', err);
+    sendError(res, 'Lỗi khi lấy danh sách phòng chat', 500);
+  }
+});
+
+/**
+ * GET /api/admin/chat/rooms/:roomId/messages
+ * Lấy lịch sử tin nhắn chi tiết trong một phòng
+ */
+router.get('/chat/rooms/:roomId/messages', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const roomId = parseInt(String(req.params.roomId));
+    if (isNaN(roomId)) {
+      sendError(res, 'Mã phòng chat không hợp lệ', 400);
+      return;
+    }
+
+    const messages = await prisma.message.findMany({
+      where: { room_id: roomId },
+      include: {
+        images: true,
+        sender: { select: { user_id: true, username: true, avatar: true } },
+      },
+      orderBy: { created_at: 'asc' },
+    });
+
+    sendSuccess(res, { data: messages });
+  } catch (err) {
+    logger.error('Admin fetch chat messages error:', err);
+    sendError(res, 'Lỗi khi lấy lịch sử tin nhắn', 500);
+  }
+});
+
+/**
+ * POST /api/admin/chat/rooms/:roomId/messages
+ * Admin gửi tin nhắn phản hồi cho khách
+ */
+router.post('/chat/rooms/:roomId/messages', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const roomId = parseInt(String(req.params.roomId));
+    const { message_text, image_urls } = req.body;
+    const adminUser = req.user; // Lấy thông tin admin đăng nhập từ middleware
+
+    if (isNaN(roomId)) {
+      sendError(res, 'Mã phòng không hợp lệ', 400);
+      return;
+    }
+
+    if (!message_text && (!image_urls || image_urls.length === 0)) {
+      sendError(res, 'Tin nhắn hoặc hình ảnh là bắt buộc', 400);
+      return;
+    }
+
+    const room = await prisma.chatRoom.findUnique({
+      where: { room_id: roomId }
+    });
+
+    if (!room) {
+      sendError(res, 'Phòng chat không tồn tại', 404);
+      return;
+    }
+
+    // Nếu phòng ở trạng thái pending hoặc closed, đổi sang active khi admin phản hồi
+    const nextStatus = room.room_status !== 'active' ? 'active' : undefined;
+
+    const message = await prisma.$transaction(async (tx) => {
+      const newMsg = await tx.message.create({
+        data: {
+          room_id: roomId,
+          sender_type: 'admin',
+          sender_id: adminUser?.user_id || null,
+          message_text: message_text || '',
+          is_read: true, // Tin nhắn admin tự động xem như đã đọc
+        },
+      });
+
+      if (image_urls && Array.isArray(image_urls) && image_urls.length > 0) {
+        for (const url of image_urls) {
+          await tx.messageImage.create({
+            data: {
+              message_id: newMsg.message_id,
+              image_url: url,
+            },
+          });
+        }
+      }
+
+      await tx.chatRoom.update({
+        where: { room_id: roomId },
+        data: {
+          updated_at: new Date(),
+          ...(nextStatus && { room_status: nextStatus }),
+        },
+      });
+
+      return newMsg;
+    });
+
+    const fullMessage = await prisma.message.findUnique({
+      where: { message_id: message.message_id },
+      include: {
+        images: true,
+        sender: { select: { user_id: true, username: true, avatar: true } },
+      },
+    });
+
+    sendSuccess(res, { data: fullMessage, message: 'Gửi tin nhắn phản hồi thành công' }, 201);
+  } catch (err) {
+    logger.error('Admin send message error:', err);
+    sendError(res, 'Lỗi khi gửi phản hồi', 500);
+  }
+});
+
+/**
+ * PATCH /api/admin/chat/rooms/:roomId/status
+ * Cập nhật trạng thái phòng chat (pending, active, closed)
+ */
+router.patch('/chat/rooms/:roomId/status', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const roomId = parseInt(String(req.params.roomId));
+    const { room_status } = req.body;
+
+    if (isNaN(roomId)) {
+      sendError(res, 'Mã phòng không hợp lệ', 400);
+      return;
+    }
+
+    if (!['pending', 'active', 'closed'].includes(room_status)) {
+      sendError(res, 'Trạng thái phòng không hợp lệ', 400);
+      return;
+    }
+
+    const updatedRoom = await prisma.chatRoom.update({
+      where: { room_id: roomId },
+      data: {
+        room_status,
+        updated_at: new Date(),
+      },
+    });
+
+    sendSuccess(res, { data: updatedRoom, message: 'Cập nhật trạng thái phòng thành công' });
+  } catch (err) {
+    logger.error('Admin update room status error:', err);
+    sendError(res, 'Lỗi khi cập nhật trạng thái phòng', 500);
+  }
+});
+
+/**
+ * PATCH /api/admin/chat/rooms/:roomId/read
+ * Đánh dấu toàn bộ tin nhắn từ khách hàng trong phòng là đã đọc
+ */
+router.patch('/chat/rooms/:roomId/read', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const roomId = parseInt(String(req.params.roomId));
+    if (isNaN(roomId)) {
+      sendError(res, 'Mã phòng không hợp lệ', 400);
+      return;
+    }
+
+    await prisma.message.updateMany({
+      where: {
+        room_id: roomId,
+        sender_type: 'customer',
+        is_read: false,
+      },
+      data: {
+        is_read: true,
+      },
+    });
+
+    sendSuccess(res, { message: 'Đánh dấu đã đọc thành công' });
+  } catch (err) {
+    logger.error('Admin mark read error:', err);
+    sendError(res, 'Lỗi khi đánh dấu đã đọc', 500);
   }
 });
 

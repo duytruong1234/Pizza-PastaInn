@@ -80,7 +80,7 @@ export function Sidebar() {
           "flex h-full w-full flex-col py-6 transition-all duration-300",
           isCollapsed && !isMobile ? "px-3 overflow-visible" : "px-5 overflow-hidden"
         )}>
-          <div className="relative mb-6 flex min-h-[40px] items-center justify-center">
+          <div className="relative mb-3 flex min-h-[40px] items-center justify-center">
             <Link
               href={"/"}
               onClick={() => isMobile && toggleSidebar()}
@@ -102,7 +102,7 @@ export function Sidebar() {
 
           {/* Navigation */}
           <div className={cn(
-            "custom-scrollbar mt-6 flex-1 min-[850px]:mt-12",
+            "custom-scrollbar mt-3 flex-1 min-[850px]:mt-5",
             isCollapsed && !isMobile ? "overflow-visible" : "overflow-y-auto"
           )}>
             {NAV_DATA.map((section) => (

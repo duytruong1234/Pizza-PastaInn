@@ -1,4 +1,4 @@
-import { SVGProps } from "react";
+import { SVGProps, useId } from "react";
 
 export type PropsType = SVGProps<SVGSVGElement>;
 
@@ -183,6 +183,68 @@ export function ArrowLeftIcon(props: PropsType) {
         d="M7.89775 4.10225C8.11742 4.32192 8.11742 4.67808 7.89775 4.89775L4.358 8.4375H15C15.3107 8.4375 15.5625 8.68934 15.5625 9C15.5625 9.31066 15.3107 9.5625 15 9.5625H4.358L7.89775 13.1023C8.11742 13.3219 8.11742 13.6781 7.89775 13.8977C7.67808 14.1174 7.32192 14.1174 7.10225 13.8977L2.60225 9.39775C2.38258 9.17808 2.38258 8.82192 2.60225 8.60225L7.10225 4.10225C7.32192 3.88258 7.67808 3.88258 7.89775 4.10225Z"
         fill=""
       />
+    </svg>
+  );
+}
+
+export function ChatIcon(props: PropsType) {
+  const maskId = useId();
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={24}
+      height={24}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <defs>
+        <mask id={maskId}>
+          <rect x="0" y="0" width="24" height="24" fill="white" />
+          <circle cx="9.5" cy="14.5" r="7.8" fill="black" />
+        </mask>
+      </defs>
+      
+      {/* Background Bubble */}
+      <path
+        d="M 17.01 14.39 A 5.5 5.5 0 1 1 19.39 12.01 L 20.61 15.61 Z"
+        mask={`url(#${maskId})`}
+        style={{ fill: 'none' }}
+      />
+      
+      {/* Foreground Bubble */}
+      <path
+        d="M 6.54 20.28 A 6.5 6.5 0 1 0 3.72 17.46 L 2.28 21.72 Z"
+        style={{ fill: 'none' }}
+      />
+      
+      {/* Three Dots in Foreground Bubble */}
+      <path d="M 6.61 14.5 h 0.01" style={{ fill: 'none' }} />
+      <path d="M 9.5 14.5 h 0.01" style={{ fill: 'none' }} />
+      <path d="M 12.39 14.5 h 0.01" style={{ fill: 'none' }} />
+    </svg>
+  );
+}
+
+export function StarIcon(props: PropsType) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={24}
+      height={24}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
     </svg>
   );
 }

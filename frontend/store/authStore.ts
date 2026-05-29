@@ -6,6 +6,7 @@ interface User {
   username: string
   email: string
   phone?: string
+  avatar?: string
   role: 'customer' | 'cashier' | 'admin'
 }
 

@@ -135,6 +135,7 @@ export async function login(req: Request, res: Response): Promise<void> {
           username: user.username,
           email: user.email,
           phone: user.phone,
+          avatar: user.avatar,
           role: user.role,
         },
         token,
@@ -165,6 +166,7 @@ export async function getMe(req: AuthRequest, res: Response): Promise<void> {
         username: true,
         email: true,
         phone: true,
+        avatar: true,
         role: true,
         user_status: true,
         created_at: true,
@@ -217,6 +219,191 @@ export async function logout(req: AuthRequest, res: Response): Promise<void> {
   } catch (err) {
     logger.error('Logout error:', err);
     sendError(res, 'Lỗi hệ thống khi đăng xuất', 500);
+  }
+}
+
+/**
+ * PUT /api/auth/profile
+ * Cập nhật thông tin cá nhân (username, phone, email, avatar)
+ */
+export async function updateProfile(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    if (!req.user) {
+      sendError(res, 'Chưa đăng nhập', 401);
+      return;
+    }
+
+    const { username, email, phone, avatar } = req.body;
+
+    // Validate email if updated
+    if (email && email !== req.user.email) {
+      const existingUser = await prisma.user.findFirst({
+        where: { 
+          email,
+          NOT: { user_id: req.user.user_id }
+        },
+      });
+
+      if (existingUser) {
+        sendError(res, 'Email đã được đăng ký bởi tài khoản khác', 409);
+        return;
+      }
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { user_id: req.user.user_id },
+      data: {
+        username: username !== undefined ? username : undefined,
+        email: email !== undefined ? email : undefined,
+        phone: phone !== undefined ? phone : null,
+        avatar: avatar !== undefined ? avatar : undefined,
+      },
+      select: {
+        user_id: true,
+        username: true,
+        email: true,
+        phone: true,
+        avatar: true,
+        role: true,
+      }
+    });
+
+    sendSuccess(res, {
+      data: updatedUser,
+      message: 'Cập nhật thông tin cá nhân thành công'
+    });
+  } catch (err) {
+    logger.error('UpdateProfile error:', err);
+    sendError(res, 'Lỗi hệ thống khi cập nhật profile', 500);
+  }
+}
+
+/**
+ * PUT /api/auth/profile/password
+ * Thay đổi mật khẩu người dùng
+ */
+export async function changePassword(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    if (!req.user) {
+      sendError(res, 'Chưa đăng nhập', 401);
+      return;
+    }
+
+    const { oldPassword, newPassword } = req.body;
+    if (!oldPassword || !newPassword) {
+      sendError(res, 'Vui lòng điền đầy đủ mật khẩu cũ và mới', 400);
+      return;
+    }
+
+    // Tìm mật khẩu hiện tại
+    const user = await prisma.user.findUnique({
+      where: { user_id: req.user.user_id },
+      select: { password: true }
+    });
+
+    if (!user || !user.password) {
+      sendError(res, 'Không tìm thấy tài khoản', 404);
+      return;
+    }
+
+    // Kiểm tra mật khẩu cũ
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      sendError(res, 'Mật khẩu cũ không chính xác', 400);
+      return;
+    }
+
+    // Mã hóa mật khẩu mới
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Cập nhật mật khẩu mới
+    await prisma.user.update({
+      where: { user_id: req.user.user_id },
+      data: { password: hashedPassword }
+    });
+
+    sendSuccess(res, { message: 'Đổi mật khẩu thành công' });
+  } catch (err) {
+    logger.error('ChangePassword error:', err);
+    sendError(res, 'Lỗi hệ thống khi đổi mật khẩu', 500);
+  }
+}
+
+/**
+ * POST /api/auth/profile/avatar
+ * Upload ảnh đại diện
+ */
+export async function uploadAvatar(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    if (!req.user) {
+      sendError(res, 'Chưa đăng nhập', 401);
+      return;
+    }
+
+    if (!req.file) {
+      sendError(res, 'Không có file nào được tải lên', 400);
+      return;
+    }
+
+    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+
+    // Cập nhật avatar trong DB
+    const updatedUser = await prisma.user.update({
+      where: { user_id: req.user.user_id },
+      data: { avatar: avatarUrl },
+      select: {
+        user_id: true,
+        username: true,
+        email: true,
+        phone: true,
+        avatar: true,
+        role: true,
+      }
+    });
+
+    sendSuccess(res, {
+      data: updatedUser,
+      message: 'Tải lên ảnh đại diện thành công'
+    });
+  } catch (err) {
+    logger.error('UploadAvatar error:', err);
+    sendError(res, 'Lỗi hệ thống khi tải ảnh đại diện', 500);
+  }
+}
+
+/**
+ * DELETE /api/auth/profile/avatar
+ * Xóa ảnh đại diện
+ */
+export async function deleteAvatar(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    if (!req.user) {
+      sendError(res, 'Chưa đăng nhập', 401);
+      return;
+    }
+
+    // Cập nhật database xóa avatar
+    const updatedUser = await prisma.user.update({
+      where: { user_id: req.user.user_id },
+      data: { avatar: null },
+      select: {
+        user_id: true,
+        username: true,
+        email: true,
+        phone: true,
+        avatar: true,
+        role: true,
+      }
+    });
+
+    sendSuccess(res, {
+      data: updatedUser,
+      message: 'Đã xóa ảnh đại diện thành công'
+    });
+  } catch (err) {
+    logger.error('DeleteAvatar error:', err);
+    sendError(res, 'Lỗi hệ thống khi xóa ảnh đại diện', 500);
   }
 }
 

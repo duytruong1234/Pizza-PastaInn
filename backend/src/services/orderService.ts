@@ -408,25 +408,59 @@ export class OrderService {
   // ── Lấy danh sách đơn hàng theo user ──────────────────────────────────────
 
   static async getOrdersByUserId(user_id: number) {
-    return prisma.order.findMany({
+    const orders = await prisma.order.findMany({
       where: { user_id },
       include: {
+        user_address: true,
         items: {
           include: {
-            toppings: true,
+            dish_price: {
+              include: {
+                dish: true,
+                size: true,
+                crust: true,
+              },
+            },
+            combo: true,
+            toppings: {
+              include: {
+                topping: true,
+              },
+            },
             combos: {
               include: {
-                toppings: true,
+                dish_price: {
+                  include: {
+                    dish: true,
+                    size: true,
+                    crust: true,
+                  },
+                },
+                toppings: {
+                  include: {
+                    topping: true,
+                  },
+                },
                 halves: {
                   include: {
-                    order_item_toppings: true,
+                    dish: true,
+                    order_item_toppings: {
+                      include: {
+                        topping: true,
+                      },
+                    },
                   },
                 },
               },
             },
             halves: {
               include: {
-                order_item_toppings: true,
+                dish: true,
+                order_item_toppings: {
+                  include: {
+                    topping: true,
+                  },
+                },
               },
             },
           },
@@ -434,6 +468,14 @@ export class OrderService {
       },
       orderBy: { created_at: 'desc' },
     });
+
+    for (const order of orders) {
+      if (order.user_address) {
+        order.user_address.address_line = this.cleanAddressLine(order.user_address.address_line);
+      }
+    }
+
+    return orders;
   }
 
   // ── Lấy danh sách đơn hàng theo số điện thoại ────────────────────────────────
