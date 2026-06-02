@@ -23,6 +23,23 @@ async function main() {
     await prisma.userAddress.deleteMany();
     await prisma.user.deleteMany();
     await prisma.store.deleteMany();
+    // Tạo các chi nhánh cửa hàng
+    await prisma.store.create({
+        data: {
+            store_name: 'District 5 Branch',
+            address: '21 Dao Tan Street, An Dong Ward, Ho Chi Minh City, Vietnam',
+            hotline: '028 3924 0343',
+            is_active: true,
+        },
+    });
+    await prisma.store.create({
+        data: {
+            store_name: 'District 7 Branch',
+            address: 'C001 Pham Thai Buong Street, Tan Hung Ward, Ho Chi Minh City, Vietnam',
+            hotline: '028 5412 1197 - 028 5412 1196',
+            is_active: true,
+        },
+    });
     await prisma.comboItem.deleteMany();
     await prisma.comboGroup.deleteMany();
     await prisma.combo.deleteMany();
@@ -90,11 +107,11 @@ async function main() {
         },
     });
     // Admin user
-    const adminPassword = await bcryptjs_1.default.hash('admin123', 10);
+    const adminPassword = await bcryptjs_1.default.hash('admin', 10);
     await prisma.user.create({
         data: {
             username: 'Admin',
-            email: 'admin@pizzapastainn.com',
+            email: 'admin@gmail.com',
             password: adminPassword,
             role: 'admin',
             user_status: true,

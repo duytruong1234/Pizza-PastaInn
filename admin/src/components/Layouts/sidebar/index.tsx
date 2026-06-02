@@ -35,7 +35,7 @@ export function Sidebar() {
       return section.items.some((item) => {
         return item.items.some((subItem) => {
           if (subItem.url === pathname) {
-            setExpandedItems((prev) => 
+            setExpandedItems((prev) =>
               prev.includes(item.title) ? prev : [...prev, item.title]
             );
             return true;

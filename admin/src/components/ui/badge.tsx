@@ -34,7 +34,7 @@ export function Badge({ children, variant = "primary", className }: BadgeProps) 
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-medium text-center",
+        "inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-medium text-center whitespace-nowrap",
         variants[variant],
         className
       )}

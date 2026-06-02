@@ -98,6 +98,15 @@ app.use('/api/cart', cart_1.default);
 // Order routes
 const order_1 = __importDefault(require("./routes/order"));
 app.use('/api/orders', order_1.default);
+// User address routes
+const address_1 = __importDefault(require("./routes/address"));
+app.use('/api/addresses', address_1.default);
+// Customer review routes
+const review_1 = __importDefault(require("./routes/review"));
+app.use('/api/reviews', review_1.default);
+// Chat routes
+const chat_1 = __importDefault(require("./routes/chat"));
+app.use('/api/chat', chat_1.default);
 // Admin routes (dashboard quản trị)
 const admin_1 = __importDefault(require("./routes/admin"));
 app.use('/api/admin', admin_1.default);
@@ -116,5 +125,6 @@ startServer().catch((err) => {
     logger_1.logger.error('Không thể khởi động server:', err);
     process.exit(1);
 });
+// Trigger restart after freeing port 4000
 exports.default = app;
 //# sourceMappingURL=app.js.map

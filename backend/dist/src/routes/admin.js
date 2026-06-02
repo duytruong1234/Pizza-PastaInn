@@ -90,7 +90,20 @@ router.get('/orders', async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
         const status = req.query.status;
-        const where = status ? { order_status: status } : {};
+        const userId = req.query.userId;
+        const phone = req.query.phone;
+        const where = {};
+        if (status)
+            where.order_status = status;
+        if (userId && userId !== 'null') {
+            where.user_id = parseInt(userId);
+        }
+        else if (phone) {
+            where.OR = [
+                { customer_phone: phone },
+                { user: { phone } }
+            ];
+        }
         const [orders, total] = await Promise.all([
             prisma_1.default.order.findMany({
                 where,
@@ -124,15 +137,45 @@ router.get('/orders', async (req, res) => {
 router.patch('/orders/:id/status', async (req, res) => {
     try {
         const orderId = parseInt(String(req.params.id));
-        const { order_status } = req.body;
+        const { order_status, discount_amount, shipping_fee, estimated_delivery_time } = req.body;
         const updateData = { order_status };
         // Tự động cập nhật timestamp tương ứng
-        if (order_status === 'shipped')
+        if (order_status === 'confirmed')
+            updateData.confirmed_at = new Date();
+        if (order_status === 'preparing')
+            updateData.preparing_at = new Date();
+        if (order_status === 'shipped') {
             updateData.shipped_at = new Date();
+            updateData.estimated_delivery_time = new Date(Date.now() + 15 * 60 * 1000); // Tự động cộng 15 phút
+        }
         if (order_status === 'arrived')
             updateData.arrived_at = new Date();
-        if (order_status === 'completed')
+        if (order_status === 'completed') {
             updateData.completed_at = new Date();
+            updateData.payment_status = 'paid'; // Tự động chuyển trạng thái thanh toán thành đã thanh toán
+        }
+        if (order_status === 'cancelled')
+            updateData.cancelled_at = new Date();
+        if (discount_amount !== undefined)
+            updateData.discount_amount = parseInt(String(discount_amount)) || 0;
+        if (shipping_fee !== undefined)
+            updateData.shipping_fee = parseInt(String(shipping_fee)) || 0;
+        if (estimated_delivery_time !== undefined) {
+            updateData.estimated_delivery_time = estimated_delivery_time ? new Date(estimated_delivery_time) : null;
+        }
+        // Nếu thay đổi discount hay shipping fee, tính lại total_order
+        if (discount_amount !== undefined || shipping_fee !== undefined) {
+            const currentOrder = await prisma_1.default.order.findUnique({
+                where: { order_id: orderId },
+                select: { total_price_dish: true, discount_amount: true, shipping_fee: true }
+            });
+            if (currentOrder) {
+                const total_price_dish = currentOrder.total_price_dish || 0;
+                const finalDiscount = discount_amount !== undefined ? (parseInt(String(discount_amount)) || 0) : (currentOrder.discount_amount || 0);
+                const finalShipping = shipping_fee !== undefined ? (parseInt(String(shipping_fee)) || 0) : (currentOrder.shipping_fee || 0);
+                updateData.total_order = Math.max(0, total_price_dish + finalShipping - finalDiscount);
+            }
+        }
         const order = await prisma_1.default.order.update({
             where: { order_id: orderId },
             data: updateData,
@@ -144,6 +187,22 @@ router.patch('/orders/:id/status', async (req, res) => {
         (0, response_1.sendError)(res, 'Lỗi khi cập nhật đơn hàng', 500);
     }
 });
+function cleanAddressLine(addressLine) {
+    if (!addressLine)
+        return '';
+    try {
+        if (addressLine.startsWith('{') && addressLine.endsWith('}')) {
+            const parsed = JSON.parse(addressLine);
+            if (parsed && typeof parsed === 'object') {
+                return parsed.address || '';
+            }
+        }
+    }
+    catch (e) {
+        // Return original
+    }
+    return addressLine;
+}
 /**
  * GET /api/admin/orders/:id
  * Chi tiết đơn hàng (JOIN đầy đủ 5 bảng order)
@@ -158,21 +217,54 @@ router.get('/orders/:id', async (req, res) => {
                 user_address: true,
                 items: {
                     include: {
+                        dish_price: {
+                            include: {
+                                dish: true,
+                                size: true,
+                                crust: true,
+                            },
+                        },
+                        combo: true,
                         toppings: {
                             include: {
-                                order_item: false,
+                                topping: true,
                             },
                         },
                         combos: {
                             include: {
-                                toppings: true,
+                                dish_price: {
+                                    include: {
+                                        dish: true,
+                                        size: true,
+                                        crust: true,
+                                    },
+                                },
+                                toppings: {
+                                    include: {
+                                        topping: true,
+                                    },
+                                },
                                 halves: {
-                                    include: { order_item_toppings: true },
+                                    include: {
+                                        dish: true,
+                                        order_item_toppings: {
+                                            include: {
+                                                topping: true,
+                                            },
+                                        },
+                                    },
                                 },
                             },
                         },
                         halves: {
-                            include: { order_item_toppings: true },
+                            include: {
+                                dish: true,
+                                order_item_toppings: {
+                                    include: {
+                                        topping: true,
+                                    },
+                                },
+                            },
                         },
                     },
                 },
@@ -182,7 +274,35 @@ router.get('/orders/:id', async (req, res) => {
             (0, response_1.sendError)(res, 'Không tìm thấy đơn hàng', 404);
             return;
         }
-        (0, response_1.sendSuccess)(res, { data: order });
+        const orderData = JSON.parse(JSON.stringify(order));
+        if (orderData.user_address) {
+            orderData.user_address.address_line = cleanAddressLine(orderData.user_address.address_line);
+        }
+        // Enrich combo selections with quantity from ComboGroup
+        if (orderData.items) {
+            for (const item of orderData.items) {
+                if (item.combo_id && item.combos) {
+                    for (const sel of item.combos) {
+                        if (sel.group_id) {
+                            const group = await prisma_1.default.comboGroup.findUnique({
+                                where: { group_id: sel.group_id }
+                            });
+                            sel.quantity = group?.max_select || 1;
+                        }
+                        else {
+                            sel.quantity = 1;
+                        }
+                        // Happy Family Combo + Pepsi override
+                        const dishName = sel.dish_price?.dish?.dish_name || '';
+                        const comboName = item.combo?.combo_name || '';
+                        if (comboName.toLowerCase().includes('happy family') && dishName.toLowerCase() === 'pepsi') {
+                            sel.quantity = 4;
+                        }
+                    }
+                }
+            }
+        }
+        (0, response_1.sendSuccess)(res, { data: orderData });
     }
     catch (err) {
         logger_1.logger.error('Admin order detail error:', err);
@@ -767,7 +887,7 @@ router.get('/customers', async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
-        const [customers, total] = await Promise.all([
+        const [registeredCustomers, guestOrders] = await Promise.all([
             prisma_1.default.user.findMany({
                 where: { role: 'customer' },
                 select: {
@@ -776,13 +896,57 @@ router.get('/customers', async (req, res) => {
                     _count: { select: { orders: true } },
                 },
                 orderBy: { created_at: 'desc' },
-                skip: (page - 1) * limit,
-                take: limit,
             }),
-            prisma_1.default.user.count({ where: { role: 'customer' } }),
+            prisma_1.default.order.findMany({
+                where: { user_id: null },
+                select: {
+                    customer_name: true,
+                    customer_phone: true,
+                    customer_email: true,
+                    created_at: true,
+                },
+                orderBy: { created_at: 'desc' },
+            }),
         ]);
+        // Aggregate guests by phone or email
+        const guestsMap = new Map();
+        for (const order of guestOrders) {
+            const phone = order.customer_phone?.trim();
+            const email = order.customer_email?.trim();
+            const key = phone || email || 'unknown';
+            if (key === 'unknown')
+                continue;
+            const existing = guestsMap.get(key);
+            if (existing) {
+                existing._count.orders += 1;
+                if (order.created_at && new Date(order.created_at) > new Date(existing.created_at)) {
+                    existing.created_at = order.created_at;
+                }
+            }
+            else {
+                guestsMap.set(key, {
+                    user_id: null, // Identifies as guest
+                    username: order.customer_name?.trim() || 'Khách vãng lai',
+                    email: email || '',
+                    phone: phone || '',
+                    user_status: true,
+                    created_at: order.created_at || new Date(),
+                    role: 'guest',
+                    _count: { orders: 1 },
+                });
+            }
+        }
+        const guests = Array.from(guestsMap.values());
+        // Merge and sort by created_at desc
+        const allCustomers = [...registeredCustomers, ...guests].sort((a, b) => {
+            const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+            return dateB - dateA;
+        });
+        const total = allCustomers.length;
+        const paginated = allCustomers.slice((page - 1) * limit, page * limit);
         (0, response_1.sendSuccess)(res, {
-            data: { customers, total, page, limit, totalPages: Math.ceil(total / limit) },
+            data: { customers: paginated, total, page, limit, totalPages: Math.ceil(total / limit) },
         });
     }
     catch (err) {
@@ -814,6 +978,48 @@ router.get('/reviews', async (req, res) => {
     catch (err) {
         logger_1.logger.error('Admin reviews error:', err);
         (0, response_1.sendError)(res, 'Lỗi khi lấy đánh giá', 500);
+    }
+});
+/**
+ * PATCH /api/admin/reviews/:id
+ * Cập nhật trạng thái hiển thị hoặc nội dung phản hồi đánh giá
+ */
+router.patch('/reviews/:id', async (req, res) => {
+    try {
+        const id = parseInt(String(req.params.id));
+        const { is_visible, shop_reply } = req.body;
+        const updateData = {};
+        if (is_visible !== undefined)
+            updateData.is_visible = Boolean(is_visible);
+        if (shop_reply !== undefined) {
+            updateData.shop_reply = shop_reply;
+        }
+        const updated = await prisma_1.default.shopReview.update({
+            where: { review_id: id },
+            data: updateData,
+        });
+        (0, response_1.sendSuccess)(res, { data: updated, message: 'Cập nhật đánh giá thành công' });
+    }
+    catch (err) {
+        logger_1.logger.error('Admin update review error:', err);
+        (0, response_1.sendError)(res, 'Lỗi khi cập nhật đánh giá', 500);
+    }
+});
+/**
+ * DELETE /api/admin/reviews/:id
+ * Xóa hoàn toàn đánh giá khỏi hệ thống
+ */
+router.delete('/reviews/:id', async (req, res) => {
+    try {
+        const id = parseInt(String(req.params.id));
+        await prisma_1.default.shopReview.delete({
+            where: { review_id: id },
+        });
+        (0, response_1.sendSuccess)(res, { message: 'Xóa đánh giá thành công' });
+    }
+    catch (err) {
+        logger_1.logger.error('Admin delete review error:', err);
+        (0, response_1.sendError)(res, 'Lỗi khi xóa đánh giá', 500);
     }
 });
 /**
@@ -851,6 +1057,214 @@ router.get('/top-dishes', async (_req, res) => {
     catch (err) {
         logger_1.logger.error('Admin top dishes error:', err);
         (0, response_1.sendError)(res, 'Lỗi', 500);
+    }
+});
+// ─── QUẢN LÝ CHAT TRỰC TUYẾN (ADMIN LIVE CHAT) ────────────────────────────────
+/**
+ * GET /api/admin/chat/rooms
+ * Lấy danh sách các phòng chat kèm tin nhắn cuối và số lượng tin nhắn chưa đọc
+ */
+router.get('/chat/rooms', async (_req, res) => {
+    try {
+        const rooms = await prisma_1.default.chatRoom.findMany({
+            include: {
+                customer: {
+                    select: {
+                        user_id: true,
+                        username: true,
+                        email: true,
+                        phone: true,
+                        avatar: true,
+                        addresses: {
+                            select: {
+                                address_line: true,
+                                is_default: true
+                            }
+                        }
+                    }
+                },
+                messages: {
+                    orderBy: { created_at: 'desc' },
+                    take: 1,
+                    include: {
+                        images: true,
+                    },
+                },
+            },
+            orderBy: { updated_at: 'desc' },
+        });
+        // Tính toán số lượng tin nhắn chưa đọc (từ khách hàng gửi) cho từng phòng
+        const roomsWithUnreadCount = await Promise.all(rooms.map(async (room) => {
+            const unreadCount = await prisma_1.default.message.count({
+                where: {
+                    room_id: room.room_id,
+                    sender_type: 'customer',
+                    is_read: false,
+                },
+            });
+            return {
+                ...room,
+                unreadCount,
+            };
+        }));
+        (0, response_1.sendSuccess)(res, { data: roomsWithUnreadCount });
+    }
+    catch (err) {
+        logger_1.logger.error('Admin fetch chat rooms error:', err);
+        (0, response_1.sendError)(res, 'Lỗi khi lấy danh sách phòng chat', 500);
+    }
+});
+/**
+ * GET /api/admin/chat/rooms/:roomId/messages
+ * Lấy lịch sử tin nhắn chi tiết trong một phòng
+ */
+router.get('/chat/rooms/:roomId/messages', async (req, res) => {
+    try {
+        const roomId = parseInt(String(req.params.roomId));
+        if (isNaN(roomId)) {
+            (0, response_1.sendError)(res, 'Mã phòng chat không hợp lệ', 400);
+            return;
+        }
+        const messages = await prisma_1.default.message.findMany({
+            where: { room_id: roomId },
+            include: {
+                images: true,
+                sender: { select: { user_id: true, username: true, avatar: true } },
+            },
+            orderBy: { created_at: 'asc' },
+        });
+        (0, response_1.sendSuccess)(res, { data: messages });
+    }
+    catch (err) {
+        logger_1.logger.error('Admin fetch chat messages error:', err);
+        (0, response_1.sendError)(res, 'Lỗi khi lấy lịch sử tin nhắn', 500);
+    }
+});
+/**
+ * POST /api/admin/chat/rooms/:roomId/messages
+ * Admin gửi tin nhắn phản hồi cho khách
+ */
+router.post('/chat/rooms/:roomId/messages', async (req, res) => {
+    try {
+        const roomId = parseInt(String(req.params.roomId));
+        const { message_text, image_urls } = req.body;
+        const adminUser = req.user; // Lấy thông tin admin đăng nhập từ middleware
+        if (isNaN(roomId)) {
+            (0, response_1.sendError)(res, 'Mã phòng không hợp lệ', 400);
+            return;
+        }
+        if (!message_text && (!image_urls || image_urls.length === 0)) {
+            (0, response_1.sendError)(res, 'Tin nhắn hoặc hình ảnh là bắt buộc', 400);
+            return;
+        }
+        const room = await prisma_1.default.chatRoom.findUnique({
+            where: { room_id: roomId }
+        });
+        if (!room) {
+            (0, response_1.sendError)(res, 'Phòng chat không tồn tại', 404);
+            return;
+        }
+        // Nếu phòng ở trạng thái pending hoặc closed, đổi sang active khi admin phản hồi
+        const nextStatus = room.room_status !== 'active' ? 'active' : undefined;
+        const message = await prisma_1.default.$transaction(async (tx) => {
+            const newMsg = await tx.message.create({
+                data: {
+                    room_id: roomId,
+                    sender_type: 'admin',
+                    sender_id: adminUser?.user_id || null,
+                    message_text: message_text || '',
+                    is_read: true, // Tin nhắn admin tự động xem như đã đọc
+                },
+            });
+            if (image_urls && Array.isArray(image_urls) && image_urls.length > 0) {
+                for (const url of image_urls) {
+                    await tx.messageImage.create({
+                        data: {
+                            message_id: newMsg.message_id,
+                            image_url: url,
+                        },
+                    });
+                }
+            }
+            await tx.chatRoom.update({
+                where: { room_id: roomId },
+                data: {
+                    updated_at: new Date(),
+                    ...(nextStatus && { room_status: nextStatus }),
+                },
+            });
+            return newMsg;
+        });
+        const fullMessage = await prisma_1.default.message.findUnique({
+            where: { message_id: message.message_id },
+            include: {
+                images: true,
+                sender: { select: { user_id: true, username: true, avatar: true } },
+            },
+        });
+        (0, response_1.sendSuccess)(res, { data: fullMessage, message: 'Gửi tin nhắn phản hồi thành công' }, 201);
+    }
+    catch (err) {
+        logger_1.logger.error('Admin send message error:', err);
+        (0, response_1.sendError)(res, 'Lỗi khi gửi phản hồi', 500);
+    }
+});
+/**
+ * PATCH /api/admin/chat/rooms/:roomId/status
+ * Cập nhật trạng thái phòng chat (pending, active, closed)
+ */
+router.patch('/chat/rooms/:roomId/status', async (req, res) => {
+    try {
+        const roomId = parseInt(String(req.params.roomId));
+        const { room_status } = req.body;
+        if (isNaN(roomId)) {
+            (0, response_1.sendError)(res, 'Mã phòng không hợp lệ', 400);
+            return;
+        }
+        if (!['pending', 'active', 'closed'].includes(room_status)) {
+            (0, response_1.sendError)(res, 'Trạng thái phòng không hợp lệ', 400);
+            return;
+        }
+        const updatedRoom = await prisma_1.default.chatRoom.update({
+            where: { room_id: roomId },
+            data: {
+                room_status,
+                updated_at: new Date(),
+            },
+        });
+        (0, response_1.sendSuccess)(res, { data: updatedRoom, message: 'Cập nhật trạng thái phòng thành công' });
+    }
+    catch (err) {
+        logger_1.logger.error('Admin update room status error:', err);
+        (0, response_1.sendError)(res, 'Lỗi khi cập nhật trạng thái phòng', 500);
+    }
+});
+/**
+ * PATCH /api/admin/chat/rooms/:roomId/read
+ * Đánh dấu toàn bộ tin nhắn từ khách hàng trong phòng là đã đọc
+ */
+router.patch('/chat/rooms/:roomId/read', async (req, res) => {
+    try {
+        const roomId = parseInt(String(req.params.roomId));
+        if (isNaN(roomId)) {
+            (0, response_1.sendError)(res, 'Mã phòng không hợp lệ', 400);
+            return;
+        }
+        await prisma_1.default.message.updateMany({
+            where: {
+                room_id: roomId,
+                sender_type: 'customer',
+                is_read: false,
+            },
+            data: {
+                is_read: true,
+            },
+        });
+        (0, response_1.sendSuccess)(res, { message: 'Đánh dấu đã đọc thành công' });
+    }
+    catch (err) {
+        logger_1.logger.error('Admin mark read error:', err);
+        (0, response_1.sendError)(res, 'Lỗi khi đánh dấu đã đọc', 500);
     }
 });
 exports.default = router;

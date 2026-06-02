@@ -14,6 +14,6 @@ export async function getOverviewData() {
   };
 }
 
-export async function getChatsData() {
+export async function getChatsData(): Promise<any[]> {
   return [];
 }

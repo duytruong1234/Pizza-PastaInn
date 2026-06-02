@@ -20,4 +20,24 @@ export declare function getMe(req: AuthRequest, res: Response): Promise<void>;
  * Đăng xuất — lưu token vào Redis blacklist
  */
 export declare function logout(req: AuthRequest, res: Response): Promise<void>;
+/**
+ * PUT /api/auth/profile
+ * Cập nhật thông tin cá nhân (username, phone, email, avatar)
+ */
+export declare function updateProfile(req: AuthRequest, res: Response): Promise<void>;
+/**
+ * PUT /api/auth/profile/password
+ * Thay đổi mật khẩu người dùng
+ */
+export declare function changePassword(req: AuthRequest, res: Response): Promise<void>;
+/**
+ * POST /api/auth/profile/avatar
+ * Upload ảnh đại diện
+ */
+export declare function uploadAvatar(req: AuthRequest, res: Response): Promise<void>;
+/**
+ * DELETE /api/auth/profile/avatar
+ * Xóa ảnh đại diện
+ */
+export declare function deleteAvatar(req: AuthRequest, res: Response): Promise<void>;
 //# sourceMappingURL=authController.d.ts.map

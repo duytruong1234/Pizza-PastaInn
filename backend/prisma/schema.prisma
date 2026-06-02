@@ -246,10 +246,13 @@ model Order {
   order_note              String?
   created_at              DateTime?    @db.Timestamp(6)
   order_status            String?      @db.VarChar(50)
+  confirmed_at            DateTime?    @db.Timestamp(6)
+  preparing_at            DateTime?    @db.Timestamp(6)
   shipped_at              DateTime?    @db.Timestamp(6)
   estimated_delivery_time DateTime?    @db.Timestamp(6)
   arrived_at              DateTime?    @db.Timestamp(6)
   completed_at            DateTime?    @db.Timestamp(6)
+  cancelled_at            DateTime?    @db.Timestamp(6)
   order_type              String?      @db.VarChar(50)
   pickup_time             DateTime?    @db.Timestamp(6)
   customer_name           String?      @db.VarChar(255)
@@ -259,6 +262,7 @@ model Order {
   user_address            UserAddress? @relation(fields: [user_address_id], references: [user_address_id], onDelete: NoAction, onUpdate: NoAction)
   user                    User?        @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
   reviews                 ShopReview[]
+  transactions            Transaction[]
 
   @@map("orders")
 }
@@ -382,4 +386,24 @@ model MessageImage {
   message     Message   @relation(fields: [message_id], references: [message_id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("message_images")
+}
+
+model Transaction {
+  id                  Int       @id @default(autoincrement())
+  gateway             String    @db.VarChar(100)
+  transaction_date    DateTime? @db.Timestamp(6)
+  account_number      String?   @db.VarChar(100)
+  sub_account         String?   @db.VarChar(250)
+  amount_in           Decimal   @default(0.00) @db.Decimal(20, 2)
+  amount_out          Decimal   @default(0.00) @db.Decimal(20, 2)
+  accumulated         Decimal   @default(0.00) @db.Decimal(20, 2)
+  code                String?   @db.VarChar(250)
+  transaction_content String?   @db.Text
+  reference_number    String?   @db.VarChar(255)
+  body                String?   @db.Text
+  created_at          DateTime  @default(now()) @db.Timestamp(6)
+  order_id            Int?
+  order               Order?    @relation(fields: [order_id], references: [order_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("tb_transactions")
 }

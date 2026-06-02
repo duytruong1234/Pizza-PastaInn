@@ -25,6 +25,11 @@ interface Order {
   customer_phone?: string;
   customer_email?: string;
   items?: any[];
+  confirmed_at?: string;
+  preparing_at?: string;
+  shipped_at?: string;
+  completed_at?: string;
+  cancelled_at?: string;
 }
 
 const STATUS_COLORS: Record<string, "warning" | "info" | "primary" | "secondary" | "success" | "danger"> = {
@@ -71,14 +76,16 @@ function renderOrderItemDetails(item: any) {
               const dishName = sel.dish_price?.dish?.dish_name || sel.dish_price_id || "Món trong combo";
               const sizeName = sel.dish_price?.size?.size_name;
               const crustName = sel.dish_price?.crust?.crust_name;
+              const isPizza = dishName.toLowerCase().includes("pizza");
+              const qtyPrefix = sel.quantity && sel.quantity > 1 ? `${sel.quantity} x ` : "";
 
               return (
                 <div key={idx} className="bg-gray-100/50 dark:bg-dark-3/50 p-2 rounded-lg text-sm text-gray-700 dark:text-gray-300">
                   <p className="font-bold text-dark dark:text-white">
-                    {idx + 1}. {dishName}
+                    {idx + 1}. {qtyPrefix}{dishName}
                   </p>
                   <div className="ml-3 text-xs text-gray-500 space-y-0.5 mt-0.5">
-                    {(sizeName || crustName) && (
+                    {(sizeName || crustName) && isPizza && (
                       <p>
                         {sizeName && <span>Size: <strong>{sizeName}</strong> </span>}
                         {crustName && <span>Đế: <strong>{crustName}</strong></span>}
@@ -86,7 +93,7 @@ function renderOrderItemDetails(item: any) {
                     )}
                     {sel.toppings && sel.toppings.length > 0 && (
                       <p className="text-gray-600 dark:text-gray-400">
-                        + Toppings: {sel.toppings.map((t: any) => `${t.topping?.topping_name} (x${t.quantity || 1})`).join(", ")}
+                        + Toppings: {sel.toppings.map((t: any) => `${t.topping?.topping_name} (x${t.quantity || 1}) (${(t.topping_price || t.topping?.price_topping || 0).toLocaleString()} đ)`).join(", ")}
                       </p>
                     )}
                     {sel.is_half_half && sel.halves && sel.halves.length > 0 && (
@@ -97,7 +104,7 @@ function renderOrderItemDetails(item: any) {
                             <span>• Nửa {hIdx + 1}: <strong>{h.dish?.dish_name}</strong></span>
                             {h.order_item_toppings && h.order_item_toppings.length > 0 && (
                               <span className="text-gray-500 block ml-2">
-                                + Toppings: {h.order_item_toppings.map((t: any) => t.topping?.topping_name).join(", ")}
+                                + Toppings: {h.order_item_toppings.map((t: any) => `${t.topping?.topping_name} (${(t.topping_price || t.topping?.price_topping || 0).toLocaleString()} đ)`).join(", ")}
                               </span>
                             )}
                           </div>
@@ -141,7 +148,7 @@ function renderOrderItemDetails(item: any) {
                 <span className="font-bold text-dark dark:text-white">{h.dish?.dish_name}</span>
                 {h.order_item_toppings && h.order_item_toppings.length > 0 && (
                   <span className="text-gray-500 block ml-3 italic">
-                    + Toppings riêng: {h.order_item_toppings.map((t: any) => t.topping?.topping_name).join(", ")}
+                    + Toppings riêng: {h.order_item_toppings.map((t: any) => `${t.topping?.topping_name} (${(t.topping_price || t.topping?.price_topping || 0).toLocaleString()} đ)`).join(", ")}
                   </span>
                 )}
               </div>
@@ -150,7 +157,7 @@ function renderOrderItemDetails(item: any) {
         )}
         {item.toppings && item.toppings.length > 0 && (
           <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 pl-2">
-            + Toppings chung: {item.toppings.map((t: any) => `${t.topping?.topping_name} (x${t.quantity || 1})`).join(", ")}
+            + Toppings chung: {item.toppings.map((t: any) => `${t.topping?.topping_name} (x${t.quantity || 1}) (${(t.topping_price || t.topping?.price_topping || 0).toLocaleString()} đ)`).join(", ")}
           </p>
         )}
       </div>
@@ -161,11 +168,12 @@ function renderOrderItemDetails(item: any) {
   const dishName = item.dish_price?.dish?.dish_name || item.dish_price_id || "Món ăn";
   const sizeName = item.dish_price?.size?.size_name;
   const crustName = item.dish_price?.crust?.crust_name;
+  const isPizza = dishName.toLowerCase().includes("pizza");
 
   return (
     <div className="text-xs space-y-1 mt-0.5">
       <p className="font-bold text-sm text-dark dark:text-white">{dishName}</p>
-      {(sizeName || crustName) && (
+      {(sizeName || crustName) && isPizza && (
         <p className="text-gray-500">
           {sizeName && <span>Size: <strong>{sizeName}</strong> </span>}
           {crustName && <span>Đế: <strong>{crustName}</strong></span>}
@@ -173,7 +181,7 @@ function renderOrderItemDetails(item: any) {
       )}
       {item.toppings && item.toppings.length > 0 && (
         <p className="text-gray-600 dark:text-gray-400">
-          + Toppings: {item.toppings.map((t: any) => `${t.topping?.topping_name} (x${t.quantity || 1})`).join(", ")}
+          + Toppings: {item.toppings.map((t: any) => `${t.topping?.topping_name} (x${t.quantity || 1}) (${(t.topping_price || t.topping?.price_topping || 0).toLocaleString()} đ)`).join(", ")}
         </p>
       )}
     </div>
@@ -415,6 +423,43 @@ function OrderDetailModal({
               <p className="text-sm text-gray-500 italic">&quot;{order.order_note}&quot;</p>
             </div>
           )}
+
+          {/* Cột mốc thời gian */}
+          {(() => {
+            const milestones = [
+              { label: "Khách đặt", time: order.created_at },
+              { label: "Xác nhận", time: order.confirmed_at },
+              { label: "Chuẩn bị", time: order.preparing_at },
+              { label: "Bắt đầu giao", time: order.shipped_at },
+              { label: "Hoàn thành", time: order.completed_at },
+              { label: "Đã hủy", time: order.cancelled_at },
+            ].filter(m => m.time);
+
+            if (milestones.length === 0) return null;
+
+            return (
+              <div className="rounded-xl border border-stroke p-4 dark:border-dark-3 bg-gray-50/50 dark:bg-dark-2/50">
+                <h3 className="text-sm font-bold text-dark dark:text-white mb-3 uppercase tracking-wide">
+                  Tiến trình đơn hàng (Cột mốc thời gian)
+                </h3>
+                <div className="flex flex-wrap gap-4 items-center">
+                  {milestones.map((m, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <div className="bg-primary text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-sm">
+                        {m.label}
+                      </div>
+                      <span className="text-xs text-gray-500 font-semibold">
+                        {dayjs(m.time).format("HH:mm:ss DD/MM/YYYY")}
+                      </span>
+                      {idx < milestones.length - 1 && (
+                        <span className="text-gray-300 dark:text-gray-600 font-bold">➔</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* ── NÚT DUYỆT ĐƠN HÀNG ────────────────────────────────────────── */}
           <div className="border-t border-stroke pt-5 dark:border-dark-3">
@@ -675,28 +720,28 @@ export default function OrdersPage() {
           <table className="w-full text-left">
             <thead className="bg-primary text-white">
               <tr className="border-b border-stroke dark:border-dark-3">
-                <th className="rounded-tl-lg px-6 py-4 text-sm font-semibold uppercase tracking-wide">
+                <th className="rounded-tl-lg px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
                   Mã đơn
                 </th>
-                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
                   Khách hàng
                 </th>
-                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
                   Hình thức
                 </th>
-                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
                   Tổng tiền
                 </th>
-                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
                   Loại thanh toán
                 </th>
-                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
                   Trạng thái
                 </th>
-                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
                   Ngày đặt hàng
                 </th>
-                <th className="rounded-tr-lg px-6 py-4 text-sm font-semibold uppercase tracking-wide">
+                <th className="rounded-tr-lg px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
                   Thao tác
                 </th>
               </tr>

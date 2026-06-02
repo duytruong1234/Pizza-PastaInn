@@ -47,8 +47,12 @@ async function connectRedis() {
     try {
         await redis.connect();
     }
-    catch {
+    catch (err) {
         logger_1.logger.warn('⚠️ Không thể kết nối Redis, tiếp tục chạy không có cache');
+        try {
+            redis.disconnect();
+        }
+        catch (e) { }
         exports.redis = redis = null;
     }
 }

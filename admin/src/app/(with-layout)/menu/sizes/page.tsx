@@ -216,7 +216,7 @@ export default function SizesPage() {
 
       <Modal isOpen={!!editingSize} setIsOpen={() => setEditingSize(null)} title="SỬA KÍCH THƯỚC">
         <div className="space-y-4 p-2">
-          <InputGroup label="TÊN KÍCH THƯỚC (*)" type="text" value={editingSize?.size_name || ""} handleChange={(e) => { setEditingSize(prev => prev ? { ...prev, size_name: e.target.value } : null); setEditError(""); }} error={editError} />
+          <InputGroup label="TÊN KÍCH THƯỚC (*)" type="text" placeholder="Nhập tên kích thước" value={editingSize?.size_name || ""} handleChange={(e) => { setEditingSize(prev => prev ? { ...prev, size_name: e.target.value } : null); setEditError(""); }} error={editError} />
           <div className="flex items-center justify-between">
             <label className="text-sm font-semibold text-dark dark:text-white">HIỂN THỊ</label>
             <Switch checked={editingSize?.is_visible || false} onChange={(checked) => setEditingSize(prev => prev ? { ...prev, is_visible: checked } : null)} />

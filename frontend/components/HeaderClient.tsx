@@ -2,14 +2,17 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { User, LogOut, ChevronDown, Sun, Moon, Menu, X } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { cn } from '@/lib/utils';
 import CartButton from './CartButton';
 import { useUI } from './UIProvider';
 
 export default function HeaderClient({ storeName }: { storeName: string }) {
   const { user, clearAuth } = useAuthStore();
   const { theme, toggleTheme } = useUI();
+  const pathname = usePathname();
   const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:4000';
   const [isMounted, setIsMounted] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -52,11 +55,29 @@ export default function HeaderClient({ storeName }: { storeName: string }) {
 
 
       {/* Navigation (Desktop only) */}
-      <nav className="hidden md:flex items-center gap-10 text-base font-black uppercase text-white/90">
-        <Link href="/" className="hover:text-white transition-colors">{"Menu"}</Link>
-        <Link href="/lookup" className="hover:text-[#f5c043] text-white transition-colors">{"Order Lookup"}</Link>
-        <Link href="/about" className="hover:text-white transition-colors">{"About"}</Link>
-        <Link href="/reviews" className="hover:text-white transition-colors">{"Reviews"}</Link>
+      <nav className="hidden md:flex items-center gap-10 text-base font-black uppercase">
+        {[
+          { label: "Menu", href: "/" },
+          { label: "Order Lookup", href: "/lookup" },
+          { label: "About", href: "/about" },
+          { label: "Reviews", href: "/reviews" }
+        ].map((item) => {
+          const active = item.href === "/" ? pathname === "/" : pathname?.startsWith(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`group relative py-1.5 transition-colors duration-200 ${
+                active ? "text-[#f5c043]" : "text-white/80 hover:text-white"
+              }`}
+            >
+              <span>{item.label}</span>
+              <span className={`absolute bottom-0 left-0 w-full h-[3px] bg-[#f5c043] rounded-full transition-transform duration-300 origin-center ${
+                active ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+              }`} />
+            </Link>
+          );
+        })}
       </nav>
 
       {/* Right side icons */}
@@ -64,14 +85,42 @@ export default function HeaderClient({ storeName }: { storeName: string }) {
         {/* Theme Switcher Toggle */}
         <button
           onClick={toggleTheme}
-          className="flex items-center justify-center p-2 rounded-full hover:bg-white/10 text-gray-300 hover:text-white transition-all active:scale-95 cursor-pointer"
+          className="group cursor-pointer rounded-full bg-black/45 p-[3px] outline-none transition-all duration-300 hover:bg-black/60 focus:outline-none border border-white/[0.08] hover:border-white/15 active:scale-95 shadow-sm"
           title={theme === 'dark' ? "Chuyển sang giao diện Sáng" : "Chuyển sang giao diện Tối"}
         >
-          {theme === 'dark' ? (
-            <Sun size={20} className="text-[#f5c043] animate-bounce-slow" />
-          ) : (
-            <Moon size={20} className="text-gray-300" />
-          )}
+          <span className="sr-only">
+            Switch to {theme === 'dark' ? 'light' : 'dark'} mode
+          </span>
+
+          <span aria-hidden className="relative flex gap-[6px]">
+            {/* Indicator */}
+            <span
+              className={cn(
+                "absolute size-[28px] rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.3)] transition-all duration-300 ease-in-out",
+                theme === 'dark' ? "translate-x-[34px]" : "translate-x-0"
+              )}
+            />
+
+            {/* Sun Icon */}
+            <span
+              className={cn(
+                "relative grid size-[28px] place-items-center rounded-full transition-colors duration-300",
+                theme === 'light' ? "text-[#f5c043] scale-105" : "text-white/40 group-hover:text-white/75"
+              )}
+            >
+              <Sun size={14} strokeWidth={2.5} />
+            </span>
+
+            {/* Moon Icon */}
+            <span
+              className={cn(
+                "relative grid size-[28px] place-items-center rounded-full transition-colors duration-300",
+                theme === 'dark' ? "text-[#f5c043] scale-105" : "text-white/40 group-hover:text-white/75"
+              )}
+            >
+              <Moon size={14} strokeWidth={2.5} />
+            </span>
+          </span>
         </button>
 
         {/* Cart Icon */}
@@ -150,34 +199,26 @@ export default function HeaderClient({ storeName }: { storeName: string }) {
       {/* Mobile Navigation Dropdown */}
       {mobileMenuOpen && (
         <div className="absolute top-full left-0 right-0 bg-[#121424]/98 border-b border-white/[0.08] shadow-[0_10px_30px_rgba(0,0,0,0.5)] p-5 flex flex-col gap-4 animate-in fade-in slide-in-from-top-2 duration-200 z-40 md:hidden font-black uppercase text-sm tracking-wide text-white/90">
-          <Link
-            href="/"
-            onClick={() => setMobileMenuOpen(false)}
-            className="hover:text-[#f5c043] transition-colors py-2 border-b border-white/5"
-          >
-            {"Menu"}
-          </Link>
-          <Link
-            href="/lookup"
-            onClick={() => setMobileMenuOpen(false)}
-            className="hover:text-[#f5c043] transition-colors py-2 border-b border-white/5"
-          >
-            {"Order Lookup"}
-          </Link>
-          <Link
-            href="/about"
-            onClick={() => setMobileMenuOpen(false)}
-            className="hover:text-[#f5c043] transition-colors py-2 border-b border-white/5"
-          >
-            {"About"}
-          </Link>
-          <Link
-            href="/reviews"
-            onClick={() => setMobileMenuOpen(false)}
-            className="hover:text-[#f5c043] transition-colors py-2"
-          >
-            {"Reviews"}
-          </Link>
+          {[
+            { label: "Menu", href: "/" },
+            { label: "Order Lookup", href: "/lookup" },
+            { label: "About", href: "/about" },
+            { label: "Reviews", href: "/reviews" }
+          ].map((item, idx, arr) => {
+            const active = item.href === "/" ? pathname === "/" : pathname?.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`transition-colors py-2 ${
+                  idx < arr.length - 1 ? "border-b border-white/5" : ""
+                } ${active ? "text-[#f5c043] font-black" : "text-white/80 hover:text-[#f5c043]"}`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

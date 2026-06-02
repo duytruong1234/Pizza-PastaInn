@@ -51,11 +51,13 @@ type OrderStore = {
   isSubmitting: boolean;
   error: string | null;
   vietqrAttempt: number;
+  cartBackup: CartItem[] | null;
 
   setStep: (step: CheckoutStep) => void;
   updateFormData: (data: Partial<OrderFormData>) => void;
   resetForm: () => void;
   submitOrder: (bypassVietQRStep?: boolean) => Promise<boolean>;
+  cancelActiveOrder: () => Promise<boolean>;
 };
 
 const initialFormData: OrderFormData = {
@@ -87,6 +89,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
   isSubmitting: false,
   error: null,
   vietqrAttempt: 0,
+  cartBackup: null,
 
   setStep: (step) => set({ step }),
 
@@ -104,6 +107,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
       isSubmitting: false,
       error: null,
       vietqrAttempt: 0,
+      cartBackup: null,
     }),
 
   // ── Submit đơn hàng ─────────────────────────────────────────────────────
@@ -132,15 +136,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
 
     set({ isSubmitting: true, error: null });
 
-    // Chuyển hướng sang màn hình thanh toán VietQR toàn màn hình nếu chọn VietQR và không bỏ qua bước này
-    if (formData.payment_method === 'vietqr' && !bypassVietQRStep) {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      set({
-        step: 'payment',
-        isSubmitting: false,
-      });
-      return true;
-    }
+    // Tạo đơn hàng trực tiếp trong DB trước để lấy order_id độc nhất trước khi hiển thị mã QR
 
     try {
       // Chuyển đổi CartItem → OrderItemInput
@@ -224,9 +220,13 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
       const data = await res.json();
 
       if (res.ok && data.success) {
+        // Sao lưu giỏ hàng trước khi xoá
+        const backupItems = [...cartStore.items];
+
         // Xóa giỏ hàng local
         await cartStore.clearCart();
 
+        const nextStep = formData.payment_method === 'vietqr' ? 'payment' : 'success';
         set({
           orderResult: {
             order_id: data.data.order_id,
@@ -236,7 +236,8 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
             order_type: data.data.order_type,
             created_at: data.data.created_at,
           },
-          step: 'success',
+          cartBackup: backupItems,
+          step: nextStep,
           isSubmitting: false,
         });
         return true;
@@ -250,6 +251,40 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
     } catch (error) {
       console.error('Submit order error:', error);
       set({ error: 'Lỗi kết nối server', isSubmitting: false });
+      return false;
+    }
+  },
+
+  cancelActiveOrder: async () => {
+    const { orderResult, cartBackup } = get();
+    if (!orderResult?.order_id) return false;
+
+    try {
+      // 1. Gọi API Backend để hủy đơn hàng và khôi phục tồn kho
+      const res = await fetch(`http://localhost:4000/api/orders/${orderResult.order_id}/cancel`, {
+        method: 'POST',
+      });
+      
+      if (res.ok) {
+        // 2. Khôi phục lại giỏ hàng local và đặt cart_id về null để sinh giỏ mới trên DB sau đó
+        if (cartBackup && cartBackup.length > 0) {
+          useCartStore.setState({ 
+            items: cartBackup,
+            cart_id: null 
+          });
+        }
+        
+        // 3. Reset các thông tin liên quan và quay lại bước nhập thông tin
+        set({
+          orderResult: null,
+          cartBackup: null,
+          step: 'info',
+        });
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Cancel active order error:', err);
       return false;
     }
   },

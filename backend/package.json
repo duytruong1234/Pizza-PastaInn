@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node node_modules/nodemon/bin/nodemon.js --watch src --ext ts --exec \"node node_modules/ts-node/dist/bin.js\" src/app.ts",
     "build": "tsc",
-    "start": "node dist/src/app.js"
+    "start": "node dist/src/app.js",
+    "prisma-gen": "prisma generate"
   },
   "keywords": [],
   "author": "",

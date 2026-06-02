@@ -4,7 +4,7 @@ import { api } from "@/lib/api";
 import { useEffect, useState, useRef, useMemo } from "react";
 import {
   Search, Send, Paperclip, MoreVertical, X, Check,
-  MessageSquare, User, Phone, MapPin, RefreshCw, AlertTriangle
+  MessageSquare, User, Phone, MapPin, RefreshCw, AlertTriangle, Trash2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -172,6 +172,38 @@ export default function MessagesPage() {
     return rooms.find((r) => r.room_id === activeRoomId) || null;
   }, [rooms, activeRoomId]);
 
+  // Calculate dynamic online/offline status based on last customer message
+  const isOnline = useMemo(() => {
+    if (!activeRoom || !messages || messages.length === 0) return false;
+    // Find last message sent by customer
+    const lastCustomerMsg = [...messages].reverse().find(m => m.sender_type === "customer");
+    if (!lastCustomerMsg) return false;
+    const lastMsgTime = new Date(lastCustomerMsg.created_at).getTime();
+    const diffMinutes = (Date.now() - lastMsgTime) / 60000;
+    return diffMinutes < 5; // online if last message was within 5 minutes
+  }, [activeRoom, messages]);
+
+  // Action: Delete conversation
+  const handleDeleteConversation = async (roomId: number) => {
+    if (!window.confirm("Cảnh báo: Hành động này sẽ xóa vĩnh viễn cuộc hội thoại này cùng toàn bộ tin nhắn. Bạn có chắc chắn muốn xóa?")) return;
+
+    try {
+      const res = await api.delete(`/api/admin/chat/rooms/${roomId}`);
+      if (res.data?.success) {
+        toast.success("Xóa cuộc hội thoại thành công");
+        setActiveRoomId(null);
+        setMessages([]);
+        setShowOptionsDropdown(false);
+        fetchRooms(true);
+      } else {
+        toast.error("Không thể xóa cuộc hội thoại");
+      }
+    } catch (err) {
+      console.error("Lỗi khi xóa cuộc hội thoại:", err);
+      toast.error("Lỗi khi kết nối đến máy chủ");
+    }
+  };
+
   // Send Admin Reply
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -250,7 +282,7 @@ export default function MessagesPage() {
   const formatTime = (isoString: string) => {
     try {
       const date = new Date(isoString);
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase();
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
     } catch {
       return "";
     }
@@ -342,8 +374,8 @@ export default function MessagesPage() {
                     key={room.room_id}
                     onClick={() => handleSelectRoom(room.room_id)}
                     className={`flex items-center gap-3 px-5 py-4.5 cursor-pointer transition-all duration-150 border-l-[3px] ${isSelected
-                        ? "bg-[#f8fafc] border-l-[#5c54e5] dark:bg-[#1a202c]"
-                        : "border-l-transparent hover:bg-zinc-50 dark:hover:bg-dark-2"
+                      ? "bg-[#f8fafc] border-l-[#5c54e5] dark:bg-[#1a202c]"
+                      : "border-l-transparent hover:bg-zinc-50 dark:hover:bg-dark-2"
                       }`}
                   >
                     {/* Avatar */}
@@ -369,7 +401,7 @@ export default function MessagesPage() {
                             </span>
                           )}
                           {room.unreadCount > 0 && (
-                            <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-[#5c54e5] text-[9px] font-black text-white shadow-sm leading-none">
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-black text-white shadow-sm leading-none animate-bounce">
                               {room.unreadCount}
                             </span>
                           )}
@@ -400,9 +432,16 @@ export default function MessagesPage() {
                     <h3 className="text-sm font-extrabold text-[#1c2434] dark:text-white leading-snug">
                       {activeRoom.guest_name || activeRoom.customer?.username || "Khách vãng lai"}
                     </h3>
-                    <p className="text-[11px] font-medium text-gray-400 leading-none mt-1">
-                      Reply to message
-                    </p>
+                    {isOnline ? (
+                      <span className="text-[11px] font-bold text-emerald-500 leading-none mt-1.5 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Đang truy cập
+                      </span>
+                    ) : (
+                      <span className="text-[11px] font-semibold text-gray-400 leading-none mt-1.5 block">
+                        Đã ngừng truy cập
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -434,12 +473,13 @@ export default function MessagesPage() {
                         <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
                         <span>Đóng hội thoại</span>
                       </button>
+                      <div className="border-t border-[#f1f5f9] dark:border-dark-3 my-1"></div>
                       <button
-                        onClick={() => handleUpdateRoomStatus("pending")}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-all cursor-pointer"
+                        onClick={() => handleDeleteConversation(activeRoom.room_id)}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all cursor-pointer"
                       >
-                        <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
-                        <span>Đang chờ</span>
+                        <Trash2 size={13} className="text-rose-500 shrink-0" />
+                        <span>Xóa cuộc hội thoại</span>
                       </button>
                     </div>
                   )}
@@ -462,8 +502,20 @@ export default function MessagesPage() {
                           <MapPin size={12} className="text-[#5c54e5] dark:text-indigo-400 shrink-0" />
                           <span className="truncate">
                             Địa chỉ: <span className="font-extrabold text-[#1c2434] dark:text-zinc-100">
-                              {activeRoom.customer.addresses.find(addr => addr.is_default)?.address_line 
-                               || activeRoom.customer.addresses[0]?.address_line}
+                              {(() => {
+                                const addr = activeRoom.customer.addresses.find(addr => addr.is_default)?.address_line 
+                                             || activeRoom.customer.addresses[0]?.address_line;
+                                if (!addr) return "";
+                                if (addr.trim().startsWith("{")) {
+                                  try {
+                                    const parsed = JSON.parse(addr);
+                                    return parsed.address || parsed.address_line || addr;
+                                  } catch (e) {
+                                    return addr;
+                                  }
+                                }
+                                return addr;
+                              })()}
                             </span>
                           </span>
                         </div>
@@ -520,8 +572,8 @@ export default function MessagesPage() {
 
                         {/* Message Bubble */}
                         <div className={`rounded-xl px-4.5 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] text-[13px] font-semibold leading-relaxed ${isAdmin
-                            ? "bg-[#e8eefc] text-[#2c3e50] rounded-tr-none"
-                            : "bg-[#e0f2fe] text-[#1c2d3d] rounded-tl-none"
+                          ? "bg-[#e8eefc] text-[#2c3e50] rounded-tr-none"
+                          : "bg-[#e0f2fe] text-[#1c2d3d] rounded-tl-none"
                           }`}>
                           {msg.message_text && <p className="whitespace-pre-wrap">{msg.message_text}</p>}
 
@@ -597,7 +649,7 @@ export default function MessagesPage() {
                       type="text"
                       value={inputText}
                       onChange={(e) => setInputText(e.target.value)}
-                      placeholder={isUploading ? "Uploading image..." : "Type something here..."}
+                      placeholder={isUploading ? "Đang tải ảnh lên..." : "Nhập nội dung tin nhắn..."}
                       disabled={isUploading}
                       className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-xl py-3.5 pl-5 pr-20 text-xs font-semibold outline-none focus:bg-white focus:border-[#5c54e5] dark:bg-dark-2 dark:border-dark-3 dark:focus:bg-transparent dark:text-zinc-100 placeholder-gray-400"
                     />

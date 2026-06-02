@@ -380,6 +380,7 @@ export default function CategoriesPage() {
           <InputGroup
             label="TÊN LOẠI MÓN ĂN (*)"
             type="text"
+            placeholder="Nhập tên loại món ăn"
             value={editName}
             handleChange={(e) => { setEditName(e.target.value); setEditError(""); }}
             error={editError}

@@ -553,15 +553,15 @@ function OrderSummary() {
 // ── Component: Đặt hàng thành công ──────────────────────────────────────────
 // Helper Icon Components for Review Section
 const StarIcon = ({ filled, size = 18, onClick }: { filled: boolean; size?: number; onClick?: () => void }) => (
-  <svg 
-    width={size} 
-    height={size} 
-    viewBox="0 0 24 24" 
-    fill={filled ? "#f5c043" : "none"} 
-    stroke={filled ? "#f5c043" : "#3f3f46"} 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill={filled ? "#f5c043" : "none"}
+    stroke={filled ? "#f5c043" : "#3f3f46"}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
     className={`transition-all duration-150 ${onClick ? 'cursor-pointer hover:scale-110 active:scale-95' : ''}`}
     onClick={onClick}
   >
@@ -723,7 +723,7 @@ function OrderSuccess() {
 
       {/* DUAL-COLUMN REVIEWS GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-10 items-start">
-        
+
         {/* LEFT COLUMN: REVIEW FORM */}
         <div className="lg:col-span-5 bg-[#121212] border border-white/[0.06] rounded-[28px] p-6 md:p-8 space-y-6 shadow-2xl flex flex-col text-left">
           <div className="self-start px-3 py-1 rounded-full bg-[#f5c043]/10 border border-[#f5c043]/20 text-[#f5c043] text-[10px] font-black uppercase tracking-wider">
@@ -746,11 +746,11 @@ function OrderSuccess() {
             </span>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((star) => (
-                <StarIcon 
-                  key={star} 
-                  filled={star <= userRating} 
-                  size={28} 
-                  onClick={() => setUserRating(star)} 
+                <StarIcon
+                  key={star}
+                  filled={star <= userRating}
+                  size={28}
+                  onClick={() => setUserRating(star)}
                 />
               ))}
             </div>
@@ -761,12 +761,12 @@ function OrderSuccess() {
             <span className="text-[11px] font-extrabold text-zinc-500 tracking-wider uppercase block">
               YOUR REVIEW
             </span>
-            <textarea 
-              className="w-full bg-[#0d0d0d] border border-white/[0.06] focus:border-[#f5c043]/40 rounded-2xl p-4 text-sm text-zinc-300 placeholder-zinc-650 focus:outline-none transition-colors" 
-              placeholder="Share your experience about our dishes and service here..." 
-              rows={4} 
-              value={userComment} 
-              onChange={e => setUserComment(e.target.value)} 
+            <textarea
+              className="w-full bg-[#0d0d0d] border border-white/[0.06] focus:border-[#f5c043]/40 rounded-2xl p-4 text-sm text-zinc-300 placeholder-zinc-650 focus:outline-none transition-colors"
+              placeholder="Share your experience about our dishes and service here..."
+              rows={4}
+              value={userComment}
+              onChange={e => setUserComment(e.target.value)}
             />
           </div>
 
@@ -775,12 +775,12 @@ function OrderSuccess() {
             <span className="text-[11px] font-extrabold text-zinc-500 tracking-wider uppercase block">
               REAL PHOTOS (MAXIMUM 5 IMAGES)
             </span>
-            
+
             <div className="flex flex-wrap gap-3 items-center">
               {reviewImages.map((img, idx) => (
                 <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-white/10 group shadow-md">
                   <Image src={img} alt="Attached review photo" fill className="object-cover" />
-                  <button 
+                  <button
                     onClick={() => handleRemovePhoto(idx)}
                     className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity font-bold text-xs"
                   >
@@ -788,10 +788,10 @@ function OrderSuccess() {
                   </button>
                 </div>
               ))}
-              
+
               {reviewImages.length < 5 && (
-                <button 
-                  onClick={handleMockAddPhoto} 
+                <button
+                  onClick={handleMockAddPhoto}
                   className="w-16 h-16 rounded-xl border-2 border-dashed border-zinc-800 hover:border-[#f5c043]/30 bg-[#0d0d0d] hover:bg-zinc-900/40 flex flex-col items-center justify-center text-zinc-500 hover:text-zinc-300 transition-all select-none focus:outline-none"
                 >
                   <CameraIcon size={18} />
@@ -803,8 +803,8 @@ function OrderSuccess() {
 
           {/* Submit Button */}
           <div className="pt-2">
-            <button 
-              onClick={handleSubmitReview} 
+            <button
+              onClick={handleSubmitReview}
               className="w-full bg-[#f5c043] hover:bg-[#e5b33c] text-black font-black text-xs tracking-widest uppercase py-4 rounded-2xl shadow-lg active:scale-[0.99] transition-all"
             >
               SUBMIT YOUR REVIEW
@@ -819,7 +819,7 @@ function OrderSuccess() {
 
         {/* RIGHT COLUMN: REVIEWS LIST */}
         <div className="lg:col-span-7 space-y-6 flex flex-col text-left">
-          
+
           {/* General Customer Reviews Card */}
           <div className="bg-[#121212] border border-white/[0.06] rounded-[24px] p-6 flex justify-between items-center shadow-xl">
             <div className="space-y-1">
@@ -843,8 +843,8 @@ function OrderSuccess() {
           {/* Reviews List Container */}
           <div className="space-y-5 max-h-[460px] overflow-y-auto pr-1 custom-scrollbar">
             {reviewsList.map((review) => (
-              <div 
-                key={review.id} 
+              <div
+                key={review.id}
                 className="bg-[#121212]/80 border border-white/[0.04] hover:border-white/[0.08] rounded-[24px] p-6 space-y-4 shadow-md transition-all animate-fadeIn"
               >
                 {/* Header */}
@@ -857,7 +857,7 @@ function OrderSuccess() {
                       ORDER ID: #{review.orderId}
                     </span>
                   </div>
-                  
+
                   <div className="flex gap-0.5">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <StarIcon key={star} filled={star <= review.rating} size={11} />
@@ -1075,14 +1075,15 @@ function OrderFailure() {
 // ── Component: Xác thực thanh toán VietQR ────────────────────────────────────
 function OrderPaymentModal() {
   const { totalPrice } = useCartStore();
-  const { formData, setStep, submitOrder, vietqrAttempt, updateFormData } = useOrderStore();
+  const { formData, setStep, submitOrder, vietqrAttempt, updateFormData, orderResult, cancelActiveOrder } = useOrderStore();
   const router = useRouter();
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes (600 seconds)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const displayTotal = totalPrice();
   const shippingFee = formData.order_type === 'delivery' ? (formData.shipping_fee || 0) : 0;
-  const totalOrder = displayTotal + shippingFee;
+  // Lấy tổng số tiền thực tế của đơn hàng (giá gốc + phí shipping)
+  const totalOrder = orderResult?.total_order || (displayTotal + shippingFee);
 
   // Countdown timer
   useEffect(() => {
@@ -1098,29 +1099,39 @@ function OrderPaymentModal() {
     return () => clearInterval(timer);
   }, [timeLeft, setStep, updateFormData]);
 
-  // Simulated bank payment check
+  // Real bank payment polling check
   useEffect(() => {
-    const checkPayment = async () => {
-      const delay = vietqrAttempt === 0 ? 8000 : 5000;
-      await new Promise((resolve) => setTimeout(resolve, delay));
+    if (!orderResult?.order_id) return;
 
-      const currentMethod = useOrderStore.getState().formData.payment_method;
-      if (currentMethod !== 'vietqr') return;
+    let isMounted = true;
+    const checkPaymentStatus = async () => {
+      try {
+        const res = await fetch(`http://localhost:4000/api/orders/${orderResult.order_id}`);
+        const json = await res.json();
 
-      if (vietqrAttempt === 0) {
-        useOrderStore.setState({ vietqrAttempt: 1 });
-        updateFormData({ payment_method: 'cod' });
-        setStep('failure');
-      } else {
-        const success = await submitOrder(true); // Bypass VietQR payment page step
-        if (!success) {
-          updateFormData({ payment_method: 'cod' });
-          setStep('failure');
+        if (res.ok && json.success && json.data) {
+          const order = json.data;
+          // Nếu đơn hàng đã được cập nhật thanh toán thành công trong database
+          if (order.payment_status === 'paid' || order.order_status === 'confirmed') {
+            if (isMounted) {
+              setStep('success');
+            }
+          }
         }
+      } catch (err) {
+        console.warn('Lỗi khi kiểm tra trạng thái thanh toán đơn hàng:', err);
       }
     };
-    checkPayment();
-  }, [vietqrAttempt, setStep, submitOrder, updateFormData]);
+
+    // Gọi kiểm tra ngay lập tức, sau đó polling mỗi 3 giây
+    checkPaymentStatus();
+    const interval = setInterval(checkPaymentStatus, 3000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [orderResult, setStep]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -1131,30 +1142,33 @@ function OrderPaymentModal() {
   return (
     <div className="fixed inset-0 bg-[#0a0a0ab8] backdrop-blur-md z-[9999] flex items-center justify-center p-4 md:p-8 overflow-y-auto animate-fadeIn">
       <div className="w-full max-w-5xl bg-[#0c0c0c] border border-white/10 rounded-[32px] p-6 md:p-10 shadow-2xl text-white relative animate-scaleUp">
-        
+
         {/* Close Button / Top header */}
-        <button 
-          onClick={() => updateFormData({ payment_method: 'cod' })}
+        <button
+          onClick={() => cancelActiveOrder()}
           className="absolute right-6 top-6 text-white/50 hover:text-white hover:bg-white/10 w-9 h-9 rounded-full flex items-center justify-center transition focus:outline-none"
         >
           <span className="text-2xl font-light">&times;</span>
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center mt-4">
-          
+
           {/* Cột trái: Mã QR Code */}
           <div className="lg:col-span-5 flex flex-col items-center">
             {/* Thẻ chứa QR Code bo góc dày viền vàng */}
-            <div className="w-72 h-72 md:w-80 md:h-80 bg-white rounded-[32px] p-6 flex items-center justify-center shadow-[0_15px_40px_rgba(0,0,0,0.5)] border-4 border-[#eab308] relative">
-              <svg className="w-56 h-56 text-black" viewBox="0 0 100 100" fill="currentColor">
-                {/* Position markers */}
-                <path d="M0,0 h25 v25 h-25 z M5,5 h15 v15 h-15 z M8,8 h9 v9 h-9 z" />
-                <path d="M75,0 h25 v25 h-25 z M80,5 h15 v15 h-15 z M83,8 h9 v9 h-9 z" />
-                <path d="M0,75 h25 v25 h-25 z M5,80 h15 v15 h-15 z M8,83 h9 v9 h-9 z" />
-                <path d="M75,75 h5 v5 h-5 z" />
-                {/* Fake QR data matrix */}
-                <path d="M35,3 h4 v4 h-4 z M45,0 h4 v8 h-4 z M55,3 h8 v4 h-8 z M65,0 h4 v4 h-4 z M30,10 h4 v8 h-4 z M40,15 h8 v4 h-8 z M52,10 h4 v4 h-4 z M60,15 h4 v4 h-4 z M35,22 h8 v4 h-8 z M48,20 h4 v4 h-4 z M58,22 h8 v4 h-8 z M30,30 h4 v4 h-4 z M38,32 h4 v8 h-4 z M48,30 h6 v4 h-6 z M60,32 h4 v4 h-4 z M70,30 h8 v4 h-8 z M0,35 h8 v4 h-8 z M12,38 h4 v4 h-4 z M22,35 h4 v4 h-4 z M30,42 h4 v4 h-4 z M38,45 h8 v4 h-8 z M52,42 h4 v4 h-4 z M62,45 h4 v4 h-4 z M70,42 h8 v4 h-8 z M85,35 h8 v4 h-8 z M95,38 h5 v4 h-5 z M5,48 h4 v4 h-4 z M15,52 h4 v4 h-4 z M25,48 h4 v4 h-4 z M30,55 h8 v4 h-8 z M42,52 h4 v4 h-4 z M52,55 h4 v4 h-4 z M60,52 h8 v4 h-8 z M75,48 h4 v4 h-4 z M85,52 h8 v4 h-8 z M95,55 h5 v4 h-5 z M0,60 h4 v8 h-4 z M8,65 h8 v4 h-8 z M20,62 h4 v4 h-4 z M32,60 h4 v4 h-4 z M40,65 h4 v4 h-4 z M48,60 h4 v8 h-4 z M58,65 h8 v4 h-8 z M70,62 h4 v4 h-4 z M80,60 h4 v4 h-4 z M90,65 h8 v4 h-8 z M35,70 h4 v4 h-4 z M45,72 h8 v4 h-8 z M58,70 h4 v4 h-4 z M65,72 h4 v4 h-4 z M30,80 h4 v4 h-4 z M40,82 h4 v4 h-4 z M48,80 h6 v4 h-6 z M60,82 h4 v4 h-4 z M70,80 h4 v8 h-4 z M35,90 h8 v4 h-8 z M48,92 h4 v4 h-4 z M58,90 h8 v4 h-8 z M85,85 h8 v4 h-8 z M95,88 h5 v4 h-5 z M90,92 h4 v4 h-4 z" />
-              </svg>
+            <div className="w-72 h-72 md:w-80 md:h-80 bg-white rounded-[32px] p-4 flex items-center justify-center shadow-[0_15px_40px_rgba(0,0,0,0.5)] border-4 border-white relative overflow-hidden">
+              {orderResult?.order_id ? (
+                <img
+                  src={`https://qr.sepay.vn/img?acc=0944368230&bank=MB&amount=${totalOrder}&des=PIZZA_INN_${orderResult.order_id}`}
+                  alt="Mã QR thanh toán VietQR"
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-3">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#eab308]"></div>
+                  <span className="text-[10px] md:text-xs text-black/40 font-bold uppercase tracking-wider">Đang tải mã QR...</span>
+                </div>
+              )}
             </div>
 
             {/* Pill đếm ngược thời gian hết hạn */}
@@ -1170,7 +1184,7 @@ function OrderPaymentModal() {
 
           {/* Cột phải: Thông tin & Trạng thái thanh toán */}
           <div className="lg:col-span-7 flex flex-col justify-center text-left">
-            
+
             {/* Nhãn bước cuối cùng */}
             <div className="self-start">
               <span className="bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] md:text-xs font-black px-3 py-1 rounded-full uppercase tracking-widest">
@@ -1195,7 +1209,7 @@ function OrderPaymentModal() {
               <div className="border-t border-white/[0.04] pt-3 flex justify-between items-center text-xs md:text-sm">
                 <span className="text-white/50 font-semibold">Nội dung chuyển khoản:</span>
                 <span className="font-mono text-sm md:text-base font-extrabold text-white bg-white/5 px-3 py-1 rounded-lg border border-white/10 uppercase tracking-wider">
-                  PIZZA_INN_{100 + (totalOrder % 900)}
+                  PIZZA_INN_{orderResult?.order_id}
                 </span>
               </div>
             </div>
@@ -1220,7 +1234,7 @@ function OrderPaymentModal() {
             <div className="mt-8 space-y-3">
               {/* Nút Thay đổi phương thức */}
               <button
-                onClick={() => updateFormData({ payment_method: 'cod' })}
+                onClick={() => cancelActiveOrder()}
                 className="w-full bg-[#141414] hover:bg-[#1a1a1a] border border-[#eab308]/20 hover:border-[#eab308]/40 text-[#eab308] rounded-xl py-3.5 flex items-center justify-center gap-2 font-extrabold tracking-wider text-xs md:text-sm shadow-md transition-all active:scale-[0.99]"
               >
                 <CreditCard size={16} />
@@ -1251,17 +1265,14 @@ function OrderPaymentModal() {
                     Bạn có chắc chắn muốn hủy đặt đơn hàng này? Giỏ hàng của bạn sẽ được giữ nguyên.
                   </p>
                   <div className="flex gap-3 w-full">
-                    <button 
+                    <button
                       onClick={() => setShowCancelConfirm(false)}
                       className="flex-1 py-3 bg-[#1e1e1e] hover:bg-[#252525] border border-white/5 rounded-xl text-white font-extrabold text-xs md:text-sm transition-all duration-200 active:scale-[0.98]"
                     >
                       Trở lại
                     </button>
-                    <button 
-                      onClick={() => {
-                        updateFormData({ payment_method: 'cod' });
-                        setShowCancelConfirm(false);
-                      }}
+                    <button
+                      onClick={() => cancelActiveOrder()}
                       className="flex-1 py-3 bg-[#cd3645] hover:bg-[#b52a38] text-white font-black text-xs md:text-sm rounded-xl transition-all duration-200 shadow-lg shadow-red-950/20 active:scale-[0.98]"
                     >
                       Hủy đơn
@@ -1555,7 +1566,7 @@ function cleanAddressForGeocoding(address: string): string {
 export default function CheckoutPage() {
   const router = useRouter();
   const { user, token } = useAuthStore();
-  const { step, formData, updateFormData, error } = useOrderStore();
+  const { step, formData, updateFormData, error, orderResult } = useOrderStore();
   const [isMounted, setIsMounted] = useState(false);
 
   // States cho address management
@@ -1855,8 +1866,8 @@ export default function CheckoutPage() {
 
   return (
     <div className="checkout-page">
-      {/* Pop-up modal thanh toán VietQR toàn màn hình khi người dùng chọn phương thức VietQR */}
-      {formData.payment_method === 'vietqr' && (
+      {/* Pop-up modal thanh toán VietQR toàn màn hình khi người dùng chọn phương thức VietQR và đơn hàng đã được tạo thành công */}
+      {formData.payment_method === 'vietqr' && orderResult && (step as string) === 'payment' && (
         <OrderPaymentModal />
       )}
       {/* Header */}

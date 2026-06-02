@@ -15,5 +15,10 @@ export declare class OrderController {
      * GET /api/orders/user/:user_id
      */
     static getOrdersByUser(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
+    /**
+     * Lấy danh sách đơn hàng theo số điện thoại.
+     * GET /api/orders/phone/:phone
+     */
+    static getOrdersByPhone(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
 }
 //# sourceMappingURL=orderController.d.ts.map

@@ -95,8 +95,19 @@ router.get('/orders', async (req: AuthRequest, res: Response): Promise<void> => 
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
     const status = req.query.status as string | undefined;
+    const userId = req.query.userId as string | undefined;
+    const phone = req.query.phone as string | undefined;
 
-    const where = status ? { order_status: status } : {};
+    const where: Record<string, any> = {};
+    if (status) where.order_status = status;
+    if (userId && userId !== 'null') {
+      where.user_id = parseInt(userId);
+    } else if (phone) {
+      where.OR = [
+        { customer_phone: phone },
+        { user: { phone } }
+      ];
+    }
 
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
@@ -137,9 +148,18 @@ router.patch('/orders/:id/status', async (req: AuthRequest, res: Response): Prom
     const updateData: Record<string, unknown> = { order_status };
 
     // Tự động cập nhật timestamp tương ứng
-    if (order_status === 'shipped') updateData.shipped_at = new Date();
+    if (order_status === 'confirmed') updateData.confirmed_at = new Date();
+    if (order_status === 'preparing') updateData.preparing_at = new Date();
+    if (order_status === 'shipped') {
+      updateData.shipped_at = new Date();
+      updateData.estimated_delivery_time = new Date(Date.now() + 15 * 60 * 1000); // Tự động cộng 15 phút
+    }
     if (order_status === 'arrived') updateData.arrived_at = new Date();
-    if (order_status === 'completed') updateData.completed_at = new Date();
+    if (order_status === 'completed') {
+      updateData.completed_at = new Date();
+      updateData.payment_status = 'paid'; // Tự động chuyển trạng thái thanh toán thành đã thanh toán
+    }
+    if (order_status === 'cancelled') updateData.cancelled_at = new Date();
 
     if (discount_amount !== undefined) updateData.discount_amount = parseInt(String(discount_amount)) || 0;
     if (shipping_fee !== undefined) updateData.shipping_fee = parseInt(String(shipping_fee)) || 0;
@@ -261,11 +281,38 @@ router.get('/orders/:id', async (req: AuthRequest, res: Response): Promise<void>
       return;
     }
 
-    if (order.user_address) {
-      order.user_address.address_line = cleanAddressLine(order.user_address.address_line);
+    const orderData = JSON.parse(JSON.stringify(order));
+
+    if (orderData.user_address) {
+      orderData.user_address.address_line = cleanAddressLine(orderData.user_address.address_line);
     }
 
-    sendSuccess(res, { data: order });
+    // Enrich combo selections with quantity from ComboGroup
+    if (orderData.items) {
+      for (const item of orderData.items) {
+        if (item.combo_id && item.combos) {
+          for (const sel of item.combos) {
+            if (sel.group_id) {
+              const group = await prisma.comboGroup.findUnique({
+                where: { group_id: sel.group_id }
+              });
+              sel.quantity = group?.max_select || 1;
+            } else {
+              sel.quantity = 1;
+            }
+
+            // Happy Family Combo + Pepsi override
+            const dishName = sel.dish_price?.dish?.dish_name || '';
+            const comboName = item.combo?.combo_name || '';
+            if (comboName.toLowerCase().includes('happy family') && dishName.toLowerCase() === 'pepsi') {
+              sel.quantity = 4;
+            }
+          }
+        }
+      }
+    }
+
+    sendSuccess(res, { data: orderData });
   } catch (err) {
     logger.error('Admin order detail error:', err);
     sendError(res, 'Lỗi khi lấy chi tiết đơn hàng', 500);
@@ -868,7 +915,7 @@ router.get('/customers', async (req: AuthRequest, res: Response): Promise<void> 
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
 
-    const [customers, total] = await Promise.all([
+    const [registeredCustomers, guestOrders] = await Promise.all([
       prisma.user.findMany({
         where: { role: 'customer' },
         select: {
@@ -877,14 +924,61 @@ router.get('/customers', async (req: AuthRequest, res: Response): Promise<void> 
           _count: { select: { orders: true } },
         },
         orderBy: { created_at: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
       }),
-      prisma.user.count({ where: { role: 'customer' } }),
+      prisma.order.findMany({
+        where: { user_id: null },
+        select: {
+          customer_name: true,
+          customer_phone: true,
+          customer_email: true,
+          created_at: true,
+        },
+        orderBy: { created_at: 'desc' },
+      }),
     ]);
 
+    // Aggregate guests by phone or email
+    const guestsMap = new Map<string, any>();
+    for (const order of guestOrders) {
+      const phone = order.customer_phone?.trim();
+      const email = order.customer_email?.trim();
+      const key = phone || email || 'unknown';
+      if (key === 'unknown') continue;
+
+      const existing = guestsMap.get(key);
+      if (existing) {
+        existing._count.orders += 1;
+        if (order.created_at && new Date(order.created_at) > new Date(existing.created_at)) {
+          existing.created_at = order.created_at;
+        }
+      } else {
+        guestsMap.set(key, {
+          user_id: null, // Identifies as guest
+          username: order.customer_name?.trim() || 'Khách vãng lai',
+          email: email || '',
+          phone: phone || '',
+          user_status: true,
+          created_at: order.created_at || new Date(),
+          role: 'guest',
+          _count: { orders: 1 },
+        });
+      }
+    }
+
+    const guests = Array.from(guestsMap.values());
+
+    // Merge and sort by created_at desc
+    const allCustomers = [...registeredCustomers, ...guests].sort((a, b) => {
+      const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return dateB - dateA;
+    });
+
+    const total = allCustomers.length;
+    const paginated = allCustomers.slice((page - 1) * limit, page * limit);
+
     sendSuccess(res, {
-      data: { customers, total, page, limit, totalPages: Math.ceil(total / limit) },
+      data: { customers: paginated, total, page, limit, totalPages: Math.ceil(total / limit) },
     });
   } catch (err) {
     logger.error('Admin customers error:', err);
@@ -1234,6 +1328,29 @@ router.patch('/chat/rooms/:roomId/read', async (req: AuthRequest, res: Response)
   } catch (err) {
     logger.error('Admin mark read error:', err);
     sendError(res, 'Lỗi khi đánh dấu đã đọc', 500);
+  }
+});
+
+/**
+ * DELETE /api/admin/chat/rooms/:roomId
+ * Xóa cuộc hội thoại (tự động cascade xóa tin nhắn và ảnh tin nhắn nhờ DB onDelete Cascade)
+ */
+router.delete('/chat/rooms/:roomId', async (req: AuthRequest, res: Response): Promise<void> => {
+  const roomId = parseInt(String(req.params.roomId));
+  if (isNaN(roomId)) {
+    sendError(res, 'Mã phòng không hợp lệ', 400);
+    return;
+  }
+
+  try {
+    await prisma.chatRoom.delete({
+      where: { room_id: roomId }
+    });
+
+    sendSuccess(res, { message: 'Xóa cuộc hội thoại thành công' });
+  } catch (err) {
+    logger.error('Admin delete chat room error:', err);
+    sendError(res, 'Lỗi khi xóa cuộc hội thoại', 500);
   }
 });
 

@@ -162,8 +162,16 @@ export default function AddressPickerVN({ initialAddress, onChange, error }: Add
     const parts = initialAddress.split(",").map((s) => s.trim());
     if (parts.length === 0) { setInitialized(true); return; }
 
+    const normalizeName = (name: string) => {
+      return name
+        .toLowerCase()
+        .replace(/^(thành phố|tỉnh|tp\.?|t\.)\s+/gi, "")
+        .replace(/^(phường|xã|thị trấn|thị xã|p\.?|x\.?)\s+/gi, "")
+        .trim();
+    };
+
     const matchProvince = (name: string) =>
-      provinces.find((p) => p.name.toLowerCase() === name.toLowerCase());
+      provinces.find((p) => normalizeName(p.name) === normalizeName(name));
 
     // Thử match tỉnh từ phần tử cuối
     for (let i = parts.length - 1; i >= 0; i--) {
@@ -181,7 +189,7 @@ export default function AddressPickerVN({ initialAddress, onChange, error }: Add
           .then((data) => {
             const ws: Ward[] = data.wards || [];
             setWards(ws);
-            const wardMatch = ws.find((w) => w.name.toLowerCase() === wardName.toLowerCase());
+            const wardMatch = ws.find((w) => normalizeName(w.name) === normalizeName(wardName));
             if (wardMatch) {
               setSelectedWard(String(wardMatch.code));
             } else if (wardName) {

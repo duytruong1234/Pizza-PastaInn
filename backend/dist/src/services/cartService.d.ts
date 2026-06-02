@@ -83,8 +83,8 @@ export declare class CartService {
         items: ({
             toppings: {
                 topping_id: number | null;
-                cart_item_id: number | null;
                 quantity: number | null;
+                cart_item_id: number | null;
                 cart_item_combo_id: number | null;
                 cart_item_half_id: number | null;
                 item_topping_id: number;
@@ -92,8 +92,8 @@ export declare class CartService {
             combos: ({
                 toppings: {
                     topping_id: number | null;
-                    cart_item_id: number | null;
                     quantity: number | null;
+                    cart_item_id: number | null;
                     cart_item_combo_id: number | null;
                     cart_item_half_id: number | null;
                     item_topping_id: number;
@@ -101,8 +101,8 @@ export declare class CartService {
                 halves: ({
                     cart_item_topping: {
                         topping_id: number | null;
-                        cart_item_id: number | null;
                         quantity: number | null;
+                        cart_item_id: number | null;
                         cart_item_combo_id: number | null;
                         cart_item_half_id: number | null;
                         item_topping_id: number;
@@ -117,16 +117,16 @@ export declare class CartService {
             } & {
                 dish_price_id: string | null;
                 group_id: string | null;
-                cart_item_id: number | null;
                 is_half_half: boolean | null;
+                cart_item_id: number | null;
                 cart_item_combo_id: number;
                 cart_combo_note: string | null;
             })[];
             halves: ({
                 cart_item_topping: {
                     topping_id: number | null;
-                    cart_item_id: number | null;
                     quantity: number | null;
+                    cart_item_id: number | null;
                     cart_item_combo_id: number | null;
                     cart_item_half_id: number | null;
                     item_topping_id: number;
@@ -141,10 +141,10 @@ export declare class CartService {
         } & {
             combo_id: number | null;
             dish_price_id: string | null;
-            cart_id: number | null;
-            cart_item_id: number;
             quantity: number | null;
             is_half_half: boolean | null;
+            cart_id: number | null;
+            cart_item_id: number;
             price_cart: number | null;
             cart_item_note: string | null;
         })[];
@@ -162,8 +162,8 @@ export declare class CartService {
         items: ({
             toppings: {
                 topping_id: number | null;
-                cart_item_id: number | null;
                 quantity: number | null;
+                cart_item_id: number | null;
                 cart_item_combo_id: number | null;
                 cart_item_half_id: number | null;
                 item_topping_id: number;
@@ -171,8 +171,8 @@ export declare class CartService {
             combos: ({
                 toppings: {
                     topping_id: number | null;
-                    cart_item_id: number | null;
                     quantity: number | null;
+                    cart_item_id: number | null;
                     cart_item_combo_id: number | null;
                     cart_item_half_id: number | null;
                     item_topping_id: number;
@@ -180,8 +180,8 @@ export declare class CartService {
                 halves: ({
                     cart_item_topping: {
                         topping_id: number | null;
-                        cart_item_id: number | null;
                         quantity: number | null;
+                        cart_item_id: number | null;
                         cart_item_combo_id: number | null;
                         cart_item_half_id: number | null;
                         item_topping_id: number;
@@ -196,16 +196,16 @@ export declare class CartService {
             } & {
                 dish_price_id: string | null;
                 group_id: string | null;
-                cart_item_id: number | null;
                 is_half_half: boolean | null;
+                cart_item_id: number | null;
                 cart_item_combo_id: number;
                 cart_combo_note: string | null;
             })[];
             halves: ({
                 cart_item_topping: {
                     topping_id: number | null;
-                    cart_item_id: number | null;
                     quantity: number | null;
+                    cart_item_id: number | null;
                     cart_item_combo_id: number | null;
                     cart_item_half_id: number | null;
                     item_topping_id: number;
@@ -220,10 +220,10 @@ export declare class CartService {
         } & {
             combo_id: number | null;
             dish_price_id: string | null;
-            cart_id: number | null;
-            cart_item_id: number;
             quantity: number | null;
             is_half_half: boolean | null;
+            cart_id: number | null;
+            cart_item_id: number;
             price_cart: number | null;
             cart_item_note: string | null;
         })[];

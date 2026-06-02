@@ -245,6 +245,12 @@ export default function ReviewsPage() {
   };
 
   const handleSubmitReview = async () => {
+    if (!user) {
+      alert('Vui lòng đăng nhập để gửi đánh giá của bạn!');
+      window.location.href = '/login?redirect=/reviews';
+      return;
+    }
+
     if (userRating === 0) {
       alert('Vui lòng chọn mức độ hài lòng của bạn!');
       return;
@@ -351,114 +357,146 @@ export default function ReviewsPage() {
               </p>
             </div>
 
-            {/* Rating */}
-            <div className="space-y-2 pt-2">
-              <span className={`text-[11px] font-extrabold tracking-wider uppercase block ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'}`}>
-                SATISFACTION LEVEL (*)
-              </span>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <StarIcon
-                    key={star}
-                    filled={star <= userRating}
-                    size={28}
-                    onClick={() => setUserRating(star)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Review Text */}
-            <div className="space-y-2">
-              <span className={`text-[11px] font-extrabold tracking-wider uppercase block ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'}`}>
-                YOUR REVIEW
-              </span>
-              <textarea
-                className={`w-full border rounded-2xl p-4 text-sm focus:outline-none transition-colors ${theme === 'dark'
-                    ? 'bg-[#0d0d0d] border-white/[0.06] focus:border-[#f5c043]/40 text-zinc-300 placeholder-zinc-650'
-                    : 'bg-gray-50 border-gray-200 focus:border-[#007a3f]/40 text-gray-800 placeholder-gray-400'
-                  }`}
-                placeholder="Share your experience about our dishes and service here..."
-                rows={4}
-                value={userComment}
-                onChange={e => setUserComment(e.target.value)}
-              />
-            </div>
-
-            {/* Attached Images */}
-            <div className="space-y-2">
-              <span className={`text-[11px] font-extrabold tracking-wider uppercase block ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'}`}>
-                REAL PHOTOS (MAXIMUM 5 IMAGES)
-              </span>
-
-              <div className="flex flex-wrap gap-3 items-center">
-                {reviewImages.map((img, idx) => (
-                  <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-white/10 group shadow-md shrink-0 select-none">
-                    <img src={img} alt="Attached review photo" className="w-full h-full object-cover" />
-                    <button
-                      onClick={() => handleRemovePhoto(idx)}
-                      className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity font-bold text-xs font-sans"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-
-                {reviewImages.length < 5 && (
-                  <button
-                    type="button"
-                    onClick={handleTriggerFileInput}
-                    disabled={isUploading}
-                    className={`w-16 h-16 rounded-xl border-2 border-dashed flex flex-col items-center justify-center transition-all select-none focus:outline-none cursor-pointer ${theme === 'dark'
-                        ? 'border-zinc-800 hover:border-[#f5c043]/30 bg-[#0d0d0d] hover:bg-zinc-900/40 text-zinc-500 hover:text-zinc-300'
-                        : 'border-gray-300 hover:border-[#007a3f]/30 bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600'
-                      } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <CameraIcon size={18} />
-                    <span className="text-[8px] font-black mt-1 tracking-wider uppercase">
-                      {isUploading ? 'LOADING...' : 'ADD PHOTO'}
-                    </span>
-                  </button>
-                )}
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleImageUpload}
-                  accept="image/*"
-                  className="hidden"
-                />
-              </div>
-            </div>
-
-            {/* Submit & Cancel Buttons */}
-            <div className="pt-2 space-y-2">
-              <button
-                onClick={handleSubmitReview}
-                className={`w-full font-black text-xs tracking-widest uppercase py-4 rounded-2xl shadow-lg active:scale-[0.99] transition-all cursor-pointer ${theme === 'dark'
-                    ? 'bg-[#f5c043] hover:bg-[#e5b33c] text-black'
-                    : 'bg-[#007a3f] hover:bg-[#006030] text-white'
-                  }`}
-              >
-                {editingReviewId ? 'UPDATE YOUR REVIEW' : 'SUBMIT YOUR REVIEW'}
-              </button>
-              {editingReviewId && (
+            {!user ? (
+              <div className="rounded-2xl border border-[#f5c043]/20 bg-[#f5c043]/5 p-6 text-center space-y-4 shadow-inner">
+                <div className="w-12 h-12 rounded-full bg-[#f5c043]/15 flex items-center justify-center mx-auto text-[#f5c043]">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                    <polyline points="10 17 15 12 10 7" />
+                    <line x1="15" y1="12" x2="3" y2="12" />
+                  </svg>
+                </div>
+                <div className="space-y-1.5">
+                  <h4 className={`text-base font-black uppercase tracking-wide ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+                    BẠN CẦN ĐĂNG NHẬP
+                  </h4>
+                  <p className={`text-xs font-medium leading-relaxed max-w-xs mx-auto ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}`}>
+                    Khách vãng lai không được phép bình luận. Vui lòng đăng nhập tài khoản của bạn để gửi đánh giá món ăn và dịch vụ.
+                  </p>
+                </div>
                 <button
                   type="button"
-                  onClick={handleCancelEdit}
-                  className={`w-full font-black text-xs tracking-widest uppercase py-3.5 rounded-2xl border transition-all cursor-pointer ${theme === 'dark'
-                      ? 'border-zinc-800 hover:border-zinc-700 bg-transparent text-zinc-400 hover:text-zinc-300'
-                      : 'border-gray-200 hover:border-gray-300 bg-transparent text-gray-500 hover:text-gray-600'
+                  onClick={() => window.location.href = '/login?redirect=/reviews'}
+                  className={`w-full font-black text-xs tracking-widest uppercase py-3.5 rounded-2xl shadow-md active:scale-[0.99] transition-all cursor-pointer ${theme === 'dark'
+                      ? 'bg-[#f5c043] hover:bg-[#e5b33c] text-black'
+                      : 'bg-[#007a3f] hover:bg-[#006030] text-white'
                     }`}
                 >
-                  CANCEL EDIT
+                  ĐĂNG NHẬP NGAY
                 </button>
-              )}
-              {submitted && (
-                <p className="text-center text-[#10b981] text-xs font-bold mt-2 animate-fadeIn">
-                  ✓ Thank you! Review submitted successfully.
-                </p>
-              )}
-            </div>
+              </div>
+            ) : (
+              <>
+                {/* Rating */}
+                <div className="space-y-2 pt-2">
+                  <span className={`text-[11px] font-extrabold tracking-wider uppercase block ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'}`}>
+                    SATISFACTION LEVEL (*)
+                  </span>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <StarIcon
+                        key={star}
+                        filled={star <= userRating}
+                        size={28}
+                        onClick={() => setUserRating(star)}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Review Text */}
+                <div className="space-y-2">
+                  <span className={`text-[11px] font-extrabold tracking-wider uppercase block ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'}`}>
+                    YOUR REVIEW
+                  </span>
+                  <textarea
+                    className={`w-full border rounded-2xl p-4 text-sm focus:outline-none transition-colors ${theme === 'dark'
+                        ? 'bg-[#0d0d0d] border-white/[0.06] focus:border-[#f5c043]/40 text-zinc-300 placeholder-zinc-650'
+                        : 'bg-gray-50 border-gray-200 focus:border-[#007a3f]/40 text-gray-800 placeholder-gray-400'
+                      }`}
+                    placeholder="Share your experience about our dishes and service here..."
+                    rows={4}
+                    value={userComment}
+                    onChange={e => setUserComment(e.target.value)}
+                  />
+                </div>
+
+                {/* Attached Images */}
+                <div className="space-y-2">
+                  <span className={`text-[11px] font-extrabold tracking-wider uppercase block ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'}`}>
+                    REAL PHOTOS (MAXIMUM 5 IMAGES)
+                  </span>
+
+                  <div className="flex flex-wrap gap-3 items-center">
+                    {reviewImages.map((img, idx) => (
+                      <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-white/10 group shadow-md shrink-0 select-none">
+                        <img src={img} alt="Attached review photo" className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => handleRemovePhoto(idx)}
+                          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity font-bold text-xs font-sans"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+
+                    {reviewImages.length < 5 && (
+                      <button
+                        type="button"
+                        onClick={handleTriggerFileInput}
+                        disabled={isUploading}
+                        className={`w-16 h-16 rounded-xl border-2 border-dashed flex flex-col items-center justify-center transition-all select-none focus:outline-none cursor-pointer ${theme === 'dark'
+                            ? 'border-zinc-800 hover:border-[#f5c043]/30 bg-[#0d0d0d] hover:bg-zinc-900/40 text-zinc-500 hover:text-zinc-300'
+                            : 'border-gray-300 hover:border-[#007a3f]/30 bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600'
+                          } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        <CameraIcon size={18} />
+                        <span className="text-[8px] font-black mt-1 tracking-wider uppercase">
+                          {isUploading ? 'LOADING...' : 'ADD PHOTO'}
+                        </span>
+                      </button>
+                    )}
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleImageUpload}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+
+                {/* Submit & Cancel Buttons */}
+                <div className="pt-2 space-y-2">
+                  <button
+                    onClick={handleSubmitReview}
+                    className={`w-full font-black text-xs tracking-widest uppercase py-4 rounded-2xl shadow-lg active:scale-[0.99] transition-all cursor-pointer ${theme === 'dark'
+                        ? 'bg-[#f5c043] hover:bg-[#e5b33c] text-black'
+                        : 'bg-[#007a3f] hover:bg-[#006030] text-white'
+                      }`}
+                  >
+                    {editingReviewId ? 'UPDATE YOUR REVIEW' : 'SUBMIT YOUR REVIEW'}
+                  </button>
+                  {editingReviewId && (
+                    <button
+                      type="button"
+                      onClick={handleCancelEdit}
+                      className={`w-full font-black text-xs tracking-widest uppercase py-3.5 rounded-2xl border transition-all cursor-pointer ${theme === 'dark'
+                          ? 'border-zinc-800 hover:border-zinc-700 bg-transparent text-zinc-400 hover:text-zinc-300'
+                          : 'border-gray-200 hover:border-gray-300 bg-transparent text-gray-500 hover:text-gray-600'
+                        }`}
+                    >
+                      CANCEL EDIT
+                    </button>
+                  )}
+                  {submitted && (
+                    <p className="text-center text-[#10b981] text-xs font-bold mt-2 animate-fadeIn">
+                      ✓ Thank you! Review submitted successfully.
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           {/* RIGHT COLUMN: REVIEWS LIST */}

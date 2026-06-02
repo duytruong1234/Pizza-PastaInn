@@ -34,8 +34,13 @@ app.use(
   })
 );
 
-// Parse JSON body
-app.use(express.json({ limit: '10mb' }));
+// Parse JSON body và lưu rawBody để xác thực chữ ký webhook SePay
+app.use(express.json({
+  limit: '10mb',
+  verify: (req: any, _res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 
 // Parse URL-encoded body (form data)
 app.use(express.urlencoded({ extended: true }));
@@ -128,6 +133,11 @@ app.use('/api/chat', chatRoutes);
 import adminRoutes from './routes/admin';
 app.use('/api/admin', adminRoutes);
 
+// Webhook routes (tiếp nhận thanh toán SePay)
+import webhookRoutes from './routes/webhook';
+app.use('/api/webhooks', webhookRoutes);
+app.use('/', webhookRoutes); // Fallback cho trường hợp cấu hình thiếu subpath ở cổng thanh toán SePay
+
 // ─── Global Error Handler ────────────────────────────────────────────────────
 
 app.use(globalErrorHandler);
@@ -151,3 +161,4 @@ startServer().catch((err) => {
 
 // Trigger restart after freeing port 4000
 export default app;
+// Trigger restart to load latest configurations.

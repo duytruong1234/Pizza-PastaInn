@@ -216,7 +216,7 @@ export default function CrustsPage() {
 
       <Modal isOpen={!!editingCrust} setIsOpen={() => setEditingCrust(null)} title="SỬA ĐẾ BÁNH">
         <div className="space-y-4 p-2">
-          <InputGroup label="TÊN ĐẾ BÁNH (*)" type="text" value={editingCrust?.crust_name || ""} handleChange={(e) => { setEditingCrust(prev => prev ? { ...prev, crust_name: e.target.value } : null); setEditError(""); }} error={editError} />
+          <InputGroup label="TÊN ĐẾ BÁNH (*)" type="text" placeholder="Nhập tên đế bánh" value={editingCrust?.crust_name || ""} handleChange={(e) => { setEditingCrust(prev => prev ? { ...prev, crust_name: e.target.value } : null); setEditError(""); }} error={editError} />
           <div className="flex items-center justify-between">
             <label className="text-sm font-semibold text-dark dark:text-white">HIỂN THỊ</label>
             <Switch checked={editingCrust?.is_visible || false} onChange={(checked) => setEditingCrust(prev => prev ? { ...prev, is_visible: checked } : null)} />
