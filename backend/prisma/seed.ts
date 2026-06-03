@@ -25,12 +25,14 @@ async function main() {
   
   await prisma.store.deleteMany();
   
-  // Tạo các chi nhánh cửa hàng
+  // Tạo các chi nhánh cửa hàng (với tọa độ GPS chính xác để tính khoảng cách giao hàng)
   await prisma.store.create({
     data: {
       store_name: 'District 5 Branch',
       address: '21 Dao Tan Street, An Dong Ward, Ho Chi Minh City, Vietnam',
       hotline: '028 3924 0343',
+      latitude: 10.7536,
+      longitude: 106.6634,
       is_active: true,
     },
   });
@@ -40,6 +42,8 @@ async function main() {
       store_name: 'District 7 Branch',
       address: 'C001 Pham Thai Buong Street, Tan Hung Ward, Ho Chi Minh City, Vietnam',
       hotline: '028 5412 1197 - 028 5412 1196',
+      latitude: 10.7296,
+      longitude: 106.7002,
       is_active: true,
     },
   });

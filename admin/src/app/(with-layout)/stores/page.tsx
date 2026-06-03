@@ -90,6 +90,19 @@ export default function StoresPage() {
     const errs: Record<string, string> = {};
     if (!form.store_name.trim()) errs.store_name = "Vui lòng nhập tên chi nhánh";
     if (!form.address.trim()) errs.address = "Vui lòng chọn địa chỉ";
+    // Validate coordinates if provided (Vietnam bounds)
+    if (form.latitude.trim()) {
+      const lat = parseFloat(form.latitude);
+      if (isNaN(lat) || lat < 8 || lat > 24) {
+        errs.latitude = "Vĩ độ không hợp lệ (8-24 cho Việt Nam)";
+      }
+    }
+    if (form.longitude.trim()) {
+      const lon = parseFloat(form.longitude);
+      if (isNaN(lon) || lon < 102 || lon > 110) {
+        errs.longitude = "Kinh độ không hợp lệ (102-110 cho Việt Nam)";
+      }
+    }
     return errs;
   };
 
@@ -315,20 +328,27 @@ export default function StoresPage() {
           />
           <div className="grid grid-cols-2 gap-4">
             <InputGroup
-              label="LATITUDE"
+              label="LATITUDE (*)"
               type="text"
-              placeholder="Nhập latitude"
+              placeholder="VD: 10.7536"
               value={addForm.latitude}
-              handleChange={(e) => setAddForm(prev => ({ ...prev, latitude: e.target.value }))}
+              handleChange={(e) => { setAddForm(prev => ({ ...prev, latitude: e.target.value })); setAddErrors(prev => ({ ...prev, latitude: "" })); }}
+              error={addErrors.latitude}
             />
             <InputGroup
-              label="LONGITUDE"
+              label="LONGITUDE (*)"
               type="text"
-              placeholder="Nhập longitude"
+              placeholder="VD: 106.6634"
               value={addForm.longitude}
-              handleChange={(e) => setAddForm(prev => ({ ...prev, longitude: e.target.value }))}
+              handleChange={(e) => { setAddForm(prev => ({ ...prev, longitude: e.target.value })); setAddErrors(prev => ({ ...prev, longitude: "" })); }}
+              error={addErrors.longitude}
             />
           </div>
+          {(!addForm.latitude.trim() || !addForm.longitude.trim()) && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs text-amber-700 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+              ⚠️ Tọa độ GPS cần thiết để tính phí giao hàng. Bạn có thể lấy tọa độ từ Google Maps (chuột phải → Tọa độ).
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <label className="text-sm font-semibold text-dark dark:text-white">HOẠT ĐỘNG</label>
             <Switch checked={addForm.is_active} onChange={(checked) => setAddForm(prev => ({ ...prev, is_active: checked }))} />
@@ -369,20 +389,27 @@ export default function StoresPage() {
           />
           <div className="grid grid-cols-2 gap-4">
             <InputGroup
-              label="LATITUDE"
+              label="LATITUDE (*)"
               type="text"
-              placeholder="Nhập latitude"
+              placeholder="VD: 10.7536"
               value={editForm.latitude}
-              handleChange={(e) => setEditForm(prev => ({ ...prev, latitude: e.target.value }))}
+              handleChange={(e) => { setEditForm(prev => ({ ...prev, latitude: e.target.value })); setEditErrors(prev => ({ ...prev, latitude: "" })); }}
+              error={editErrors.latitude}
             />
             <InputGroup
-              label="LONGITUDE"
+              label="LONGITUDE (*)"
               type="text"
-              placeholder="Nhập longitude"
+              placeholder="VD: 106.6634"
               value={editForm.longitude}
-              handleChange={(e) => setEditForm(prev => ({ ...prev, longitude: e.target.value }))}
+              handleChange={(e) => { setEditForm(prev => ({ ...prev, longitude: e.target.value })); setEditErrors(prev => ({ ...prev, longitude: "" })); }}
+              error={editErrors.longitude}
             />
           </div>
+          {(!editForm.latitude.trim() || !editForm.longitude.trim()) && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs text-amber-700 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+              ⚠️ Tọa độ GPS cần thiết để tính phí giao hàng. Bạn có thể lấy tọa độ từ Google Maps (chuột phải → Tọa độ).
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <label className="text-sm font-semibold text-dark dark:text-white">HOẠT ĐỘNG</label>
             <Switch checked={editForm.is_active} onChange={(checked) => setEditForm(prev => ({ ...prev, is_active: checked }))} />

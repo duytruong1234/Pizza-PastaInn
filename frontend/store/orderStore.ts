@@ -208,6 +208,9 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
         customer_email: formData.customer_email,
         customer_address: formData.customer_address,
         store_id: formData.store_id,
+        customer_latitude: formData.customer_lat,
+        customer_longitude: formData.customer_lon,
+        shipping_distance_meters: formData.distance,
         items,
       };
 

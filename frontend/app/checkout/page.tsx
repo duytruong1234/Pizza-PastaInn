@@ -1313,8 +1313,8 @@ function AddressSelectionModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-[4px] flex items-center justify-center z-[9999] p-4 animate-fadeIn" onClick={onClose}>
-      <div className="bg-[#121212] border border-white/10 rounded-2xl w-full max-w-[580px] max-h-[90vh] flex flex-col shadow-2xl overflow-hidden scale-100 transition-all" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-[4px] flex items-center justify-center z-[9999] p-4 animate-fadeIn">
+      <div className="bg-[#121212] border border-white/10 rounded-2xl w-full max-w-[580px] max-h-[90vh] flex flex-col shadow-2xl overflow-hidden scale-100 transition-all">
         <div className="p-5 border-b border-white/10 flex justify-between items-center">
           <h3 className="text-[16px] font-black text-white uppercase tracking-wider">Địa Chỉ Của Tôi</h3>
           <button className="text-white/50 hover:text-white hover:bg-white/10 p-1.5 rounded-full transition flex items-center justify-center focus:outline-none" onClick={onClose}>
@@ -1406,6 +1406,9 @@ function AddressFormModal({
   const [isDefault, setIsDefault] = useState(false);
   const [coordLat, setCoordLat] = useState<number | null>(null);
   const [coordLon, setCoordLon] = useState<number | null>(null);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  // Track if coords came from an explicit suggestion pick (vs loaded from existing address)
+  const [coordsConfirmed, setCoordsConfirmed] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -1417,6 +1420,8 @@ function AddressFormModal({
         setIsDefault(!!address.is_default);
         setCoordLat(address.latitude ?? null);
         setCoordLon(address.longitude ?? null);
+        // Existing saved addresses with coords are considered confirmed
+        setCoordsConfirmed(!!(address.latitude && address.longitude));
       } else {
         setName('');
         setPhone('');
@@ -1425,31 +1430,62 @@ function AddressFormModal({
         setIsDefault(false);
         setCoordLat(null);
         setCoordLon(null);
+        setCoordsConfirmed(false);
       }
     }
   }, [address, isOpen]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return alert('Vui lòng nhập họ tên');
     if (!phone.trim()) return alert('Vui lòng nhập số điện thoại');
     if (!addressDetail.trim()) return alert('Vui lòng nhập/chọn địa chỉ giao hàng');
+
+    let lat = coordLat;
+    let lon = coordLon;
+
+    // If no coordinates yet, try to geocode the address automatically before saving
+    if (lat == null || lon == null) {
+      setIsGeocoding(true);
+      try {
+        const res = await fetch(
+          `http://localhost:4000/api/shipping/geocode?q=${encodeURIComponent(addressDetail)}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+            const feature = data.data[0];
+            lon = feature.geometry?.coordinates?.[0] ?? feature.center?.[0] ?? null;
+            lat = feature.geometry?.coordinates?.[1] ?? feature.center?.[1] ?? null;
+            if (lat && lon) {
+              setCoordLat(lat);
+              setCoordLon(lon);
+              setCoordsConfirmed(true);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[AddressForm] Auto-geocode failed, saving without coordinates:', err);
+      } finally {
+        setIsGeocoding(false);
+      }
+    }
 
     onSave({
       recipient_name: name,
       recipient_phone: phone,
       address_detail: addressDetail,
       is_default: isDefault,
-      latitude: coordLat,
-      longitude: coordLon,
+      latitude: lat,
+      longitude: lon,
     });
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-[4px] flex items-center justify-center z-[9999] p-4 animate-fadeIn" onClick={onClose}>
-      <div className="bg-[#121212] border border-white/10 rounded-2xl w-full max-w-[520px] max-h-[90vh] flex flex-col shadow-2xl overflow-hidden scale-100 transition-all" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-[4px] flex items-center justify-center z-[9999] p-4 animate-fadeIn">
+      <div className="bg-[#121212] border border-white/10 rounded-2xl w-full max-w-[520px] max-h-[90vh] flex flex-col shadow-2xl overflow-hidden scale-100 transition-all">
         <div className="p-5 border-b border-white/10 flex justify-between items-center">
           <h3 className="text-[16px] font-black text-white uppercase tracking-wider">{address ? 'Cập Nhật Địa Chỉ' : 'Địa Chỉ Mới'}</h3>
           <button className="text-white/50 hover:text-white hover:bg-white/10 p-1.5 rounded-full transition flex items-center justify-center focus:outline-none" onClick={onClose}>
@@ -1484,15 +1520,42 @@ function AddressFormModal({
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-white/40 uppercase tracking-wider mb-1.5 block">Địa chỉ giao hàng (*)</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11px] font-bold text-white/40 uppercase tracking-wider">Địa chỉ giao hàng (*)</label>
+                  {/* Coordinate status badge */}
+                  {coordsConfirmed ? (
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2 py-0.5 rounded-full">
+                      <svg width="9" height="9" viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="5"/></svg>
+                      Tọa độ đã xác nhận
+                    </span>
+                  ) : addressDetail.trim() ? (
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-full">
+                      <svg width="9" height="9" viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="5"/></svg>
+                      Chọn gợi ý để chính xác hơn
+                    </span>
+                  ) : null}
+                </div>
                 <AddressPickerVN
                   initialAddress={initialFormAddress}
-                  onChange={(val) => setAddressDetail(val)}
+                  onChange={(val) => {
+                    setAddressDetail(val);
+                    // Clear coordinates when address text changes via typing (not suggestion pick)
+                    // They will be re-set by onSelectCoordinates if user picks a suggestion
+                    setCoordLat(null);
+                    setCoordLon(null);
+                    setCoordsConfirmed(false);
+                  }}
                   onSelectCoordinates={(lat, lon) => {
                     setCoordLat(lat);
                     setCoordLon(lon);
+                    setCoordsConfirmed(true);
                   }}
                 />
+                {!coordsConfirmed && addressDetail.trim() && (
+                  <p className="mt-1.5 text-[11px] text-amber-400/80 leading-snug">
+                    💡 Chọn địa chỉ từ danh sách gợi ý để lưu tọa độ chính xác và tính phí ship chuẩn hơn.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -1518,11 +1581,20 @@ function AddressFormModal({
                 Xóa
               </button>
             )}
-            <button type="button" className="flex-1 p-3.5 bg-white/5 border border-white/10 rounded-xl text-white font-bold text-[14px] hover:bg-white/10 transition text-center focus:outline-none" onClick={onClose}>
+            <button type="button" className="flex-1 p-3.5 bg-white/5 border border-white/10 rounded-xl text-white font-bold text-[14px] hover:bg-white/10 transition text-center focus:outline-none" onClick={onClose} disabled={isGeocoding}>
               Trở Lại
             </button>
-            <button type="submit" className="flex-1 p-3.5 bg-gradient-to-r from-[#cd3645] to-[#a02030] rounded-xl text-white font-black text-[14px] hover:scale-[1.01] hover:shadow-lg hover:shadow-[#cd3645]/20 transition-all text-center focus:outline-none">
-              Hoàn Thành
+            <button
+              type="submit"
+              disabled={isGeocoding}
+              className="flex-1 p-3.5 bg-gradient-to-r from-[#cd3645] to-[#a02030] rounded-xl text-white font-black text-[14px] hover:scale-[1.01] hover:shadow-lg hover:shadow-[#cd3645]/20 transition-all text-center focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center gap-2"
+            >
+              {isGeocoding ? (
+                <>
+                  <svg className="animate-spin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                  Đang xác định vị trí...
+                </>
+              ) : 'Hoàn Thành'}
             </button>
           </div>
         </form>
@@ -1532,7 +1604,9 @@ function AddressFormModal({
 }
 
 // Helper function to calculate Haversine distance in meters
-function getHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+// When useRoadFactor=true, multiplies by 1.35 to approximate actual road distance
+// (straight-line distance typically underestimates driving distance by 25-40% in Vietnamese cities)
+function getHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number, useRoadFactor = true): number {
   const R = 6371e3; // Earth's radius in meters
   const phi1 = (lat1 * Math.PI) / 180;
   const phi2 = (lat2 * Math.PI) / 180;
@@ -1544,19 +1618,50 @@ function getHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: nu
     Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-  return R * c; // Distance in meters
+  const straightLine = R * c; // Distance in meters
+  // Road factor: urban roads in Vietnam are typically 1.3-1.4x longer than straight-line
+  return useRoadFactor ? straightLine * 1.35 : straightLine;
 }
 
 // Helper to sanitize Vietnamese addresses so they parse correctly in Nominatim
 function cleanAddressForGeocoding(address: string): string {
   if (!address) return '';
   let cleaned = address;
+
+  // Remove phone numbers in parentheses, e.g. "(012642978766)"
+  cleaned = cleaned.replace(/\(\d[\d\s\-\.]{6,}\)/g, '');
+  // Remove standalone phone numbers (10+ digits)
+  cleaned = cleaned.replace(/\b0\d{9,}\b/g, '');
+
+  // Normalize HCM city names
   cleaned = cleaned.replace(/Thành phố Hồ Chí Minh/gi, 'Hồ Chí Minh');
-  cleaned = cleaned.replace(/TP\. Hồ Chí Minh/gi, 'Hồ Chí Minh');
-  cleaned = cleaned.replace(/TP\.HCM/gi, 'Hồ Chí Minh');
+  cleaned = cleaned.replace(/TP\.\s*Hồ Chí Minh/gi, 'Hồ Chí Minh');
+  cleaned = cleaned.replace(/TP\.?\s*HCM/gi, 'Hồ Chí Minh');
+
+  // Remove some administrative prefixes that confuse Nominatim,
+  // BUT keep "Quận" — removing it turns "Quận 1" into just "1" which is meaningless
   cleaned = cleaned.replace(/Phường\s+/gi, '');
   cleaned = cleaned.replace(/Xã\s+/gi, '');
   cleaned = cleaned.replace(/Thị trấn\s+/gi, '');
+  // Keep "Quận X" intact — Nominatim understands "Quận 1" better than just "1"
+  // cleaned = cleaned.replace(/Quận\s+/gi, ''); // REMOVED: caused "Quận 1" → "1"
+  cleaned = cleaned.replace(/Huyện\s+/gi, '');
+  cleaned = cleaned.replace(/Thị xã\s+/gi, '');
+  cleaned = cleaned.replace(/Tỉnh\s+/gi, '');
+  cleaned = cleaned.replace(/Thành phố\s+/gi, '');
+
+  // Normalize common abbreviations (more specific patterns to avoid false matches)
+  cleaned = cleaned.replace(/Đ\.\s*/gi, 'Đường ');
+  // P. and Q. only at word boundary or after comma to avoid false positives
+  cleaned = cleaned.replace(/(?:^|,\s*)P\.\s*/gi, (match) => match.replace(/P\.\s*/, ''));
+  cleaned = cleaned.replace(/(?:^|,\s*)Q\.\s*(\d)/gi, (_, num) => `Quận ${num}`);
+  cleaned = cleaned.replace(/TX\.\s*/gi, '');
+
+  // Remove duplicate commas and whitespace
+  cleaned = cleaned.replace(/,\s*,/g, ',');
+  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+  // Remove leading/trailing commas
+  cleaned = cleaned.replace(/^,\s*|,\s*$/g, '').trim();
   return cleaned;
 }
 
@@ -1657,55 +1762,69 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Helper: given user coords, find nearest store using OSRM road distance (like Google Maps)
+    // Helper: given user coords, find nearest store using Haversine distance
+    // Helper: given user coords, find nearest store and get shipping calculations from backend
     const computeDistanceFromCoords = async (userLat: number, userLon: number) => {
+      setIsCalculatingDistance(true);
+      try {
+        const res = await fetch('http://localhost:4000/api/shipping/calculate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ latitude: userLat, longitude: userLon })
+        });
+        if (res.ok) {
+          const resData = await res.json();
+          if (resData && resData.success && resData.data) {
+            const { store_id, store_name, distance_meters, shipping_fee } = resData.data;
+            console.log(`[Distance] 📍 CLOSEST (Backend): "${store_name}" at ${(distance_meters / 1000).toFixed(2)} km, Fee: ${shipping_fee}`);
+            updateFormData({
+              distance: distance_meters,
+              nearest_store_name: store_name,
+              shipping_fee: shipping_fee,
+              store_id: store_id,
+              customer_lat: userLat,
+              customer_lon: userLon,
+            });
+            return;
+          }
+        }
+        console.warn('[Distance] ⚠️ Backend calculation failed, falling back to local approximation');
+      } catch (err: any) {
+        console.warn('[Distance] ⚠️ Backend calculation error:', err.message);
+      } finally {
+        setIsCalculatingDistance(false);
+      }
+
+      // Local fallback (in case backend / OSRM is unreachable)
       if (stores.length === 0) return;
       let minDistance = Infinity;
       let closestStore: any = null;
 
-      for (const store of stores) {
+      const validStores = stores.filter((store) => {
+        const lat = parseFloat(store.latitude);
+        const lon = parseFloat(store.longitude);
+        return !isNaN(lat) && !isNaN(lon);
+      });
+
+      for (const store of validStores) {
         const storeLat = parseFloat(store.latitude);
         const storeLon = parseFloat(store.longitude);
-
-        if (!isNaN(storeLat) && !isNaN(storeLon)) {
-          let dist: number;
-
-          try {
-            // OSRM API: calculates actual road distance (not straight-line)
-            // Format: /route/v1/driving/lon1,lat1;lon2,lat2 (note: lon first!)
-            const osrmRes = await fetch(
-              `https://router.project-osrm.org/route/v1/driving/${userLon},${userLat};${storeLon},${storeLat}?overview=false`
-            );
-            const osrmData = await osrmRes.json();
-
-            if (osrmData.code === 'Ok' && osrmData.routes?.[0]) {
-              dist = osrmData.routes[0].distance; // meters (road distance)
-              console.log(`[Distance] Store "${store.store_name}": ${(dist / 1000).toFixed(2)} km (OSRM road)`);
-            } else {
-              // Fallback to Haversine if OSRM fails
-              dist = getHaversineDistance(userLat, userLon, storeLat, storeLon);
-              console.log(`[Distance] Store "${store.store_name}": ${(dist / 1000).toFixed(2)} km (Haversine fallback)`);
-            }
-          } catch {
-            // Fallback to Haversine if network error
-            dist = getHaversineDistance(userLat, userLon, storeLat, storeLon);
-            console.log(`[Distance] Store "${store.store_name}": ${(dist / 1000).toFixed(2)} km (Haversine fallback)`);
-          }
-
-          if (dist < minDistance) {
-            minDistance = dist;
-            closestStore = store;
-          }
+        const dist = getHaversineDistance(userLat, userLon, storeLat, storeLon);
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestStore = store;
         }
       }
 
       if (closestStore) {
-        console.log(`[Distance] CLOSEST: "${closestStore.store_name}" at ${(minDistance / 1000).toFixed(2)} km`);
         const shippingFee = minDistance > 5000 ? 20000 : 0;
         updateFormData({
           distance: minDistance,
           nearest_store_name: closestStore.store_name,
           shipping_fee: shippingFee,
+          store_id: closestStore.store_id,
+          customer_lat: userLat,
+          customer_lon: userLon,
         });
       }
     };
@@ -1713,53 +1832,73 @@ export default function CheckoutPage() {
     // If we already have stored coordinates (from saved address or AddressPickerVN), use them directly
     if (formData.customer_lat != null && formData.customer_lon != null) {
       console.log('[Distance] Using stored coordinates:', formData.customer_lat, formData.customer_lon);
-      (async () => {
-        setIsCalculatingDistance(true);
-        try {
-          await computeDistanceFromCoords(formData.customer_lat!, formData.customer_lon!);
-        } finally {
-          setIsCalculatingDistance(false);
-        }
-      })();
+      computeDistanceFromCoords(formData.customer_lat, formData.customer_lon);
       return;
     }
 
-    // Fallback: geocode via Nominatim with progressive stripping
+    // Fallback: geocode via Backend MapTiler endpoint with progressive stripping
     const timer = setTimeout(async () => {
       setIsCalculatingDistance(true);
       try {
         const originalAddress = formData.customer_address;
         const cleanedAddress = cleanAddressForGeocoding(originalAddress);
-        const headers = { 'User-Agent': 'PizzaInn-Distance-Calc-Agent' };
+
+        console.log(`[Distance] Original address: "${originalAddress}"`);
+        console.log(`[Distance] Cleaned address: "${cleanedAddress}"`);
 
         const parts = cleanedAddress.split(',').map((s) => s.trim()).filter(Boolean);
         let data: any[] = [];
 
+        // Strategy 1: Progressive stripping (original approach, now with cleaned address)
         for (let i = 0; i < parts.length - 1; i++) {
           const queryText = parts.slice(i).join(', ');
           console.log(`[Distance] Geocoding attempt ${i + 1}: "${queryText}"`);
 
           const res = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-              queryText
-            )}&limit=1&countrycodes=vn&accept-language=vi`,
-            { headers }
+            `http://localhost:4000/api/shipping/geocode?q=${encodeURIComponent(queryText)}`
           );
-          data = await res.json();
+          if (res.ok) {
+            const resData = await res.json();
+            if (resData && resData.success && Array.isArray(resData.data) && resData.data.length > 0) {
+              const bestResult = resData.data[0];
+              const lon = bestResult.geometry?.coordinates?.[0] ?? bestResult.center?.[0] ?? 0;
+              const lat = bestResult.geometry?.coordinates?.[1] ?? bestResult.center?.[1] ?? 0;
+              data = [{ lat, lon, display_name: bestResult.place_name || bestResult.text }];
+              console.log(`[Distance] Found result on attempt ${i + 1}:`, bestResult.place_name || bestResult.text);
+              break;
+            }
+          }
+        }
 
-          if (Array.isArray(data) && data.length > 0) {
-            console.log(`[Distance] Found result on attempt ${i + 1}:`, data[0].display_name);
-            break;
+        // Strategy 2: If all progressive attempts failed, try structured search
+        if (data.length === 0) {
+          const simplifiedQuery = parts.slice(Math.max(0, parts.length - 3)).join(', ');
+          console.log(`[Distance] Structured fallback: "${simplifiedQuery}"`);
+          
+          const res = await fetch(
+            `http://localhost:4000/api/shipping/geocode?q=${encodeURIComponent(simplifiedQuery)}`
+          );
+          if (res.ok) {
+            const resData = await res.json();
+            if (resData && resData.success && Array.isArray(resData.data) && resData.data.length > 0) {
+              const bestResult = resData.data[0];
+              const lon = bestResult.geometry?.coordinates?.[0] ?? bestResult.center?.[0] ?? 0;
+              const lat = bestResult.geometry?.coordinates?.[1] ?? bestResult.center?.[1] ?? 0;
+              data = [{ lat, lon, display_name: bestResult.place_name || bestResult.text }];
+              console.log(`[Distance] Structured fallback found:`, bestResult.place_name || bestResult.text);
+            }
           }
         }
 
         if (Array.isArray(data) && data.length > 0) {
           const userLat = parseFloat(data[0].lat);
           const userLon = parseFloat(data[0].lon);
-          console.log('[Distance] User coords (Nominatim):', userLat, userLon);
+          console.log('[Distance] User coords (Backend MapTiler):', userLat, userLon);
 
-          if (!isNaN(userLat) && !isNaN(userLon)) {
-            await computeDistanceFromCoords(userLat, userLon);
+          if (!isNaN(userLat) && !isNaN(userLon) && userLat >= 8 && userLat <= 24 && userLon >= 102 && userLon <= 110) {
+            computeDistanceFromCoords(userLat, userLon);
+          } else {
+            console.warn(`[Distance] Geocoded coordinates (${userLat}, ${userLon}) are outside Vietnam, ignoring`);
           }
         } else {
           console.warn('[Distance] No geocoding result found for:', originalAddress);

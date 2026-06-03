@@ -1,4 +1,5 @@
 import prisma from '../lib/prisma';
+import { ShippingService } from './shippingService';
 
 // ── Kiểu dữ liệu cho request body tạo đơn hàng ─────────────────────────────
 
@@ -52,8 +53,11 @@ export interface CreateOrderInput {
   customer_phone?: string;
   customer_email?: string;
   customer_address?: string;
-  // Thông tin cửa hàng pickup
+  // Thông tin cửa hàng và vị trí giao hàng
   store_id?: number;
+  customer_latitude?: number;
+  customer_longitude?: number;
+  shipping_distance_meters?: number;
   // Items
   items: OrderItemInput[];
 }
@@ -204,6 +208,28 @@ export class OrderService {
         }
       }
 
+      // Recalculate shipping parameters at backend for security and accuracy (delivery only)
+      let storeId = input.store_id || null;
+      let shippingFee = input.shipping_fee || 0;
+      let distanceMeters = input.shipping_distance_meters || null;
+
+      if (input.order_type === 'delivery' && input.customer_latitude != null && input.customer_longitude != null) {
+        try {
+          const calc = await ShippingService.calculateShipping(
+            Number(input.customer_latitude),
+            Number(input.customer_longitude)
+          );
+          
+          console.log(`[OrderService] Verified shipping for delivery order. Calculated store_id: ${calc.store_id}, distance: ${calc.distance_meters}m, fee: ${calc.shipping_fee}. Client sent store_id: ${storeId}, distance: ${distanceMeters}m, fee: ${shippingFee}`);
+          
+          storeId = calc.store_id;
+          distanceMeters = calc.distance_meters;
+          shippingFee = calc.shipping_fee;
+        } catch (calcErr: any) {
+          console.error('[OrderService] Error recalculating shipping on order creation, using client values as fallback:', calcErr.message);
+        }
+      }
+
       // 4. Tạo đơn hàng
       const order = await tx.order.create({
         data: {
@@ -212,9 +238,9 @@ export class OrderService {
           payment_method: input.payment_method,
           payment_status: (input.payment_method === 'cod' || input.payment_method === 'vietqr') ? 'pending' : 'paid',
           total_price_dish: input.total_price_dish,
-          shipping_fee: input.shipping_fee || 0,
+          shipping_fee: shippingFee,
           discount_amount: input.discount_amount || 0,
-          total_order: input.payment_method === 'vietqr' ? 2000 : input.total_order,
+          total_order: input.payment_method === 'vietqr' ? 2000 : (input.total_price_dish + shippingFee - (input.discount_amount || 0)),
           order_note: input.order_note || null,
           order_status: 'pending',
           order_type: input.order_type,
@@ -226,6 +252,10 @@ export class OrderService {
           customer_name: customerName || null,
           customer_phone: customerPhone || null,
           customer_email: customerEmail || null,
+          store_id: storeId,
+          customer_latitude: input.customer_latitude || null,
+          customer_longitude: input.customer_longitude || null,
+          shipping_distance_meters: distanceMeters,
         },
       });
 
@@ -531,6 +561,7 @@ export class OrderService {
           },
         },
         user_address: true,
+        store: true,
         items: {
           include: {
             toppings: true,
@@ -567,6 +598,7 @@ export class OrderService {
       where: { user_id },
       include: {
         user_address: true,
+        store: true,
         items: {
           include: {
             dish_price: {
@@ -649,6 +681,7 @@ export class OrderService {
       },
       include: {
         user_address: true,
+        store: true,
         items: {
           include: {
             dish_price: {

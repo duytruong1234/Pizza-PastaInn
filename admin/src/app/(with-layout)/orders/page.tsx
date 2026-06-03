@@ -24,12 +24,18 @@ interface Order {
   customer_name?: string;
   customer_phone?: string;
   customer_email?: string;
+  store_id?: number;
+  store?: { store_id: number; store_name: string; address: string };
+  customer_latitude?: number;
+  customer_longitude?: number;
+  shipping_distance_meters?: number;
   items?: any[];
   confirmed_at?: string;
   preparing_at?: string;
   shipped_at?: string;
   completed_at?: string;
   cancelled_at?: string;
+  estimated_delivery_time?: string;
 }
 
 const STATUS_COLORS: Record<string, "warning" | "info" | "primary" | "secondary" | "success" | "danger"> = {
@@ -349,6 +355,41 @@ function OrderDetailModal({
               </div>
             </div>
           </div>
+
+          {/* Thông tin giao hàng / Cửa hàng xử lý */}
+          {(order.store || order.shipping_distance_meters || order.customer_latitude) && (
+            <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 dark:border-blue-800/30 dark:bg-blue-950/20">
+              <h3 className="text-sm font-bold text-dark dark:text-white mb-3 uppercase tracking-wide flex items-center gap-2">
+                <span>📍</span> Thông tin giao hàng
+              </h3>
+              <div className="space-y-2 text-sm">
+                {order.store && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Cửa hàng xử lý:</span>
+                    <span className="font-bold text-primary">
+                      {order.store.store_name}
+                    </span>
+                  </div>
+                )}
+                {order.shipping_distance_meters != null && order.shipping_distance_meters > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Khoảng cách:</span>
+                    <span className="font-bold text-dark dark:text-white">
+                      {(Number(order.shipping_distance_meters) / 1000).toFixed(2)} km
+                    </span>
+                  </div>
+                )}
+                {order.customer_latitude != null && order.customer_longitude != null && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Tọa độ khách:</span>
+                    <span className="font-medium text-gray-600 dark:text-gray-300 text-xs">
+                      {Number(order.customer_latitude).toFixed(7)}, {Number(order.customer_longitude).toFixed(7)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Chi tiết món */}
           <div className="rounded-xl border border-stroke p-4 dark:border-dark-3">

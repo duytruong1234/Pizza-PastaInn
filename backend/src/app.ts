@@ -121,6 +121,10 @@ app.use('/api/orders', orderRoutes);
 import addressRoutes from './routes/address';
 app.use('/api/addresses', addressRoutes);
 
+// Shipping routes (geocoding + routing calculations)
+import shippingRoutes from './routes/shipping';
+app.use('/api/shipping', shippingRoutes);
+
 // Customer review routes
 import reviewRoutes from './routes/review';
 app.use('/api/reviews', reviewRoutes);

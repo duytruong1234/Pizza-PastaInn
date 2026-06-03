@@ -852,17 +852,30 @@ router.post('/stores', async (req: AuthRequest, res: Response): Promise<void> =>
       sendError(res, 'Tên chi nhánh không được để trống', 400);
       return;
     }
+    // Validate coordinates if provided (must be within Vietnam bounds)
+    const lat = latitude != null ? parseFloat(latitude) : null;
+    const lon = longitude != null ? parseFloat(longitude) : null;
+    if (lat != null && (isNaN(lat) || lat < 8 || lat > 24)) {
+      sendError(res, 'Vĩ độ (latitude) không hợp lệ. Phải nằm trong khoảng 8-24 cho Việt Nam.', 400);
+      return;
+    }
+    if (lon != null && (isNaN(lon) || lon < 102 || lon > 110)) {
+      sendError(res, 'Kinh độ (longitude) không hợp lệ. Phải nằm trong khoảng 102-110 cho Việt Nam.', 400);
+      return;
+    }
     const store = await prisma.store.create({
       data: {
         store_name: store_name.trim(),
         address: address?.trim() || null,
         hotline: hotline?.trim() || null,
-        latitude: latitude || null,
-        longitude: longitude || null,
+        latitude: lat,
+        longitude: lon,
         is_active: is_active ?? true,
       },
     });
-    sendSuccess(res, { data: store, message: 'Thêm chi nhánh thành công' }, 201);
+    // Warn if coordinates missing (needed for delivery fee calculation)
+    const warning = (lat == null || lon == null) ? ' ⚠️ Thiếu tọa độ GPS - chức năng tính phí giao hàng sẽ không hoạt động cho chi nhánh này.' : '';
+    sendSuccess(res, { data: store, message: 'Thêm chi nhánh thành công' + warning }, 201);
   } catch (err) {
     logger.error('Admin create store error:', err);
     sendError(res, 'Lỗi khi thêm chi nhánh', 500);
@@ -878,18 +891,30 @@ router.put('/stores/:id', async (req: AuthRequest, res: Response): Promise<void>
       sendError(res, 'Tên chi nhánh không được để trống', 400);
       return;
     }
+    // Validate coordinates if provided (must be within Vietnam bounds)
+    const lat = latitude != null ? parseFloat(latitude) : null;
+    const lon = longitude != null ? parseFloat(longitude) : null;
+    if (lat != null && (isNaN(lat) || lat < 8 || lat > 24)) {
+      sendError(res, 'Vĩ độ (latitude) không hợp lệ. Phải nằm trong khoảng 8-24 cho Việt Nam.', 400);
+      return;
+    }
+    if (lon != null && (isNaN(lon) || lon < 102 || lon > 110)) {
+      sendError(res, 'Kinh độ (longitude) không hợp lệ. Phải nằm trong khoảng 102-110 cho Việt Nam.', 400);
+      return;
+    }
     const store = await prisma.store.update({
       where: { store_id: id },
       data: {
         store_name: store_name.trim(),
         address: address?.trim() || null,
         hotline: hotline?.trim() || null,
-        latitude: latitude || null,
-        longitude: longitude || null,
+        latitude: lat,
+        longitude: lon,
         is_active,
       },
     });
-    sendSuccess(res, { data: store, message: 'Cập nhật chi nhánh thành công' });
+    const warning = (lat == null || lon == null) ? ' ⚠️ Thiếu tọa độ GPS - chức năng tính phí giao hàng sẽ không hoạt động cho chi nhánh này.' : '';
+    sendSuccess(res, { data: store, message: 'Cập nhật chi nhánh thành công' + warning });
   } catch (err) {
     logger.error('Admin update store error:', err);
     sendError(res, 'Lỗi khi cập nhật chi nhánh', 500);

@@ -4,7 +4,7 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { Loader, MapPin } from "lucide-react";
 
-const API_BASE = "https://provinces.open-api.vn/api";
+const API_BASE = "https://provinces.open-api.vn/api/v2";
 
 interface Province {
   code: number;
@@ -42,6 +42,7 @@ export default function AddressPickerVN({
   const [loadingWards, setLoadingWards] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const lastSentAddressRef = useRef(initialAddress || "");
+  const lastParsedAddressRef = useRef(initialAddress || "");
 
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -76,20 +77,23 @@ export default function AddressPickerVN({
         provinceObj ? provinceObj.name : ""
       ].filter(Boolean).join(", ");
 
-      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchContext)}&limit=5&countrycodes=vn&accept-language=vi`)
+      fetch(`http://localhost:4000/api/shipping/geocode?q=${encodeURIComponent(searchContext)}`)
         .then((res) => res.json())
-        .then((data) => {
-          if (data && Array.isArray(data)) {
-            const items = data.map((item: any) => {
-              const parts = item.display_name.split(",").map((s: string) => s.trim());
+        .then((resData) => {
+          if (resData && resData.success && Array.isArray(resData.data)) {
+            const items = resData.data.map((feature: any) => {
+              const placeName = feature.place_name || feature.text || "";
+              const parts = placeName.split(",").map((s: string) => s.trim());
               const mainText = parts.slice(0, Math.max(1, parts.length - 4)).join(", ") || parts[0];
               const secondaryText = parts.slice(Math.max(1, parts.length - 4)).join(", ");
+              const lon = feature.geometry?.coordinates?.[0] ?? feature.center?.[0] ?? 0;
+              const lat = feature.geometry?.coordinates?.[1] ?? feature.center?.[1] ?? 0;
               return {
-                display_name: item.display_name,
+                display_name: placeName,
                 mainText,
                 secondaryText,
-                lat: parseFloat(item.lat),
-                lon: parseFloat(item.lon)
+                lat,
+                lon
               };
             });
             setSuggestions(items);
@@ -135,20 +139,16 @@ export default function AddressPickerVN({
     setLoadingWards(true);
     setWards([]);
     setSelectedWard("");
-    fetch(`${API_BASE}/p/${selectedProvince}?depth=3`)
+    fetch(`${API_BASE}/w/?province=${selectedProvince}`)
       .then((res) => res.json())
       .then((data) => {
         const wsList: Ward[] = [];
-        if (data && data.districts) {
-          data.districts.forEach((d: any) => {
-            if (d.wards) {
-              d.wards.forEach((w: any) => {
-                wsList.push({
-                  code: w.code,
-                  name: `${w.name}, ${d.name}`
-                });
-              });
-            }
+        if (data && Array.isArray(data)) {
+          data.forEach((w: any) => {
+            wsList.push({
+              code: w.code,
+              name: w.name
+            });
           });
         }
         setWards(wsList);
@@ -198,18 +198,30 @@ export default function AddressPickerVN({
   useEffect(() => {
     if (provinces.length === 0) return;
 
+    // Nếu địa chỉ trùng với địa chỉ đã parse trước đó, không cần parse lại
+    if (initialAddress === lastParsedAddressRef.current) {
+      return;
+    }
+
     // Nếu địa chỉ trùng với địa chỉ vừa gửi đi, không cần parse lại
     if (initialAddress === lastSentAddressRef.current) {
+      lastParsedAddressRef.current = initialAddress || "";
       if (!initialized) setInitialized(true);
       return;
     }
 
-    const parts = (initialAddress || "").split(",").map((s) => s.trim());
-    if (parts.length === 0 || !initialAddress) {
+    lastParsedAddressRef.current = initialAddress || "";
+
+    if (!initialAddress) {
+      setSelectedProvince("");
+      setSelectedWard("");
+      setAddressDetail("");
+      lastSentAddressRef.current = "";
       setInitialized(true);
       return;
     }
 
+    const parts = initialAddress.split(",").map((s) => s.trim());
     const matchProvince = (name: string) =>
       provinces.find(
         (p) =>
@@ -222,43 +234,65 @@ export default function AddressPickerVN({
       const provinceMatch = matchProvince(parts[i]);
       if (provinceMatch) {
         const wardName = i - 1 >= 0 ? parts[i - 1] : "";
+        const compoundWardName = (i - 2 >= 0) ? `${parts[i - 2]}, ${parts[i - 1]}` : "";
         const detail = parts.slice(0, Math.max(0, i - 1)).join(", ");
 
         setSelectedProvince(String(provinceMatch.code));
         if (detail) setAddressDetail(detail);
 
-        fetch(`${API_BASE}/p/${provinceMatch.code}?depth=3`)
+        fetch(`${API_BASE}/w/?province=${provinceMatch.code}`)
           .then((r) => r.json())
           .then((data) => {
             const wsList: Ward[] = [];
-            if (data && data.districts) {
-              data.districts.forEach((d: any) => {
-                if (d.wards) {
-                  d.wards.forEach((w: any) => {
-                    wsList.push({
-                      code: w.code,
-                      name: `${w.name}, ${d.name}`
-                    });
-                  });
-                }
+            if (data && Array.isArray(data)) {
+              data.forEach((w: any) => {
+                wsList.push({
+                  code: w.code,
+                  name: w.name
+                });
               });
             }
             setWards(wsList);
             const wardMatch = wsList.find(
-              (w) =>
-                w.name.toLowerCase() === wardName.toLowerCase() ||
-                w.name.toLowerCase().replace(/phường\s+|xã\s+|thị\s+trấn\s+/g, "") ===
-                  wardName.toLowerCase().replace(/phường\s+|xã\s+|thị\s+trấn\s+/g, "") ||
-                w.name.toLowerCase().split(",")[0].trim() === wardName.toLowerCase() ||
-                w.name.toLowerCase().split(",")[0].trim().replace(/phường\s+|xã\s+|thị\s+trấn\s+/g, "") ===
-                  wardName.toLowerCase().replace(/phường\s+|xã\s+|thị\s+trấn\s+/g, "")
+              (w) => {
+                const nameLower = w.name.toLowerCase();
+                const cleanName = nameLower.replace(/phường\s+|xã\s+|thị\s+trấn\s+/g, "").trim();
+                
+                const checkMatch = (str: string) => {
+                  if (!str) return false;
+                  const strLower = str.toLowerCase();
+                  const cleanStr = strLower.replace(/phường\s+|xã\s+|thị\s+trấn\s+/g, "").trim();
+                  return (
+                    nameLower === strLower ||
+                    cleanName === cleanStr ||
+                    (cleanName.length > 2 && cleanStr.length > 2 && (cleanName.startsWith(cleanStr) || cleanStr.startsWith(cleanName)))
+                  );
+                };
+
+                return checkMatch(wardName) || (i - 2 >= 0 && checkMatch(parts[i - 2]));
+              }
             );
+
             if (wardMatch) {
               setSelectedWard(String(wardMatch.code));
+              const checkMatch = (str: string) => {
+                if (!str) return false;
+                const strLower = str.toLowerCase();
+                const cleanStr = strLower.replace(/phường\s+|xã\s+|thị\s+trấn\s+/g, "").trim();
+                return (
+                  wardMatch.name.toLowerCase() === strLower ||
+                  wardMatch.name.toLowerCase().replace(/phường\s+|xã\s+|thị\s+trấn\s+/g, "").trim() === cleanStr ||
+                  (cleanStr.length > 2 && (wardMatch.name.toLowerCase().replace(/phường\s+|xã\s+|thị\s+trấn\s+/g, "").trim().startsWith(cleanStr) || cleanStr.startsWith(wardMatch.name.toLowerCase().replace(/phường\s+|xã\s+|thị\s+trấn\s+/g, "").trim())))
+                );
+              };
+
+              const matchedIndex = (i - 2 >= 0 && checkMatch(parts[i - 2])) ? (i - 2) : (i - 1);
+              const realDetail = parts.slice(0, Math.max(0, matchedIndex)).join(", ");
+              setAddressDetail(realDetail);
             } else if (wardName) {
               setAddressDetail(parts.slice(0, i).join(", "));
             }
-            lastSentAddressRef.current = initialAddress;
+            lastSentAddressRef.current = initialAddress || "";
             setInitialized(true);
           })
           .catch(() => setInitialized(true));
@@ -266,8 +300,8 @@ export default function AddressPickerVN({
       }
     }
 
-    setAddressDetail(initialAddress);
-    lastSentAddressRef.current = initialAddress;
+    setAddressDetail(initialAddress || "");
+    lastSentAddressRef.current = initialAddress || "";
     setInitialized(true);
   }, [initialAddress, provinces]);
 

@@ -126,6 +126,7 @@ model Store {
   longitude  Decimal? @db.Decimal
   hotline    String?  @db.VarChar(100)
   is_active  Boolean?
+  orders     Order[]
 
   @@map("stores")
 }
@@ -258,9 +259,14 @@ model Order {
   customer_name           String?      @db.VarChar(255)
   customer_phone          String?      @db.VarChar(20)
   customer_email          String?      @db.VarChar(255)
+  store_id                Int?
+  customer_latitude       Decimal?     @db.Decimal(10, 7)
+  customer_longitude      Decimal?     @db.Decimal(10, 7)
+  shipping_distance_meters Decimal?
   items                   OrderItem[]
   user_address            UserAddress? @relation(fields: [user_address_id], references: [user_address_id], onDelete: NoAction, onUpdate: NoAction)
   user                    User?        @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  store                   Store?       @relation(fields: [store_id], references: [store_id], onDelete: NoAction, onUpdate: NoAction)
   reviews                 ShopReview[]
   transactions            Transaction[]
 
