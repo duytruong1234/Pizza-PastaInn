@@ -44,6 +44,9 @@ export interface CreateOrderInput {
     customer_email?: string;
     customer_address?: string;
     store_id?: number;
+    customer_latitude?: number;
+    customer_longitude?: number;
+    shipping_distance_meters?: number;
     items: OrderItemInput[];
 }
 export declare class OrderService {
@@ -53,8 +56,8 @@ export declare class OrderService {
      */
     static createOrder(input: CreateOrderInput): Promise<{
         order_id: number;
+        store_id: number | null;
         user_id: number | null;
-        created_at: Date | null;
         user_address_id: number | null;
         payment_method: string | null;
         payment_status: string | null;
@@ -63,6 +66,7 @@ export declare class OrderService {
         discount_amount: number | null;
         total_order: number | null;
         order_note: string | null;
+        created_at: Date | null;
         order_status: string | null;
         confirmed_at: Date | null;
         preparing_at: Date | null;
@@ -76,9 +80,54 @@ export declare class OrderService {
         customer_name: string | null;
         customer_phone: string | null;
         customer_email: string | null;
+        customer_latitude: import("@prisma/client-runtime-utils").Decimal | null;
+        customer_longitude: import("@prisma/client-runtime-utils").Decimal | null;
+        shipping_distance_meters: import("@prisma/client-runtime-utils").Decimal | null;
+    }>;
+    /**
+     * Hủy đơn hàng và khôi phục lại tồn kho món ăn/topping.
+     */
+    static cancelOrder(order_id: number): Promise<{
+        order_id: number;
+        store_id: number | null;
+        user_id: number | null;
+        user_address_id: number | null;
+        payment_method: string | null;
+        payment_status: string | null;
+        total_price_dish: number | null;
+        shipping_fee: number | null;
+        discount_amount: number | null;
+        total_order: number | null;
+        order_note: string | null;
+        created_at: Date | null;
+        order_status: string | null;
+        confirmed_at: Date | null;
+        preparing_at: Date | null;
+        shipped_at: Date | null;
+        estimated_delivery_time: Date | null;
+        arrived_at: Date | null;
+        completed_at: Date | null;
+        cancelled_at: Date | null;
+        order_type: string | null;
+        pickup_time: Date | null;
+        customer_name: string | null;
+        customer_phone: string | null;
+        customer_email: string | null;
+        customer_latitude: import("@prisma/client-runtime-utils").Decimal | null;
+        customer_longitude: import("@prisma/client-runtime-utils").Decimal | null;
+        shipping_distance_meters: import("@prisma/client-runtime-utils").Decimal | null;
     }>;
     static cleanAddressLine(addressLine: string | null): string;
     static getOrderById(order_id: number): Promise<({
+        store: {
+            is_active: boolean | null;
+            store_id: number;
+            store_name: string | null;
+            address: string | null;
+            latitude: import("@prisma/client-runtime-utils").Decimal | null;
+            longitude: import("@prisma/client-runtime-utils").Decimal | null;
+            hotline: string | null;
+        } | null;
         user: {
             user_id: number;
             username: string | null;
@@ -165,8 +214,8 @@ export declare class OrderService {
         } | null;
     } & {
         order_id: number;
+        store_id: number | null;
         user_id: number | null;
-        created_at: Date | null;
         user_address_id: number | null;
         payment_method: string | null;
         payment_status: string | null;
@@ -175,6 +224,7 @@ export declare class OrderService {
         discount_amount: number | null;
         total_order: number | null;
         order_note: string | null;
+        created_at: Date | null;
         order_status: string | null;
         confirmed_at: Date | null;
         preparing_at: Date | null;
@@ -188,8 +238,20 @@ export declare class OrderService {
         customer_name: string | null;
         customer_phone: string | null;
         customer_email: string | null;
+        customer_latitude: import("@prisma/client-runtime-utils").Decimal | null;
+        customer_longitude: import("@prisma/client-runtime-utils").Decimal | null;
+        shipping_distance_meters: import("@prisma/client-runtime-utils").Decimal | null;
     }) | null>;
     static getOrdersByUserId(user_id: number): Promise<({
+        store: {
+            is_active: boolean | null;
+            store_id: number;
+            store_name: string | null;
+            address: string | null;
+            latitude: import("@prisma/client-runtime-utils").Decimal | null;
+            longitude: import("@prisma/client-runtime-utils").Decimal | null;
+            hotline: string | null;
+        } | null;
         items: ({
             combo: {
                 category_id: number | null;
@@ -391,8 +453,8 @@ export declare class OrderService {
         } | null;
     } & {
         order_id: number;
+        store_id: number | null;
         user_id: number | null;
-        created_at: Date | null;
         user_address_id: number | null;
         payment_method: string | null;
         payment_status: string | null;
@@ -401,6 +463,7 @@ export declare class OrderService {
         discount_amount: number | null;
         total_order: number | null;
         order_note: string | null;
+        created_at: Date | null;
         order_status: string | null;
         confirmed_at: Date | null;
         preparing_at: Date | null;
@@ -414,8 +477,20 @@ export declare class OrderService {
         customer_name: string | null;
         customer_phone: string | null;
         customer_email: string | null;
+        customer_latitude: import("@prisma/client-runtime-utils").Decimal | null;
+        customer_longitude: import("@prisma/client-runtime-utils").Decimal | null;
+        shipping_distance_meters: import("@prisma/client-runtime-utils").Decimal | null;
     })[]>;
     static getOrdersByPhone(phone: string): Promise<({
+        store: {
+            is_active: boolean | null;
+            store_id: number;
+            store_name: string | null;
+            address: string | null;
+            latitude: import("@prisma/client-runtime-utils").Decimal | null;
+            longitude: import("@prisma/client-runtime-utils").Decimal | null;
+            hotline: string | null;
+        } | null;
         items: ({
             combo: {
                 category_id: number | null;
@@ -617,8 +692,8 @@ export declare class OrderService {
         } | null;
     } & {
         order_id: number;
+        store_id: number | null;
         user_id: number | null;
-        created_at: Date | null;
         user_address_id: number | null;
         payment_method: string | null;
         payment_status: string | null;
@@ -627,6 +702,7 @@ export declare class OrderService {
         discount_amount: number | null;
         total_order: number | null;
         order_note: string | null;
+        created_at: Date | null;
         order_status: string | null;
         confirmed_at: Date | null;
         preparing_at: Date | null;
@@ -640,11 +716,14 @@ export declare class OrderService {
         customer_name: string | null;
         customer_phone: string | null;
         customer_email: string | null;
+        customer_latitude: import("@prisma/client-runtime-utils").Decimal | null;
+        customer_longitude: import("@prisma/client-runtime-utils").Decimal | null;
+        shipping_distance_meters: import("@prisma/client-runtime-utils").Decimal | null;
     })[]>;
     static updateOrderStatus(order_id: number, status: string): Promise<{
         order_id: number;
+        store_id: number | null;
         user_id: number | null;
-        created_at: Date | null;
         user_address_id: number | null;
         payment_method: string | null;
         payment_status: string | null;
@@ -653,6 +732,7 @@ export declare class OrderService {
         discount_amount: number | null;
         total_order: number | null;
         order_note: string | null;
+        created_at: Date | null;
         order_status: string | null;
         confirmed_at: Date | null;
         preparing_at: Date | null;
@@ -666,6 +746,9 @@ export declare class OrderService {
         customer_name: string | null;
         customer_phone: string | null;
         customer_email: string | null;
+        customer_latitude: import("@prisma/client-runtime-utils").Decimal | null;
+        customer_longitude: import("@prisma/client-runtime-utils").Decimal | null;
+        shipping_distance_meters: import("@prisma/client-runtime-utils").Decimal | null;
     }>;
 }
 export {};

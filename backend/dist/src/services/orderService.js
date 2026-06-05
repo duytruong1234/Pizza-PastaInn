@@ -151,17 +151,21 @@ class OrderService {
                         customerEmail = u.email || '';
                 }
             }
+            // Recalculate shipping parameters at backend for security and accuracy (delivery only)
+            let storeId = input.store_id || null;
+            let shippingFee = 0; // Phí ship mặc định bằng 0 sau khi xóa tính năng khoảng cách
+            let distanceMeters = null;
             // 4. Tạo đơn hàng
             const order = await tx.order.create({
                 data: {
                     user_id: userId || null,
                     user_address_id: userAddressId || null,
                     payment_method: input.payment_method,
-                    payment_status: input.payment_method === 'cod' ? 'pending' : 'paid',
+                    payment_status: (input.payment_method === 'cod' || input.payment_method === 'vietqr') ? 'pending' : 'paid',
                     total_price_dish: input.total_price_dish,
-                    shipping_fee: input.shipping_fee || 0,
+                    shipping_fee: shippingFee,
                     discount_amount: input.discount_amount || 0,
-                    total_order: input.total_order,
+                    total_order: input.total_price_dish + shippingFee - (input.discount_amount || 0),
                     order_note: input.order_note || null,
                     order_status: 'pending',
                     order_type: input.order_type,
@@ -173,6 +177,10 @@ class OrderService {
                     customer_name: customerName || null,
                     customer_phone: customerPhone || null,
                     customer_email: customerEmail || null,
+                    store_id: storeId,
+                    customer_latitude: input.customer_latitude || null,
+                    customer_longitude: input.customer_longitude || null,
+                    shipping_distance_meters: distanceMeters,
                 },
             });
             // 4. Tạo order items
@@ -283,6 +291,150 @@ class OrderService {
             return order;
         });
     }
+    /**
+     * Hủy đơn hàng và khôi phục lại tồn kho món ăn/topping.
+     */
+    static async cancelOrder(order_id) {
+        return prisma_1.default.$transaction(async (tx) => {
+            // 1. Lấy chi tiết đơn hàng
+            const order = await tx.order.findUnique({
+                where: { order_id },
+                include: {
+                    items: {
+                        include: {
+                            toppings: true,
+                            combos: {
+                                include: {
+                                    toppings: true,
+                                    halves: {
+                                        include: {
+                                            order_item_toppings: true
+                                        }
+                                    }
+                                }
+                            },
+                            halves: {
+                                include: {
+                                    order_item_toppings: true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            if (!order) {
+                throw new Error('Không tìm thấy đơn hàng');
+            }
+            // Nếu đơn hàng đã bị hủy rồi, không làm gì thêm
+            if (order.order_status === 'cancelled') {
+                return order;
+            }
+            // 2. Thu thập số lượng khôi phục tồn kho cho Món ăn và Topping
+            const dishUpdates = {};
+            const toppingUpdates = {};
+            const addDishRestore = (dishId, qty) => {
+                dishUpdates[dishId] = (dishUpdates[dishId] || 0) + qty;
+            };
+            const addToppingRestore = (toppingId, qty) => {
+                toppingUpdates[toppingId] = (toppingUpdates[toppingId] || 0) + qty;
+            };
+            for (const item of order.items) {
+                const itemQty = item.quantity || 1;
+                // A. Món thường (Regular)
+                if (!item.is_half_half && item.dish_price_id && !item.combo_id) {
+                    const dp = await tx.dishPrice.findUnique({ where: { dish_price_id: item.dish_price_id } });
+                    if (dp?.dish_id)
+                        addDishRestore(dp.dish_id, itemQty);
+                }
+                // B. Toppings trực tiếp
+                if (item.toppings && item.toppings.length > 0) {
+                    for (const t of item.toppings) {
+                        if (t.topping_id !== null) {
+                            addToppingRestore(t.topping_id, t.quantity || itemQty);
+                        }
+                    }
+                }
+                // C. Nửa nửa (Half-half)
+                if (item.is_half_half && item.halves && item.halves.length > 0) {
+                    for (const h of item.halves) {
+                        if (h.dish_id)
+                            addDishRestore(h.dish_id, itemQty);
+                        if (h.order_item_toppings && h.order_item_toppings.length > 0) {
+                            for (const t of h.order_item_toppings) {
+                                if (t.topping_id !== null) {
+                                    addToppingRestore(t.topping_id, t.quantity || itemQty);
+                                }
+                            }
+                        }
+                    }
+                }
+                // D. Combo selections
+                if (item.combo_id && item.combos && item.combos.length > 0) {
+                    for (const sel of item.combos) {
+                        // Món thường trong combo
+                        if (!sel.is_half_half && sel.dish_price_id) {
+                            const dp = await tx.dishPrice.findUnique({ where: { dish_price_id: sel.dish_price_id } });
+                            if (dp?.dish_id)
+                                addDishRestore(dp.dish_id, itemQty);
+                        }
+                        // Half-half trong combo
+                        if (sel.is_half_half && sel.halves && sel.halves.length > 0) {
+                            for (const h of sel.halves) {
+                                if (h.dish_id)
+                                    addDishRestore(h.dish_id, itemQty);
+                                if (h.order_item_toppings && h.order_item_toppings.length > 0) {
+                                    for (const t of h.order_item_toppings) {
+                                        if (t.topping_id !== null) {
+                                            addToppingRestore(t.topping_id, t.quantity || itemQty);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        // Toppings của combo selection
+                        if (sel.toppings && sel.toppings.length > 0) {
+                            for (const t of sel.toppings) {
+                                if (t.topping_id !== null) {
+                                    addToppingRestore(t.topping_id, t.quantity || itemQty);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // 3. Khôi phục kho cho Dish
+            for (const [dishIdStr, qty] of Object.entries(dishUpdates)) {
+                const dishId = Number(dishIdStr);
+                const dish = await tx.dish.findUnique({ where: { dish_id: dishId } });
+                if (dish && dish.stock !== null && dish.stock !== undefined) {
+                    await tx.dish.update({
+                        where: { dish_id: dishId },
+                        data: { stock: dish.stock + qty }
+                    });
+                }
+            }
+            // 4. Khôi phục kho cho Topping
+            for (const [toppingIdStr, qty] of Object.entries(toppingUpdates)) {
+                const toppingId = Number(toppingIdStr);
+                const topping = await tx.topping.findUnique({ where: { topping_id: toppingId } });
+                if (topping && topping.stock !== null && topping.stock !== undefined) {
+                    await tx.topping.update({
+                        where: { topping_id: toppingId },
+                        data: { stock: topping.stock + qty }
+                    });
+                }
+            }
+            // 5. Cập nhật trạng thái hủy đơn
+            const updatedOrder = await tx.order.update({
+                where: { order_id },
+                data: {
+                    order_status: 'cancelled',
+                    cancelled_at: new Date()
+                }
+            });
+            return updatedOrder;
+        });
+    }
     // ── Lấy chi tiết đơn hàng (JOIN đầy đủ 5 bảng) ──────────────────────────
     static cleanAddressLine(addressLine) {
         if (!addressLine)
@@ -313,6 +465,7 @@ class OrderService {
                     },
                 },
                 user_address: true,
+                store: true,
                 items: {
                     include: {
                         toppings: true,
@@ -346,6 +499,7 @@ class OrderService {
             where: { user_id },
             include: {
                 user_address: true,
+                store: true,
                 items: {
                     include: {
                         dish_price: {
@@ -424,6 +578,7 @@ class OrderService {
             },
             include: {
                 user_address: true,
+                store: true,
                 items: {
                     include: {
                         dish_price: {

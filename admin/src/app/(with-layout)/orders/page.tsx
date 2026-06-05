@@ -48,13 +48,34 @@ const STATUS_COLORS: Record<string, "warning" | "info" | "primary" | "secondary"
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: "Chờ xử lý",
+  pending: "Đang chờ xác nhận",
   confirmed: "Đã xác nhận",
   preparing: "Đang chuẩn bị",
-  shipped: "Đang giao",
-  completed: "Hoàn thành",
+  shipped: "Đang giao hàng",
+  completed: "Đã hoàn thành",
   cancelled: "Đã hủy",
 };
+
+function renderStatusBadge(status: string) {
+  const statusLower = status.toLowerCase();
+  const label = STATUS_LABELS[statusLower] || status;
+  switch (statusLower) {
+    case "pending":
+      return <Badge className="bg-[#FF8C00] hover:bg-[#E07B00] text-white">{label}</Badge>;
+    case "confirmed":
+    case "preparing":
+      return <Badge variant="warning">{label}</Badge>; // Yellow
+    case "shipped":
+    case "delivering":
+      return <Badge className="bg-[#1E90FF] hover:bg-[#1C86EE] text-white">{label}</Badge>; // Blue
+    case "completed":
+      return <Badge variant="success">{label}</Badge>; // Green
+    case "cancelled":
+      return <Badge variant="danger">{label}</Badge>; // Red
+    default:
+      return <Badge variant="dark">{label}</Badge>;
+  }
+}
 
 const PAYMENT_LABELS: Record<string, string> = {
   cod: "Tiền mặt (COD)",
@@ -163,7 +184,7 @@ function renderOrderItemDetails(item: any) {
         )}
         {item.toppings && item.toppings.length > 0 && (
           <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 pl-2">
-            + Toppings chung: {item.toppings.map((t: any) => `${t.topping?.topping_name} (x${t.quantity || 1}) (${(t.topping_price || t.topping?.price_topping || 0).toLocaleString()} đ)`).join(", ")}
+            + Toppings: {item.toppings.map((t: any) => `${t.topping?.topping_name} (x${t.quantity || 1}) (${(t.topping_price || t.topping?.price_topping || 0).toLocaleString()} đ)`).join(", ")}
           </p>
         )}
       </div>
@@ -322,9 +343,7 @@ function OrderDetailModal({
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Trạng thái:</span>
-                  <Badge variant={STATUS_COLORS[order.order_status] || "warning"}>
-                    {STATUS_LABELS[order.order_status] || order.order_status}
-                  </Badge>
+                  {renderStatusBadge(order.order_status)}
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Hình thức:</span>
@@ -368,6 +387,14 @@ function OrderDetailModal({
                     <span className="text-gray-400">Cửa hàng xử lý:</span>
                     <span className="font-bold text-primary">
                       {order.store.store_name}
+                    </span>
+                  </div>
+                )}
+                {order.store?.address && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Địa chỉ cửa hàng:</span>
+                    <span className="font-medium text-dark dark:text-white text-right max-w-[60%]">
+                      {order.store.address}
                     </span>
                   </div>
                 )}
@@ -470,8 +497,7 @@ function OrderDetailModal({
             const milestones = [
               { label: "Khách đặt", time: order.created_at },
               { label: "Xác nhận", time: order.confirmed_at },
-              { label: "Chuẩn bị", time: order.preparing_at },
-              { label: "Bắt đầu giao", time: order.shipped_at },
+              { label: "Giao hàng", time: order.shipped_at },
               { label: "Hoàn thành", time: order.completed_at },
               { label: "Đã hủy", time: order.cancelled_at },
             ].filter(m => m.time);
@@ -527,16 +553,7 @@ function OrderDetailModal({
                   </>
                 )}
 
-                {order.order_status === "confirmed" && (
-                  <button
-                    onClick={() => onUpdateStatus(order.order_id, "preparing")}
-                    className="rounded-xl bg-primary px-6 py-3 font-bold text-white hover:bg-opacity-90 transition shadow-lg active:scale-95"
-                  >
-                    Bắt đầu chuẩn bị món
-                  </button>
-                )}
-
-                {order.order_status === "preparing" && (
+                {(order.order_status === "confirmed" || order.order_status === "preparing") && (
                   <button
                     onClick={() => onUpdateStatus(order.order_id, "shipped")}
                     className="rounded-xl bg-blue px-6 py-3 font-bold text-white hover:bg-opacity-90 transition shadow-lg active:scale-95"
@@ -567,98 +584,115 @@ function OrderDetailModal({
                 )}
               </div>
             ) : (
-              // Form nhập Giảm giá, Phí ship, Thời gian giao khi Xác nhận
-              <div className="rounded-xl border border-stroke bg-gray-50 p-5 dark:border-dark-3 dark:bg-dark-2 space-y-4 animate-fadeIn">
-                <h4 className="text-base font-bold text-dark dark:text-white uppercase tracking-wide">
-                  Chi tiết duyệt đơn #{order.order_id}
-                </h4>
+              // Popup overlay for confirm form
+              createPortal(
+                <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                  <div className="w-full max-w-lg rounded-2xl border border-stroke bg-white shadow-2xl dark:border-dark-3 dark:bg-gray-dark mx-4 animate-fadeIn">
+                    {/* Popup Header */}
+                    <div className="flex items-center justify-between border-b border-stroke px-6 py-4 dark:border-dark-3">
+                      <h4 className="text-base font-bold text-dark dark:text-white uppercase tracking-wide">
+                        Duyệt đơn #{order.order_id}
+                      </h4>
+                      <button
+                        onClick={() => setShowConfirmForm(false)}
+                        className="rounded-lg border border-stroke p-2 text-gray-500 hover:bg-gray-100 dark:border-dark-3 dark:hover:bg-dark-2"
+                      >
+                        ✕
+                      </button>
+                    </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  {/* Nhập phí ship */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">
-                      Phí Ship (đ)
-                    </label>
-                    <input
-                      type="number"
-                      value={shippingFee}
-                      onChange={(e) => setShippingFee(Math.max(0, parseInt(e.target.value) || 0))}
-                      className="w-full rounded-lg border border-stroke bg-white px-3 py-2 text-sm dark:border-dark-3 dark:bg-gray-dark font-medium"
-                      placeholder="0"
-                    />
+                    {/* Popup Body */}
+                    <div className="p-6 space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Nhập phí ship */}
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">
+                            Phí Ship (đ)
+                          </label>
+                          <input
+                            type="number"
+                            value={shippingFee}
+                            onChange={(e) => setShippingFee(Math.max(0, parseInt(e.target.value) || 0))}
+                            className="w-full rounded-lg border border-stroke bg-white px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-gray-dark font-medium"
+                            placeholder="0"
+                          />
+                        </div>
+
+                        {/* Nhập giảm giá */}
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">
+                            Giảm giá (đ)
+                          </label>
+                          <input
+                            type="number"
+                            value={discountAmount}
+                            onChange={(e) => setDiscountAmount(Math.max(0, parseInt(e.target.value) || 0))}
+                            className="w-full rounded-lg border border-stroke bg-white px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-gray-dark font-medium text-red-500"
+                            placeholder="0"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Chọn thời gian giao */}
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">
+                          Thời gian giao dự kiến
+                        </label>
+                        <select
+                          value={deliveryDuration}
+                          onChange={(e) => setDeliveryDuration(e.target.value)}
+                          className="w-full rounded-lg border border-stroke bg-white px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-gray-dark font-medium"
+                        >
+                          <option value="30">30 phút (Hôm nay)</option>
+                          <option value="45">45 phút (Hôm nay)</option>
+                          <option value="60">60 phút (Hôm nay)</option>
+                          <option value="90">90 phút (Hôm nay)</option>
+                          <option value="custom">Chọn giờ cụ thể</option>
+                        </select>
+                      </div>
+
+                      {deliveryDuration === "custom" && (
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">
+                            Chọn Giờ Giao
+                          </label>
+                          <input
+                            type="time"
+                            value={customTime}
+                            onChange={(e) => setCustomTime(e.target.value)}
+                            className="w-full rounded-lg border border-stroke bg-white px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-gray-dark font-medium text-primary"
+                          />
+                        </div>
+                      )}
+
+                      {/* Sub-total review */}
+                      <div className="bg-gray-50 dark:bg-dark-2 p-3 rounded-lg flex justify-between items-center text-sm border border-stroke dark:border-dark-3 font-semibold">
+                        <span className="text-gray-500">Thành tiền sau điều chỉnh:</span>
+                        <span className="text-primary text-base font-extrabold">
+                          {Math.max(0, (order.total_price_dish || 0) + shippingFee - discountAmount).toLocaleString()} đ
+                        </span>
+                      </div>
+
+                      <div className="flex justify-end gap-3 pt-2">
+                        <button
+                          onClick={handleConfirmOrder}
+                          disabled={submitting}
+                          className="rounded-lg bg-green-500 px-5 py-2.5 font-bold text-white hover:bg-green-600 transition shadow active:scale-95 disabled:opacity-50"
+                        >
+                          {submitting ? "Đang xử lý..." : "✓ Xác nhận duyệt"}
+                        </button>
+                        <button
+                          onClick={() => setShowConfirmForm(false)}
+                          className="rounded-lg bg-gray-200 px-5 py-2.5 font-bold text-gray-700 hover:bg-gray-300 transition dark:bg-dark-3 dark:text-gray-300 dark:hover:bg-dark-1 active:scale-95"
+                        >
+                          Quay lại
+                        </button>
+                      </div>
+                    </div>
                   </div>
-
-                  {/* Nhập giảm giá */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">
-                      Giảm giá (đ)
-                    </label>
-                    <input
-                      type="number"
-                      value={discountAmount}
-                      onChange={(e) => setDiscountAmount(Math.max(0, parseInt(e.target.value) || 0))}
-                      className="w-full rounded-lg border border-stroke bg-white px-3 py-2 text-sm dark:border-dark-3 dark:bg-gray-dark font-medium text-red-500"
-                      placeholder="0"
-                    />
-                  </div>
-
-                  {/* Chọn thời gian giao */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">
-                      Thời gian giao dự kiến
-                    </label>
-                    <select
-                      value={deliveryDuration}
-                      onChange={(e) => setDeliveryDuration(e.target.value)}
-                      className="w-full rounded-lg border border-stroke bg-white px-3 py-2 text-sm dark:border-dark-3 dark:bg-gray-dark font-medium"
-                    >
-                      <option value="30">30 phút (Hôm nay)</option>
-                      <option value="45">45 phút (Hôm nay)</option>
-                      <option value="60">60 phút (Hôm nay)</option>
-                      <option value="90">90 phút (Hôm nay)</option>
-                      <option value="custom">Chọn giờ cụ thể</option>
-                    </select>
-                  </div>
-                </div>
-
-                {deliveryDuration === "custom" && (
-                  <div className="w-1/3 ml-auto">
-                    <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">
-                      Chọn Giờ Giao
-                    </label>
-                    <input
-                      type="time"
-                      value={customTime}
-                      onChange={(e) => setCustomTime(e.target.value)}
-                      className="w-full rounded-lg border border-stroke bg-white px-3 py-2 text-sm dark:border-dark-3 dark:bg-gray-dark font-medium text-primary"
-                    />
-                  </div>
-                )}
-
-                {/* Sub-total review */}
-                <div className="bg-white dark:bg-gray-dark p-3 rounded-lg flex justify-between items-center text-sm border border-stroke dark:border-dark-3 font-semibold">
-                  <span className="text-gray-500">Thành tiền sau điều chỉnh:</span>
-                  <span className="text-primary text-base font-extrabold">
-                    {Math.max(0, (order.total_price_dish || 0) + shippingFee - discountAmount).toLocaleString()} đ
-                  </span>
-                </div>
-
-                <div className="flex justify-end gap-3 pt-2">
-                  <button
-                    onClick={handleConfirmOrder}
-                    disabled={submitting}
-                    className="rounded-lg bg-green-500 px-5 py-2 font-bold text-white hover:bg-green-600 transition shadow active:scale-95 disabled:opacity-50"
-                  >
-                    {submitting ? "Đang xử lý..." : "✓ Xác nhận duyệt"}
-                  </button>
-                  <button
-                    onClick={() => setShowConfirmForm(false)}
-                    className="rounded-lg bg-gray-200 px-5 py-2 font-bold text-gray-700 hover:bg-gray-300 transition dark:bg-dark-3 dark:text-gray-300 dark:hover:bg-dark-1 active:scale-95"
-                  >
-                    Quay lại
-                  </button>
-                </div>
-              </div>
+                </div>,
+                document.body
+              )
             )}
           </div>
         </div>
@@ -828,9 +862,7 @@ export default function OrdersPage() {
                       {PAYMENT_LABELS[order.payment_method] || order.payment_method || "N/A"}
                     </td>
                     <td className="px-6 py-4">
-                      <Badge variant={STATUS_COLORS[order.order_status] || "warning"}>
-                        {STATUS_LABELS[order.order_status] || order.order_status}
-                      </Badge>
+                      {renderStatusBadge(order.order_status)}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
                       {order.created_at ? dayjs(order.created_at).format("DD/MM/YYYY HH:mm") : "N/A"}

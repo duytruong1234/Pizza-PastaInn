@@ -9,10 +9,11 @@ import { useCartStore } from '@/store/cartStore';
 import { useOrderStore } from '@/store/orderStore';
 import { useAuthStore } from '@/store/authStore';
 import AddressPickerVN from '@/components/AddressPickerVN';
+import { API_BASE } from '@/lib/config';
 
 // ── Component: Thông tin người nhận ─────────────────────────────────────────
 function CustomerInfoSection() {
-  const { formData, updateFormData, error } = useOrderStore();
+  const { formData, updateFormData } = useOrderStore();
 
   return (
     <div className="checkout-card">
@@ -46,7 +47,7 @@ function CustomerInfoSection() {
           />
         </div>
         <div className="checkout-form-group">
-          <label className="checkout-label">EMAIL (NHẬN THÔNG BÁO)</label>
+          <label className="checkout-label">EMAIL (*)</label>
           <input
             type="email"
             className="checkout-input"
@@ -59,6 +60,7 @@ function CustomerInfoSection() {
     </div>
   );
 }
+
 
 // ── Component: Address Selector (No Map) ──────────────────────────────────────────
 function AddressMapSelector() {
@@ -88,16 +90,15 @@ function DeliveryMethodSection({
   loadingAddresses,
   onOpenAddressModal,
   stores,
-  isCalculatingDistance,
 }: {
   isLoggedIn: boolean;
   addresses: any[];
   loadingAddresses: boolean;
   onOpenAddressModal: () => void;
   stores: any[];
-  isCalculatingDistance: boolean;
 }) {
   const { formData, updateFormData } = useOrderStore();
+  const { user } = useAuthStore();
 
   const activeAddress = addresses.find(a => a.user_address_id === formData.user_address_id) || addresses.find(a => a.is_default) || addresses[0];
 
@@ -137,11 +138,14 @@ function DeliveryMethodSection({
                     <span className="font-extrabold text-white mr-3">
                       {formData.customer_name || activeAddress?.recipient_name || 'Họ Tên'} {formData.customer_phone ? `(${formData.customer_phone})` : activeAddress?.recipient_phone ? `(${activeAddress.recipient_phone})` : ''}
                     </span>
-                    <span className="text-white/80">
+                    <span className="text-white/80 block">
                       {formData.customer_address || activeAddress?.address_detail || 'Chưa chọn địa chỉ giao hàng'}
                     </span>
+                    <span className="text-white/60 text-xs mt-1 block">
+                      Email: {formData.customer_email || user?.email || 'N/A'}
+                    </span>
                     {activeAddress?.is_default && (
-                      <span className="border border-[#cd3645] text-[#cd3645] text-[10px] px-1 rounded-sm font-bold uppercase ml-2 inline-block">Mặc Định</span>
+                      <span className="border border-[#cd3645] text-[#cd3645] text-[10px] px-1 rounded-sm font-bold uppercase mt-1 inline-block">Mặc Định</span>
                     )}
                   </div>
                   <button className="text-[#3b82f6] font-bold text-[13px] hover:underline whitespace-nowrap focus:outline-none transition" onClick={onOpenAddressModal}>
@@ -153,30 +157,6 @@ function DeliveryMethodSection({
           ) : (
             <AddressMapSelector />
           )}
-
-          <div className="checkout-shipping-info">
-            <div className="checkout-shipping-badge">
-              <Truck size={18} className="text-[#4ade80]" />
-              <div>
-                <p className="checkout-shipping-label">PHÍ GIAO HÀNG DỰ KIẾN</p>
-                <p className="checkout-shipping-detail">
-                  {isCalculatingDistance ? (
-                    <span className="flex items-center text-white/60">
-                      <Loader size={14} className="animate-spin text-[#d4a017] mr-1.5" />
-                      Đang tính khoảng cách đến chi nhánh...
-                    </span>
-                  ) : formData.distance && formData.distance > 0 ? (
-                    <>Chi nhánh gần nhất: <strong className="text-[#d4a017]">{formData.nearest_store_name}</strong> - Khoảng cách: <strong className="text-white">{(formData.distance / 1000).toFixed(1)} km</strong>{formData.shipping_fee && formData.shipping_fee > 0 ? ' (Hơn 5km: phí 20k)' : ' (Dưới 5km: miễn phí)'}</>
-                  ) : (
-                    'Dưới 5km: Miễn phí hoàn toàn từ chi nhánh gần nhất'
-                  )}
-                </p>
-              </div>
-            </div>
-            <span className="checkout-shipping-price">
-              {formData.shipping_fee && formData.shipping_fee > 0 ? formatPrice(formData.shipping_fee) : 'Miễn phí'}
-            </span>
-          </div>
         </div>
       )}
 
@@ -383,15 +363,141 @@ function NoteSection() {
 // ── Component: Tóm tắt đơn hàng (sidebar) ─────────────────────────────────
 function OrderSummary() {
   const { items, totalItems, totalPrice } = useCartStore();
-  const { formData, submitOrder, isSubmitting, updateFormData, error } = useOrderStore();
+  const { formData, submitOrder, isSubmitting, updateFormData, error, setEmailVerified } = useOrderStore();
+  const { user } = useAuthStore();
   const [isMounted, setIsMounted] = useState(false);
 
+  // OTP state for guest checkout
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
+  const [otpError, setOtpError] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+
   useEffect(() => setIsMounted(true), []);
+
+  // Countdown timer
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setInterval(() => setCountdown((p) => p - 1), 1000);
+    return () => clearInterval(timer);
+  }, [countdown]);
 
   const displayItems = isMounted ? items : [];
   const displayTotal = isMounted ? totalPrice() : 0;
   const displayCount = isMounted ? totalItems() : 0;
   const shippingFee = isMounted && formData.order_type === 'delivery' ? (formData.shipping_fee || 0) : 0;
+
+  // Send OTP to guest email
+  const handleSendOtp = async () => {
+    if (!formData.customer_email) return;
+    setSendingOtp(true);
+    setOtpError('');
+    try {
+      const r = await fetch(`${API_BASE}/auth/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.customer_email }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.message);
+      setCountdown(60);
+      setOtpValues(['', '', '', '', '', '']);
+      setTimeout(() => otpRefs.current[0]?.focus(), 200);
+    } catch (err: any) {
+      setOtpError(err.message || 'Không thể gửi mã OTP');
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  // Verify OTP and submit order
+  const handleVerifyAndSubmit = async () => {
+    const otp = otpValues.join('');
+    if (otp.length !== 6) { setOtpError('Vui lòng nhập đủ 6 số'); return; }
+    setOtpLoading(true);
+    setOtpError('');
+    try {
+      const res = await fetch(`${API_BASE}/auth/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.customer_email, otp }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      // OTP verified → set emailVerified to true and submit order
+      setEmailVerified(true);
+      setShowOtpModal(false);
+      await submitOrder();
+    } catch (err: any) {
+      setOtpError(err.message || 'Mã OTP không đúng hoặc đã hết hạn');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleOtpChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return;
+    const newOtp = [...otpValues];
+    newOtp[index] = value.slice(-1);
+    setOtpValues(newOtp);
+    if (value && index < 5) otpRefs.current[index + 1]?.focus();
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !otpValues[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pasted.length === 6) {
+      setOtpValues(pasted.split(''));
+      otpRefs.current[5]?.focus();
+    }
+  };
+
+  // Handle order button click
+  const handleOrderClick = async () => {
+    // Basic validation
+    if (!formData.customer_name) {
+      useOrderStore.setState({ error: 'Vui lòng nhập họ tên người nhận' });
+      return;
+    }
+    if (!formData.customer_phone) {
+      useOrderStore.setState({ error: 'Vui lòng nhập số điện thoại' });
+      return;
+    }
+    if (!formData.customer_email) {
+      useOrderStore.setState({ error: 'Vui lòng nhập email' });
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.customer_email)) {
+      useOrderStore.setState({ error: 'Định dạng email không hợp lệ' });
+      return;
+    }
+    if (formData.order_type === 'delivery' && !formData.customer_address) {
+      useOrderStore.setState({ error: 'Vui lòng nhập địa chỉ giao hàng' });
+      return;
+    }
+
+    // Logged-in user → submit directly
+    if (user) {
+      await submitOrder();
+      return;
+    }
+
+    // Guest → send OTP and show modal
+    setOtpError('');
+    setOtpValues(['', '', '', '', '', '']);
+    setShowOtpModal(true);
+    await handleSendOtp();
+  };
 
   return (
     <div className="checkout-summary">
@@ -472,60 +578,38 @@ function OrderSummary() {
           <span>TẠM TÍNH</span>
           <span>{formatPrice(displayTotal)}</span>
         </div>
-        <div className="checkout-summary-row">
+        <div className="checkout-summary-row" style={{ flexDirection: 'column', gap: '4px' }}>
           <span>PHÍ VẬN CHUYỂN</span>
-          {shippingFee > 0 ? (
-            <span>{formatPrice(shippingFee)}</span>
-          ) : (
-            <span className="checkout-free-text">MIỄN PHÍ</span>
-          )}
+          <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', fontWeight: 600, lineHeight: 1.4 }}>
+            PHÍ SHIP SẼ ĐƯỢC GỬI VỀ EMAIL KHI CỬA HÀNG XÁC NHẬN KHOẢNG CÁCH GIAO HÀNG CỦA BẠN
+          </span>
         </div>
         <div className="checkout-summary-total-row">
           <span>TOTAL PRICE</span>
-          <span className="checkout-total-price">{formatPrice(displayTotal + shippingFee)}</span>
+          <span className="checkout-total-price">{formatPrice(displayTotal)}</span>
         </div>
       </div>
 
-      {/* Tích hợp chọn phương thức thanh toán trực tiếp trong Sidebar */}
+      {/* Phương thức thanh toán */}
       <div className="border-t border-white/8 mt-4 pt-4">
         <h4 className="text-[12px] font-black text-[#d4a017] uppercase tracking-wider mb-3">
           PHƯƠNG THỨC THANH TOÁN
         </h4>
-
         <div className="checkout-payment-options flex flex-col gap-2">
-          {/* VietQR */}
           <label className={`checkout-payment-option ${formData.payment_method === 'vietqr' ? 'selected' : ''}`} style={{ padding: '0.75rem 1rem' }}>
             <div className="checkout-payment-option-header text-[12px] flex items-center gap-2 font-bold">
               <QrCode size={16} />
               <span>CHUYỂN KHOẢN VIETQR</span>
             </div>
-            <input
-              type="radio"
-              name="payment"
-              value="vietqr"
-              checked={formData.payment_method === 'vietqr'}
-              onChange={() => updateFormData({ payment_method: 'vietqr' })}
-              className="checkout-radio-input"
-            />
+            <input type="radio" name="payment" value="vietqr" checked={formData.payment_method === 'vietqr'} onChange={() => updateFormData({ payment_method: 'vietqr' })} className="checkout-radio-input" />
             <span className={`checkout-radio-dot ${formData.payment_method === 'vietqr' ? 'active' : ''}`} />
           </label>
-
-
-
-          {/* COD */}
           <label className={`checkout-payment-option ${formData.payment_method === 'cod' ? 'selected' : ''}`} style={{ padding: '0.75rem 1rem' }}>
             <div className="checkout-payment-option-header text-[12px] flex items-center gap-2 font-bold">
               <Package size={16} />
               <span>TIỀN MẶT (COD)</span>
             </div>
-            <input
-              type="radio"
-              name="payment"
-              value="cod"
-              checked={formData.payment_method === 'cod'}
-              onChange={() => updateFormData({ payment_method: 'cod' })}
-              className="checkout-radio-input"
-            />
+            <input type="radio" name="payment" value="cod" checked={formData.payment_method === 'cod'} onChange={() => updateFormData({ payment_method: 'cod' })} className="checkout-radio-input" />
             <span className={`checkout-radio-dot ${formData.payment_method === 'cod' ? 'active' : ''}`} />
           </label>
         </div>
@@ -535,167 +619,121 @@ function OrderSummary() {
 
       <button
         className="checkout-pay-btn mt-3"
-        onClick={() => submitOrder()}
+        onClick={handleOrderClick}
         disabled={isSubmitting || displayItems.length === 0}
       >
         {isSubmitting ? (
           <span className="checkout-spinner" />
         ) : (
-          `XÁC NHẬN ĐẶT HÀNG: ${formatPrice(displayTotal + shippingFee)}`
+          `XÁC NHẬN ĐẶT HÀNG: ${formatPrice(displayTotal)}`
         )}
       </button>
+
+      {/* OTP Modal for Guest */}
+      {showOtpModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-[4px] flex items-center justify-center z-[9999] p-4 animate-fadeIn">
+          <div className="bg-[#121212] border border-white/10 rounded-2xl w-full max-w-[420px] shadow-2xl overflow-hidden">
+            <div className="p-5 border-b border-white/10 flex justify-between items-center">
+              <h3 className="text-[15px] font-black text-white uppercase tracking-wider">Xác thực Email</h3>
+              <button
+                className="text-white/50 hover:text-white hover:bg-white/10 p-1.5 rounded-full transition"
+                onClick={() => setShowOtpModal(false)}
+              >
+                <span className="text-[22px] leading-none font-light">&times;</span>
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-white/60 text-[13px] text-center mb-1">
+                Mã OTP đã được gửi đến email:
+              </p>
+              <p className="text-white font-bold text-[14px] text-center mb-5">
+                {formData.customer_email}
+              </p>
+
+              {otpError && (
+                <p className="text-red-400 text-[12px] text-center font-semibold mb-3">{otpError}</p>
+              )}
+
+              <div className="flex gap-2 justify-center mb-5" onPaste={handleOtpPaste}>
+                {otpValues.map((val, idx) => (
+                  <input
+                    key={idx}
+                    ref={(el) => { otpRefs.current[idx] = el; }}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={val}
+                    onChange={(e) => handleOtpChange(idx, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                    style={{
+                      width: '44px',
+                      height: '52px',
+                      textAlign: 'center',
+                      fontSize: '20px',
+                      fontWeight: 700,
+                      border: val ? '2px solid #c0392b' : '2px solid rgba(255,255,255,0.12)',
+                      borderRadius: '10px',
+                      background: 'rgba(255,255,255,0.04)',
+                      color: '#fff',
+                      outline: 'none',
+                      transition: 'border 0.2s',
+                    }}
+                  />
+                ))}
+              </div>
+
+              <button
+                onClick={handleVerifyAndSubmit}
+                disabled={otpLoading || otpValues.join('').length !== 6}
+                className="w-full py-3 rounded-xl font-bold text-[14px] uppercase tracking-wider transition"
+                style={{
+                  background: otpLoading || otpValues.join('').length !== 6 ? 'rgba(255,255,255,0.08)' : '#c0392b',
+                  color: '#fff',
+                  border: 'none',
+                  cursor: otpLoading || otpValues.join('').length !== 6 ? 'not-allowed' : 'pointer',
+                  opacity: otpLoading || otpValues.join('').length !== 6 ? 0.5 : 1,
+                }}
+              >
+                {otpLoading ? 'Đang xác thực...' : 'Xác nhận và đặt hàng'}
+              </button>
+
+              <div className="text-center mt-3">
+                {countdown > 0 ? (
+                  <span className="text-[12px] text-white/40">Gửi lại mã sau {countdown}s</span>
+                ) : (
+                  <button
+                    onClick={handleSendOtp}
+                    disabled={sendingOtp}
+                    className="text-[12px] font-semibold"
+                    style={{ color: '#eab308', background: 'none', border: 'none', cursor: 'pointer' }}
+                  >
+                    {sendingOtp ? 'Đang gửi...' : 'Gửi lại mã OTP'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// (Phương thức thanh toán đã được tích hợp trực tiếp vào Tóm tắt đơn hàng bên phải)
+
+
+
+
 
 // ── Component: Đặt hàng thành công ──────────────────────────────────────────
-// Helper Icon Components for Review Section
-const StarIcon = ({ filled, size = 18, onClick }: { filled: boolean; size?: number; onClick?: () => void }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill={filled ? "#f5c043" : "none"}
-    stroke={filled ? "#f5c043" : "#3f3f46"}
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={`transition-all duration-150 ${onClick ? 'cursor-pointer hover:scale-110 active:scale-95' : ''}`}
-    onClick={onClick}
-  >
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-  </svg>
-);
 
-const CameraIcon = ({ size = 20 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-    <circle cx="12" cy="13" r="3" />
-  </svg>
-);
 
 function OrderSuccess() {
-  const { orderResult, formData, resetForm } = useOrderStore();
+  const { orderResult, formData, resetForm, cartBackup } = useOrderStore();
   const { user } = useAuthStore();
   const router = useRouter();
   const [showDetails, setShowDetails] = useState(false);
 
-  // States for interactive reviews panel
-  const [userRating, setUserRating] = useState(0);
-  const [userComment, setUserComment] = useState('');
-  const [reviewImages, setReviewImages] = useState<string[]>([]);
-  const [submitted, setSubmitted] = useState(false);
-
-  const mockPhotoPool = [
-    'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=300&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?q=80&w=300&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?q=80&w=300&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?q=80&w=300&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1579751626657-72bc17010498?q=80&w=300&auto=format&fit=crop'
-  ];
-
-  const [reviewsList, setReviewsList] = useState([
-    {
-      id: 1,
-      name: 'TRẦN MỸ QUYÊN',
-      orderId: 'INN-9921',
-      rating: 5,
-      comment: 'Đế pizza nướng lò rất thơm và có độ giòn xốp hoàn hảo. Điểm nhấn là đĩa salad kèm xốt giấm tây dầu ô-liu và xốt mayo đặc trưng của quán ăn kèm siêu bắt vị, không bị ngấy mỡ chút nào!',
-      images: [
-        'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=300&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?q=80&w=300&auto=format&fit=crop'
-      ],
-      time: 'Just now'
-    },
-    {
-      id: 2,
-      name: 'LÊ HOÀNG NAM',
-      orderId: 'INN-8712',
-      rating: 5,
-      comment: 'Mì Spaghetti truyền thống ở đây luộc chuẩn, số lượng đầy đặn. Phần cơm Ý bùi ngậy béo mềm ăn lúc còn nóng hổi giao tận nơi cực kỳ ngon. Đóng gói hộp giấy rất lịch sự và bảo vệ môi trường.',
-      images: [],
-      time: '1 hour ago'
-    }
-  ]);
-
   if (!orderResult) return null;
-
-  const handleMockAddPhoto = () => {
-    if (reviewImages.length >= 5) return;
-    const nextImg = mockPhotoPool[reviewImages.length % mockPhotoPool.length];
-    setReviewImages([...reviewImages, nextImg]);
-  };
-
-  const handleRemovePhoto = (idx: number) => {
-    setReviewImages(reviewImages.filter((_, i) => i !== idx));
-  };
-
-  const handleSubmitReview = async () => {
-    if (userRating === 0) {
-      alert('Vui lòng chọn mức độ hài lòng của bạn!');
-      return;
-    }
-
-    const commentText = userComment || 'Chất lượng món ăn và dịch vụ tuyệt vời!';
-
-    try {
-      const response = await fetch('http://localhost:4000/api/reviews', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          rating_star: userRating,
-          comment: commentText,
-          image_url: reviewImages,
-          order_id: orderResult.order_id || null,
-          user_id: user?.user_id || null,
-        }),
-      });
-
-      if (response.ok) {
-        const json = await response.json();
-        const newReview = {
-          id: json.data?.review_id || Date.now(),
-          name: formData.customer_name?.toUpperCase() || 'KHÁCH HÀNG',
-          orderId: `INN-${orderResult.order_id || 'MỚI'}`,
-          rating: userRating,
-          comment: commentText,
-          images: reviewImages,
-          time: 'Just now'
-        };
-
-        setReviewsList([newReview, ...reviewsList]);
-        setUserRating(0);
-        setUserComment('');
-        setReviewImages([]);
-        setSubmitted(true);
-        setTimeout(() => setSubmitted(false), 3000);
-      } else {
-        alert('Có lỗi xảy ra khi gửi phản hồi, vui lòng thử lại.');
-      }
-    } catch (err) {
-      console.error('Error submitting checkout review:', err);
-      // Fallback to local state so the user experience doesn't break
-      const newReview = {
-        id: Date.now(),
-        name: formData.customer_name?.toUpperCase() || 'KHÁCH HÀNG',
-        orderId: `INN-${orderResult.order_id || 'MỚI'}`,
-        rating: userRating,
-        comment: commentText,
-        images: reviewImages,
-        time: 'Just now'
-      };
-      setReviewsList([newReview, ...reviewsList]);
-      setUserRating(0);
-      setUserComment('');
-      setReviewImages([]);
-      setSubmitted(true);
-      setTimeout(() => setSubmitted(false), 3000);
-    }
-  };
 
   return (
     <div className="w-full max-w-6xl mx-auto px-4 py-8 select-none">
@@ -710,190 +748,22 @@ function OrderSuccess() {
         </div>
       </div>
 
-      {/* Tiêu đề chính */}
-      <h2 className="text-2xl md:text-3xl font-black text-white text-center tracking-wide uppercase leading-tight">
-        ĐƠN HÀNG CỦA BẠN ĐÃ <br />
-        <span className="text-[#10b981] drop-shadow-[0_0_12px_rgba(16,185,129,0.4)] block mt-1">ĐẶT THÀNH CÔNG!</span>
-      </h2>
+      {/* Thông báo chờ cập nhật phí ship */}
+      <div className="max-w-2xl mx-auto bg-red-950/20 border border-red-500/20 rounded-2xl p-5 md:p-6 text-center shadow-lg animate-fadeIn">
+        <p className="text-[#ef4444] font-black text-sm md:text-base lg:text-lg tracking-widest uppercase">
+          ĐƠN HÀNG ĐANG CHỜ CỬA HÀNG CẬP NHẬT PHÍ VẬN CHUYỂN.
+        </p>
+        <p className="text-white/70 text-xs md:text-sm font-bold mt-2.5 uppercase tracking-wider">
+          HÓA ĐƠN CHÍNH THỨC SẼ ĐƯỢC GỬI VÀO EMAIL CỦA BẠN NGAY KHI HOÀN TẤT!
+        </p>
+      </div>
 
       {/* Mã đơn hàng */}
-      <p className="text-center text-[11px] font-extrabold text-white/40 tracking-[0.25em] mt-3 uppercase">
+      <p className="text-center text-[11px] font-extrabold text-white/40 tracking-[0.25em] mt-5 uppercase">
         MÃ ĐƠN HÀNG TẠM THỜI: #PIZZA-{orderResult.order_id}
       </p>
 
-      {/* DUAL-COLUMN REVIEWS GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-10 items-start">
 
-        {/* LEFT COLUMN: REVIEW FORM */}
-        <div className="lg:col-span-5 bg-[#121212] border border-white/[0.06] rounded-[28px] p-6 md:p-8 space-y-6 shadow-2xl flex flex-col text-left">
-          <div className="self-start px-3 py-1 rounded-full bg-[#f5c043]/10 border border-[#f5c043]/20 text-[#f5c043] text-[10px] font-black uppercase tracking-wider">
-            CUSTOMER FEEDBACK
-          </div>
-
-          <div className="space-y-1">
-            <h3 className="text-xl md:text-2xl font-black text-white uppercase tracking-wide leading-tight">
-              REVIEW OUR SERVICE
-            </h3>
-            <p className="text-zinc-400 text-xs font-medium leading-relaxed">
-              How was your dining experience and service at Pizza & Pasta Inn?
-            </p>
-          </div>
-
-          {/* Rating */}
-          <div className="space-y-2 pt-2">
-            <span className="text-[11px] font-extrabold text-zinc-500 tracking-wider uppercase block">
-              SATISFACTION LEVEL (*)
-            </span>
-            <div className="flex gap-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <StarIcon
-                  key={star}
-                  filled={star <= userRating}
-                  size={28}
-                  onClick={() => setUserRating(star)}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Review Text */}
-          <div className="space-y-2">
-            <span className="text-[11px] font-extrabold text-zinc-500 tracking-wider uppercase block">
-              YOUR REVIEW
-            </span>
-            <textarea
-              className="w-full bg-[#0d0d0d] border border-white/[0.06] focus:border-[#f5c043]/40 rounded-2xl p-4 text-sm text-zinc-300 placeholder-zinc-650 focus:outline-none transition-colors"
-              placeholder="Share your experience about our dishes and service here..."
-              rows={4}
-              value={userComment}
-              onChange={e => setUserComment(e.target.value)}
-            />
-          </div>
-
-          {/* Attached Images */}
-          <div className="space-y-2">
-            <span className="text-[11px] font-extrabold text-zinc-500 tracking-wider uppercase block">
-              REAL PHOTOS (MAXIMUM 5 IMAGES)
-            </span>
-
-            <div className="flex flex-wrap gap-3 items-center">
-              {reviewImages.map((img, idx) => (
-                <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-white/10 group shadow-md">
-                  <Image src={img} alt="Attached review photo" fill className="object-cover" />
-                  <button
-                    onClick={() => handleRemovePhoto(idx)}
-                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity font-bold text-xs"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-
-              {reviewImages.length < 5 && (
-                <button
-                  onClick={handleMockAddPhoto}
-                  className="w-16 h-16 rounded-xl border-2 border-dashed border-zinc-800 hover:border-[#f5c043]/30 bg-[#0d0d0d] hover:bg-zinc-900/40 flex flex-col items-center justify-center text-zinc-500 hover:text-zinc-300 transition-all select-none focus:outline-none"
-                >
-                  <CameraIcon size={18} />
-                  <span className="text-[8px] font-black mt-1 tracking-wider uppercase">ADD PHOTO</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Submit Button */}
-          <div className="pt-2">
-            <button
-              onClick={handleSubmitReview}
-              className="w-full bg-[#f5c043] hover:bg-[#e5b33c] text-black font-black text-xs tracking-widest uppercase py-4 rounded-2xl shadow-lg active:scale-[0.99] transition-all"
-            >
-              SUBMIT YOUR REVIEW
-            </button>
-            {submitted && (
-              <p className="text-center text-[#10b981] text-xs font-bold mt-2 animate-fadeIn">
-                ✓ Thank you! Review submitted successfully.
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN: REVIEWS LIST */}
-        <div className="lg:col-span-7 space-y-6 flex flex-col text-left">
-
-          {/* General Customer Reviews Card */}
-          <div className="bg-[#121212] border border-white/[0.06] rounded-[24px] p-6 flex justify-between items-center shadow-xl">
-            <div className="space-y-1">
-              <h4 className="text-sm font-extrabold text-white uppercase tracking-wider">
-                GENERAL CUSTOMER REVIEWS
-              </h4>
-              <p className="text-[10px] md:text-xs text-zinc-500 font-medium">
-                Based on authentic purchase data history
-              </p>
-            </div>
-            <div className="flex flex-col items-end">
-              <span className="text-3xl font-black text-[#f5c043] tracking-wide">4.9 / 5</span>
-              <div className="flex gap-0.5 mt-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <StarIcon key={star} filled={true} size={11} />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Reviews List Container */}
-          <div className="space-y-5 max-h-[460px] overflow-y-auto pr-1 custom-scrollbar">
-            {reviewsList.map((review) => (
-              <div
-                key={review.id}
-                className="bg-[#121212]/80 border border-white/[0.04] hover:border-white/[0.08] rounded-[24px] p-6 space-y-4 shadow-md transition-all animate-fadeIn"
-              >
-                {/* Header */}
-                <div className="flex justify-between items-start">
-                  <div className="space-y-0.5">
-                    <span className="font-extrabold text-white text-sm md:text-base uppercase tracking-wide block">
-                      {review.name}
-                    </span>
-                    <span className="text-[10px] md:text-xs text-[#f5c043] font-bold block uppercase tracking-wider">
-                      ORDER ID: #{review.orderId}
-                    </span>
-                  </div>
-
-                  <div className="flex gap-0.5">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <StarIcon key={star} filled={star <= review.rating} size={11} />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Comment Text */}
-                <p className="text-zinc-300 text-xs md:text-[13.5px] leading-relaxed font-medium">
-                  {review.comment}
-                </p>
-
-                {/* Attached Images */}
-                {review.images.length > 0 && (
-                  <div className="flex flex-wrap gap-2.5 pt-1">
-                    {review.images.map((img, idx) => (
-                      <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-white/[0.06] shadow-sm">
-                        <Image src={img} alt="User review photo" fill className="object-cover" />
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Footer Time */}
-                <div className="flex justify-between items-center pt-1">
-                  <span className="text-[10px] md:text-xs text-zinc-500 font-medium italic block ml-auto">
-                    {review.time}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-        </div>
-
-      </div>
 
       {/* Hộp nội dung chi tiết đơn hàng */}
       <div className="bg-[#121212] border border-white/[0.06] rounded-[24px] p-6 md:p-8 mt-10 space-y-6 shadow-2xl shadow-black/50 text-left">
@@ -905,7 +775,9 @@ function OrderSuccess() {
           <div>
             <h4 className="text-sm md:text-base font-extrabold text-white">Xác nhận thông tin đơn hàng</h4>
             <p className="text-xs md:text-sm text-white/60 leading-relaxed font-medium mt-1">
-              Thông tin chi tiết của đơn hàng đã được gửi đến email bạn cung cấp. Trong trường hợp không tìm thấy email, đội ngũ Pizza&Pasta Inn sẽ chủ động gọi điện thoại để xác nhận trực tiếp với bạn một lần nữa.
+              Hệ thống đang tính toán phí vận chuyển chính xác đến địa chỉ của bạn. Hóa đơn tổng sẽ được gửi về email trong vòng 3 - 5 phút.
+              <br />
+              <span className="text-[#ef4444] font-bold">Lưu ý:</span> Quý khách muốn thay đổi thông tin hoặc hủy đơn hàng, vui lòng liên hệ số Hotline: <strong className="font-black text-white">02839240343</strong>
             </p>
           </div>
         </div>
@@ -929,10 +801,15 @@ function OrderSuccess() {
             <h5 className="text-[11px] font-extrabold text-[#d4a017] tracking-[0.15em] uppercase">THÔNG TIN TÓM TẮT ĐƠN HÀNG</h5>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs md:text-sm">
               <div className="space-y-2.5">
-                <p className="text-white/50 font-bold"><span className="text-white/30 font-medium uppercase text-[10px] tracking-wider block mb-0.5">Người nhận hàng</span>{formData.customer_name} ({formData.customer_phone})</p>
+                <p className="text-white/50 font-bold"><span className="text-white/30 font-medium uppercase text-[10px] tracking-wider block mb-0.5">Người nhận hàng</span>{formData.customer_name}</p>
+                <p className="text-white/50 font-bold"><span className="text-white/30 font-medium uppercase text-[10px] tracking-wider block mb-0.5">Số điện thoại</span>{formData.customer_phone}</p>
+                <p className="text-white/50 font-bold"><span className="text-white/30 font-medium uppercase text-[10px] tracking-wider block mb-0.5">Email</span>{formData.customer_email}</p>
                 <p className="text-white/50 font-bold"><span className="text-white/30 font-medium uppercase text-[10px] tracking-wider block mb-0.5">Địa chỉ giao nhận</span>{formData.customer_address || 'Nhận trực tiếp tại chi nhánh cửa hàng'}</p>
               </div>
               <div className="space-y-2.5">
+                {formData.nearest_store_name && (
+                  <p className="text-white/50 font-bold"><span className="text-white/30 font-medium uppercase text-[10px] tracking-wider block mb-0.5">Chi nhánh xử lý</span>{formData.nearest_store_name}</p>
+                )}
                 <p className="text-white/50 font-bold"><span className="text-white/30 font-medium uppercase text-[10px] tracking-wider block mb-0.5">Thời gian</span>{formData.deliver_now ? 'Giao ngay lập tức (30-45 phút)' : `${formData.scheduled_date} ${formData.scheduled_time}`}</p>
                 <p className="text-white/50 font-bold">
                   <span className="text-white/30 font-medium uppercase text-[10px] tracking-wider block mb-0.5">Thanh toán</span>
@@ -942,6 +819,42 @@ function OrderSuccess() {
                 </p>
               </div>
             </div>
+
+            {/* Chi tiết món đã đặt */}
+            {cartBackup && cartBackup.length > 0 && (
+              <div className="mt-4">
+                <h5 className="text-[11px] font-extrabold text-[#d4a017] tracking-[0.15em] uppercase mb-3">CHI TIẾT MÓN ĐÃ ĐẶT</h5>
+                <div className="space-y-2">
+                  {cartBackup.map((item, idx) => (
+                    <div key={item.id || idx} className="flex items-start gap-3 bg-white/[0.02] border border-white/[0.04] p-3 rounded-xl">
+                      <span className="text-[10px] font-black text-[#cd3645] bg-[#cd3645]/10 px-2 py-1 rounded-md flex-shrink-0">x{item.quantity}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white/70 font-bold text-xs">{item.name}</p>
+                        <div className="text-[10px] text-white/40 space-y-0.5 mt-0.5">
+                          {item.options?.size && <span className="block">Size: {item.options.size}</span>}
+                          {item.options?.crust && <span className="block">Đế: {item.options.crust}</span>}
+                          {item.options?.toppings && Array.isArray(item.options.toppings) && item.options.toppings.length > 0 && (
+                            <span className="block">Toppings: {item.options.toppings.map((t: any) => t.name || t.topping_name).join(', ')}</span>
+                          )}
+                          {item.options?.comboItems && item.options.comboItems.length > 0 && (
+                            <div className="mt-1 space-y-0.5">
+                              {item.options.comboItems.map((ci: any, cidx: number) => (
+                                <span key={cidx} className="block">{cidx + 1}. {ci.name}{ci.size ? ` (${ci.size})` : ''}{ci.crust ? ` - ${ci.crust}` : ''}</span>
+                              ))}
+                            </div>
+                          )}
+                          {item.options?.notes && (
+                            <span className="block text-[#ef4444]/60 italic">Ghi chú: {item.options.notes}</span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold text-white/50 whitespace-nowrap">{formatPrice(item.price * item.quantity)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {formData.order_note && (
               <div className="bg-white/[0.02] border border-white/[0.04] p-3 rounded-xl text-xs text-white/50 mt-2">
                 <span className="font-extrabold text-white/30 block text-[9px] uppercase tracking-wider mb-1">Ghi chú của bạn</span>
@@ -1106,7 +1019,7 @@ function OrderPaymentModal() {
     let isMounted = true;
     const checkPaymentStatus = async () => {
       try {
-        const res = await fetch(`http://localhost:4000/api/orders/${orderResult.order_id}`);
+        const res = await fetch(`${API_BASE}/orders/${orderResult.order_id}`);
         const json = await res.json();
 
         if (res.ok && json.success && json.data) {
@@ -1410,6 +1323,8 @@ function AddressFormModal({
   // Track if coords came from an explicit suggestion pick (vs loaded from existing address)
   const [coordsConfirmed, setCoordsConfirmed] = useState(false);
 
+  const { user } = useAuthStore();
+
   useEffect(() => {
     if (isOpen) {
       if (address) {
@@ -1423,8 +1338,9 @@ function AddressFormModal({
         // Existing saved addresses with coords are considered confirmed
         setCoordsConfirmed(!!(address.latitude && address.longitude));
       } else {
-        setName('');
-        setPhone('');
+        // Thêm mới: pre-fill từ profile user nếu đã đăng nhập
+        setName(user?.username || '');
+        setPhone(user?.phone || '');
         setAddressDetail('');
         setInitialFormAddress('');
         setIsDefault(false);
@@ -1433,7 +1349,7 @@ function AddressFormModal({
         setCoordsConfirmed(false);
       }
     }
-  }, [address, isOpen]);
+  }, [address, isOpen, user]);
 
   if (!isOpen) return null;
 
@@ -1451,7 +1367,7 @@ function AddressFormModal({
       setIsGeocoding(true);
       try {
         const res = await fetch(
-          `http://localhost:4000/api/shipping/geocode?q=${encodeURIComponent(addressDetail)}`
+          `${API_BASE}/shipping/geocode?q=${encodeURIComponent(addressDetail)}`
         );
         if (res.ok) {
           const data = await res.json();
@@ -1525,12 +1441,12 @@ function AddressFormModal({
                   {/* Coordinate status badge */}
                   {coordsConfirmed ? (
                     <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2 py-0.5 rounded-full">
-                      <svg width="9" height="9" viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="5"/></svg>
+                      <svg width="9" height="9" viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="5" /></svg>
                       Tọa độ đã xác nhận
                     </span>
                   ) : addressDetail.trim() ? (
                     <span className="flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-full">
-                      <svg width="9" height="9" viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="5"/></svg>
+                      <svg width="9" height="9" viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="5" /></svg>
                       Chọn gợi ý để chính xác hơn
                     </span>
                   ) : null}
@@ -1591,7 +1507,7 @@ function AddressFormModal({
             >
               {isGeocoding ? (
                 <>
-                  <svg className="animate-spin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                  <svg className="animate-spin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
                   Đang xác định vị trí...
                 </>
               ) : 'Hoàn Thành'}
@@ -1603,67 +1519,7 @@ function AddressFormModal({
   );
 }
 
-// Helper function to calculate Haversine distance in meters
-// When useRoadFactor=true, multiplies by 1.35 to approximate actual road distance
-// (straight-line distance typically underestimates driving distance by 25-40% in Vietnamese cities)
-function getHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number, useRoadFactor = true): number {
-  const R = 6371e3; // Earth's radius in meters
-  const phi1 = (lat1 * Math.PI) / 180;
-  const phi2 = (lat2 * Math.PI) / 180;
-  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
-  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
 
-  const a =
-    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
-    Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  const straightLine = R * c; // Distance in meters
-  // Road factor: urban roads in Vietnam are typically 1.3-1.4x longer than straight-line
-  return useRoadFactor ? straightLine * 1.35 : straightLine;
-}
-
-// Helper to sanitize Vietnamese addresses so they parse correctly in Nominatim
-function cleanAddressForGeocoding(address: string): string {
-  if (!address) return '';
-  let cleaned = address;
-
-  // Remove phone numbers in parentheses, e.g. "(012642978766)"
-  cleaned = cleaned.replace(/\(\d[\d\s\-\.]{6,}\)/g, '');
-  // Remove standalone phone numbers (10+ digits)
-  cleaned = cleaned.replace(/\b0\d{9,}\b/g, '');
-
-  // Normalize HCM city names
-  cleaned = cleaned.replace(/Thành phố Hồ Chí Minh/gi, 'Hồ Chí Minh');
-  cleaned = cleaned.replace(/TP\.\s*Hồ Chí Minh/gi, 'Hồ Chí Minh');
-  cleaned = cleaned.replace(/TP\.?\s*HCM/gi, 'Hồ Chí Minh');
-
-  // Remove some administrative prefixes that confuse Nominatim,
-  // BUT keep "Quận" — removing it turns "Quận 1" into just "1" which is meaningless
-  cleaned = cleaned.replace(/Phường\s+/gi, '');
-  cleaned = cleaned.replace(/Xã\s+/gi, '');
-  cleaned = cleaned.replace(/Thị trấn\s+/gi, '');
-  // Keep "Quận X" intact — Nominatim understands "Quận 1" better than just "1"
-  // cleaned = cleaned.replace(/Quận\s+/gi, ''); // REMOVED: caused "Quận 1" → "1"
-  cleaned = cleaned.replace(/Huyện\s+/gi, '');
-  cleaned = cleaned.replace(/Thị xã\s+/gi, '');
-  cleaned = cleaned.replace(/Tỉnh\s+/gi, '');
-  cleaned = cleaned.replace(/Thành phố\s+/gi, '');
-
-  // Normalize common abbreviations (more specific patterns to avoid false matches)
-  cleaned = cleaned.replace(/Đ\.\s*/gi, 'Đường ');
-  // P. and Q. only at word boundary or after comma to avoid false positives
-  cleaned = cleaned.replace(/(?:^|,\s*)P\.\s*/gi, (match) => match.replace(/P\.\s*/, ''));
-  cleaned = cleaned.replace(/(?:^|,\s*)Q\.\s*(\d)/gi, (_, num) => `Quận ${num}`);
-  cleaned = cleaned.replace(/TX\.\s*/gi, '');
-
-  // Remove duplicate commas and whitespace
-  cleaned = cleaned.replace(/,\s*,/g, ',');
-  cleaned = cleaned.replace(/\s+/g, ' ').trim();
-  // Remove leading/trailing commas
-  cleaned = cleaned.replace(/^,\s*|,\s*$/g, '').trim();
-  return cleaned;
-}
 
 
 
@@ -1671,7 +1527,7 @@ function cleanAddressForGeocoding(address: string): string {
 export default function CheckoutPage() {
   const router = useRouter();
   const { user, token } = useAuthStore();
-  const { step, formData, updateFormData, error, orderResult } = useOrderStore();
+  const { step, formData, updateFormData, error, orderResult, setEmailVerified } = useOrderStore();
   const [isMounted, setIsMounted] = useState(false);
 
   // States cho address management
@@ -1683,15 +1539,14 @@ export default function CheckoutPage() {
 
   // Stores coordinates state
   const [stores, setStores] = useState<any[]>([]);
-  const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
 
   const fetchAddresses = useCallback(async () => {
     if (!token) return;
     setLoadingAddresses(true);
     try {
-      const res = await fetch('http://localhost:4000/api/addresses', {
+      const res = await fetch(`${API_BASE}/addresses`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${ token }`
         }
       });
       const data = await res.json();
@@ -1719,7 +1574,7 @@ export default function CheckoutPage() {
 
   // Fetch active stores on mount
   useEffect(() => {
-    fetch('http://localhost:4000/api/stores')
+    fetch(`${API_BASE}/stores`)
       .then((r) => r.json())
       .then((d) => {
         if (d.success && d.data) {
@@ -1741,177 +1596,30 @@ export default function CheckoutPage() {
     }
   }, [token, fetchAddresses]);
 
-  // Đồng bộ email khi đăng nhập
+  // Đồng bộ thông tin user khi đăng nhập (name, phone, email)
+  // Người dùng đã đăng nhập = đã xác thực email lúc đăng ký => auto verify
   useEffect(() => {
     if (user) {
-      updateFormData({
-        customer_email: user.email || formData.customer_email
-      });
+      // User đã đăng nhập => email đã xác thực
+      setEmailVerified(true);
+
+      const updates: Record<string, any> = {};
+      if (user.email && !formData.customer_email) {
+        updates.customer_email = user.email;
+      }
+      if (user.username && !formData.customer_name) {
+        updates.customer_name = user.username;
+      }
+      if (user.phone && !formData.customer_phone) {
+        updates.customer_phone = user.phone;
+      }
+      if (Object.keys(updates).length > 0) {
+        updateFormData(updates);
+      }
     }
-  }, [user, updateFormData]);
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Distance calculation: use stored coordinates first, fallback to Nominatim geocoding
-  useEffect(() => {
-    // Reset values if not delivery or address is empty/too short
-    if (formData.order_type !== 'delivery' || !formData.customer_address || formData.customer_address.length < 5) {
-      updateFormData({
-        distance: 0,
-        nearest_store_name: '',
-        shipping_fee: 0,
-      });
-      return;
-    }
 
-    // Helper: given user coords, find nearest store using Haversine distance
-    // Helper: given user coords, find nearest store and get shipping calculations from backend
-    const computeDistanceFromCoords = async (userLat: number, userLon: number) => {
-      setIsCalculatingDistance(true);
-      try {
-        const res = await fetch('http://localhost:4000/api/shipping/calculate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ latitude: userLat, longitude: userLon })
-        });
-        if (res.ok) {
-          const resData = await res.json();
-          if (resData && resData.success && resData.data) {
-            const { store_id, store_name, distance_meters, shipping_fee } = resData.data;
-            console.log(`[Distance] 📍 CLOSEST (Backend): "${store_name}" at ${(distance_meters / 1000).toFixed(2)} km, Fee: ${shipping_fee}`);
-            updateFormData({
-              distance: distance_meters,
-              nearest_store_name: store_name,
-              shipping_fee: shipping_fee,
-              store_id: store_id,
-              customer_lat: userLat,
-              customer_lon: userLon,
-            });
-            return;
-          }
-        }
-        console.warn('[Distance] ⚠️ Backend calculation failed, falling back to local approximation');
-      } catch (err: any) {
-        console.warn('[Distance] ⚠️ Backend calculation error:', err.message);
-      } finally {
-        setIsCalculatingDistance(false);
-      }
-
-      // Local fallback (in case backend / OSRM is unreachable)
-      if (stores.length === 0) return;
-      let minDistance = Infinity;
-      let closestStore: any = null;
-
-      const validStores = stores.filter((store) => {
-        const lat = parseFloat(store.latitude);
-        const lon = parseFloat(store.longitude);
-        return !isNaN(lat) && !isNaN(lon);
-      });
-
-      for (const store of validStores) {
-        const storeLat = parseFloat(store.latitude);
-        const storeLon = parseFloat(store.longitude);
-        const dist = getHaversineDistance(userLat, userLon, storeLat, storeLon);
-        if (dist < minDistance) {
-          minDistance = dist;
-          closestStore = store;
-        }
-      }
-
-      if (closestStore) {
-        const shippingFee = minDistance > 5000 ? 20000 : 0;
-        updateFormData({
-          distance: minDistance,
-          nearest_store_name: closestStore.store_name,
-          shipping_fee: shippingFee,
-          store_id: closestStore.store_id,
-          customer_lat: userLat,
-          customer_lon: userLon,
-        });
-      }
-    };
-
-    // If we already have stored coordinates (from saved address or AddressPickerVN), use them directly
-    if (formData.customer_lat != null && formData.customer_lon != null) {
-      console.log('[Distance] Using stored coordinates:', formData.customer_lat, formData.customer_lon);
-      computeDistanceFromCoords(formData.customer_lat, formData.customer_lon);
-      return;
-    }
-
-    // Fallback: geocode via Backend MapTiler endpoint with progressive stripping
-    const timer = setTimeout(async () => {
-      setIsCalculatingDistance(true);
-      try {
-        const originalAddress = formData.customer_address;
-        const cleanedAddress = cleanAddressForGeocoding(originalAddress);
-
-        console.log(`[Distance] Original address: "${originalAddress}"`);
-        console.log(`[Distance] Cleaned address: "${cleanedAddress}"`);
-
-        const parts = cleanedAddress.split(',').map((s) => s.trim()).filter(Boolean);
-        let data: any[] = [];
-
-        // Strategy 1: Progressive stripping (original approach, now with cleaned address)
-        for (let i = 0; i < parts.length - 1; i++) {
-          const queryText = parts.slice(i).join(', ');
-          console.log(`[Distance] Geocoding attempt ${i + 1}: "${queryText}"`);
-
-          const res = await fetch(
-            `http://localhost:4000/api/shipping/geocode?q=${encodeURIComponent(queryText)}`
-          );
-          if (res.ok) {
-            const resData = await res.json();
-            if (resData && resData.success && Array.isArray(resData.data) && resData.data.length > 0) {
-              const bestResult = resData.data[0];
-              const lon = bestResult.geometry?.coordinates?.[0] ?? bestResult.center?.[0] ?? 0;
-              const lat = bestResult.geometry?.coordinates?.[1] ?? bestResult.center?.[1] ?? 0;
-              data = [{ lat, lon, display_name: bestResult.place_name || bestResult.text }];
-              console.log(`[Distance] Found result on attempt ${i + 1}:`, bestResult.place_name || bestResult.text);
-              break;
-            }
-          }
-        }
-
-        // Strategy 2: If all progressive attempts failed, try structured search
-        if (data.length === 0) {
-          const simplifiedQuery = parts.slice(Math.max(0, parts.length - 3)).join(', ');
-          console.log(`[Distance] Structured fallback: "${simplifiedQuery}"`);
-          
-          const res = await fetch(
-            `http://localhost:4000/api/shipping/geocode?q=${encodeURIComponent(simplifiedQuery)}`
-          );
-          if (res.ok) {
-            const resData = await res.json();
-            if (resData && resData.success && Array.isArray(resData.data) && resData.data.length > 0) {
-              const bestResult = resData.data[0];
-              const lon = bestResult.geometry?.coordinates?.[0] ?? bestResult.center?.[0] ?? 0;
-              const lat = bestResult.geometry?.coordinates?.[1] ?? bestResult.center?.[1] ?? 0;
-              data = [{ lat, lon, display_name: bestResult.place_name || bestResult.text }];
-              console.log(`[Distance] Structured fallback found:`, bestResult.place_name || bestResult.text);
-            }
-          }
-        }
-
-        if (Array.isArray(data) && data.length > 0) {
-          const userLat = parseFloat(data[0].lat);
-          const userLon = parseFloat(data[0].lon);
-          console.log('[Distance] User coords (Backend MapTiler):', userLat, userLon);
-
-          if (!isNaN(userLat) && !isNaN(userLon) && userLat >= 8 && userLat <= 24 && userLon >= 102 && userLon <= 110) {
-            computeDistanceFromCoords(userLat, userLon);
-          } else {
-            console.warn(`[Distance] Geocoded coordinates (${userLat}, ${userLon}) are outside Vietnam, ignoring`);
-          }
-        } else {
-          console.warn('[Distance] No geocoding result found for:', originalAddress);
-        }
-      } catch (err) {
-        console.error('Error calculating distance:', err);
-      } finally {
-        setIsCalculatingDistance(false);
-      }
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [formData.customer_address, formData.customer_lat, formData.customer_lon, formData.order_type, stores, updateFormData]);
 
   const handleSaveAddress = async (payload: {
     recipient_name: string;
@@ -1924,15 +1632,15 @@ export default function CheckoutPage() {
     if (!token) return;
     try {
       const url = editingAddress
-        ? `http://localhost:4000/api/addresses/${editingAddress.user_address_id}`
-        : 'http://localhost:4000/api/addresses';
+        ? `${API_BASE}/addresses/${editingAddress.user_address_id}`
+        : `${API_BASE}/addresses`;
       const method = editingAddress ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${ token }`
         },
         body: JSON.stringify(payload)
       });
@@ -1954,10 +1662,10 @@ export default function CheckoutPage() {
     if (!token) return;
     if (!confirm('Bạn có chắc chắn muốn xóa địa chỉ này?')) return;
     try {
-      const res = await fetch(`http://localhost:4000/api/addresses/${id}`, {
+      const res = await fetch(`${API_BASE}/addresses/${id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${ token }`
         }
       });
       const data = await res.json();
@@ -1994,7 +1702,8 @@ export default function CheckoutPage() {
     );
   }
 
-  // Payment page
+  // Payment page (kept for backward compatibility but no longer used in normal flow)
+  // VietQR payment is now handled via email QR code
   if (step === 'payment') {
     return (
       <div className="checkout-page flex items-center justify-center min-h-screen">
@@ -2005,10 +1714,6 @@ export default function CheckoutPage() {
 
   return (
     <div className="checkout-page">
-      {/* Pop-up modal thanh toán VietQR toàn màn hình khi người dùng chọn phương thức VietQR và đơn hàng đã được tạo thành công */}
-      {formData.payment_method === 'vietqr' && orderResult && (step as string) === 'payment' && (
-        <OrderPaymentModal />
-      )}
       {/* Header */}
       <div className="checkout-header">
         <button className="checkout-back-btn" onClick={() => router.back()}>
@@ -2034,7 +1739,6 @@ export default function CheckoutPage() {
             loadingAddresses={loadingAddresses}
             onOpenAddressModal={() => setShowAddressModal(true)}
             stores={stores}
-            isCalculatingDistance={isCalculatingDistance}
           />
           <div className="checkout-row">
             <ScheduleSection />

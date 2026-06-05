@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { X, ChevronDown, ShoppingCart } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useCartStore } from '@/store/cartStore';
+import { API_BASE } from '@/lib/config';
 
 export default function HalfHalfModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const CustomSelect = ({ value, options, onChange }: { value: any, options: { value: any, label: string }[], onChange: (val: any) => void }) => {
@@ -98,15 +99,15 @@ export default function HalfHalfModal({ isOpen, onClose }: { isOpen: boolean; on
   const fetchData = async () => {
     try {
       // Lấy danh mục để tìm Pizza
-      const catRes = await fetch('http://localhost:4000/api/menu/categories');
+      const catRes = await fetch(`${API_BASE}/menu/categories`);
       const catData = await catRes.json();
       const pizzaCat = catData.data?.find((c: any) => c.category_name?.toLowerCase() === 'pizza');
 
       const [dishesRes, sizesRes, crustsRes, toppingsRes] = await Promise.all([
-        fetch(`http://localhost:4000/api/menu/dishes?category_id=${pizzaCat?.category_id || ''}&all=true`),
-        fetch('http://localhost:4000/api/menu/sizes'),
-        fetch('http://localhost:4000/api/menu/crusts'),
-        fetch('http://localhost:4000/api/menu/toppings?type=pizza')
+        fetch(`${API_BASE}/menu/dishes?category_id=${pizzaCat?.category_id || ''}&all=true`),
+        fetch(`${API_BASE}/menu/sizes`),
+        fetch(`${API_BASE}/menu/crusts`),
+        fetch(`${API_BASE}/menu/toppings?type=pizza`)
       ]);
 
       const dishes = await dishesRes.json();

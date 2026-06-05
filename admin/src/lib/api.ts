@@ -1,7 +1,7 @@
 // Cấu hình API — kết nối tới backend Pizza&PastaInn
 import axios from "axios";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 // Tạo axios instance với base URL của backend
 export const api = axios.create({

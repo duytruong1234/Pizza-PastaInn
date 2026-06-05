@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { User, LogOut, ChevronDown, Sun, Moon, Menu, X } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
+import { BACKEND_URL } from '@/lib/config';
 import CartButton from './CartButton';
 import { useUI } from './UIProvider';
 
@@ -13,7 +14,7 @@ export default function HeaderClient({ storeName }: { storeName: string }) {
   const { user, clearAuth } = useAuthStore();
   const { theme, toggleTheme } = useUI();
   const pathname = usePathname();
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:4000';
+  const backendUrl = BACKEND_URL;
   const [isMounted, setIsMounted] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

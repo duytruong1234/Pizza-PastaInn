@@ -5,6 +5,7 @@ import HeaderClient from '@/components/HeaderClient';
 import Footer from '@/components/Footer';
 import { useUI } from '@/components/UIProvider';
 import { useAuthStore } from '@/store/authStore';
+import { API_BASE, BACKEND_URL } from '@/lib/config';
 
 // Helper Icon Components for Review Section
 const StarIcon = ({ filled, size = 18, onClick }: { filled: boolean; size?: number; onClick?: () => void }) => (
@@ -101,7 +102,7 @@ export default function ReviewsPage() {
 
   const fetchReviews = async () => {
     try {
-      const res = await fetch('http://localhost:4000/api/reviews?limit=50');
+      const res = await fetch(`${API_BASE}/reviews?limit=50`);
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.data && json.data.reviews) {
@@ -178,7 +179,7 @@ export default function ReviewsPage() {
     formData.append('image', file);
 
     try {
-      const res = await fetch('http://localhost:4000/api/upload', {
+      const res = await fetch(`${API_BASE}/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -188,7 +189,7 @@ export default function ReviewsPage() {
         if (json.success && json.data?.url) {
           const fullUrl = json.data.url.startsWith('http')
             ? json.data.url
-            : `http://localhost:4000${json.data.url}`;
+            : `${BACKEND_URL}${json.data.url}`;
           setReviewImages((prev) => [...prev, fullUrl]);
         }
       } else {
@@ -226,7 +227,7 @@ export default function ReviewsPage() {
     if (!window.confirm("Bạn có chắc chắn muốn xóa đánh giá này không?")) return;
 
     try {
-      const response = await fetch(`http://localhost:4000/api/reviews/${reviewId}?user_id=${user ? user.user_id : ''}`, {
+      const response = await fetch(`${API_BASE}/reviews/${reviewId}?user_id=${user ? user.user_id : ''}`, {
         method: 'DELETE',
       });
 
@@ -261,7 +262,7 @@ export default function ReviewsPage() {
     try {
       let response;
       if (editingReviewId) {
-        response = await fetch(`http://localhost:4000/api/reviews/${editingReviewId}`, {
+        response = await fetch(`${API_BASE}/reviews/${editingReviewId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -274,7 +275,7 @@ export default function ReviewsPage() {
           }),
         });
       } else {
-        response = await fetch('http://localhost:4000/api/reviews', {
+        response = await fetch(`${API_BASE}/reviews`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

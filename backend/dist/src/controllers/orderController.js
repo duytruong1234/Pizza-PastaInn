@@ -115,6 +115,24 @@ class OrderController {
             return (0, response_1.sendError)(res, 'Lỗi lấy đơn hàng theo số điện thoại', 500);
         }
     }
+    /**
+     * Hủy đơn hàng và hoàn trả lại số lượng tồn kho.
+     * POST /api/orders/:id/cancel
+     */
+    static async cancelOrder(req, res) {
+        try {
+            const order_id = parseInt(String(req.params.id));
+            if (!order_id || isNaN(order_id)) {
+                return (0, response_1.sendError)(res, 'order_id không hợp lệ', 400);
+            }
+            const order = await orderService_1.OrderService.cancelOrder(order_id);
+            return (0, response_1.sendSuccess)(res, { data: order, message: 'Hủy đơn hàng thành công và đã khôi phục lại tồn kho.' });
+        }
+        catch (error) {
+            console.error('Order cancel error:', error);
+            return (0, response_1.sendError)(res, error.message || 'Lỗi khi hủy đơn hàng', 500);
+        }
+    }
 }
 exports.OrderController = OrderController;
 //# sourceMappingURL=orderController.js.map

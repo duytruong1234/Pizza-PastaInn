@@ -8,11 +8,12 @@ import { SearchResultsBanner, EmptyState } from '@/components/PageComponents';
 
 export default async function Home(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const searchParams = await props.searchParams;
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
   // Lấy dữ liệu từ backend
   let categories = [];
   try {
-    const res = await fetch('http://localhost:4000/api/menu/categories', { next: { revalidate: 60 } });
+    const res = await fetch(`${API_BASE}/menu/categories`, { next: { revalidate: 60 } });
     if (res.ok) {
       const json = await res.json();
       if (json.success) categories = json.data;
@@ -37,7 +38,7 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
   try {
     if (isComboCategory && !searchQuery) {
       // Lấy combo từ API combos
-      const res = await fetch('http://localhost:4000/api/menu/combos', { cache: 'no-store' });
+      const res = await fetch(`${API_BASE}/menu/combos`, { cache: 'no-store' });
       if (res.ok) {
         const json = await res.json();
         if (json.success) {
@@ -59,11 +60,11 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
       // Lấy danh sách món ăn
       let fetchUrl: string;
       if (searchQuery) {
-        fetchUrl = 'http://localhost:4000/api/menu/dishes';
+        fetchUrl = `${API_BASE}/menu/dishes`;
       } else if (activeCategoryId) {
-        fetchUrl = `http://localhost:4000/api/menu/dishes?category_id=${activeCategoryId}`;
+        fetchUrl = `${API_BASE}/menu/dishes?category_id=${activeCategoryId}`;
       } else {
-        fetchUrl = 'http://localhost:4000/api/menu/dishes';
+        fetchUrl = `${API_BASE}/menu/dishes`;
       }
 
       if (fetchUrl) {
@@ -105,7 +106,7 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
       // Khi đang tìm kiếm, cũng fetch thêm combos để hiển thị trong kết quả
       if (searchQuery) {
         try {
-          const comboRes = await fetch('http://localhost:4000/api/menu/combos', { cache: 'no-store' });
+          const comboRes = await fetch(`${API_BASE}/menu/combos`, { cache: 'no-store' });
           if (comboRes.ok) {
             const comboJson = await comboRes.json();
             if (comboJson.success) {
@@ -212,3 +213,4 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
     </div>
   );
 }
+

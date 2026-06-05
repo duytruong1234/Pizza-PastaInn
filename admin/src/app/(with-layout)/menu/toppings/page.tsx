@@ -272,7 +272,7 @@ export default function ToppingsPage() {
       {/* ── MODAL SỬA TOPPING ── */}
       <Modal isOpen={!!editingTopping} setIsOpen={() => setEditingTopping(null)} title="SỬA TOPPING">
         <div className="space-y-5 p-2">
-          <InputGroup label="TÊN TOPPING (*)" type="text" value={editForm.topping_name} handleChange={(e) => { setEditForm(prev => ({ ...prev, topping_name: e.target.value })); setEditError(p => ({ ...p, topping_name: "" })); }} error={editError.topping_name} />
+          <InputGroup label="TÊN TOPPING (*)" type="text" placeholder="Nhập tên topping" value={editForm.topping_name} handleChange={(e) => { setEditForm(prev => ({ ...prev, topping_name: e.target.value })); setEditError(p => ({ ...p, topping_name: "" })); }} error={editError.topping_name} />
           <InputGroup label="GIÁ TOPPING (VNĐ) (*)" type="number" placeholder="0" value={editForm.price_topping || ""} handleChange={(e) => { setEditForm(prev => ({ ...prev, price_topping: Number(e.target.value) })); setEditError(p => ({ ...p, price_topping: "" })); }} error={editError.price_topping} />
           <Select label="KÍCH THƯỚC ÁP DỤNG (*)" value={editForm.size_id ?? ""} onChange={(e) => { setEditForm(prev => ({ ...prev, size_id: e.target.value ? Number(e.target.value) : null })); setEditError(p => ({ ...p, size_id: "" })); }} items={sizes.map(s => ({ value: s.size_id, label: s.size_name }))} placeholder="-- Tất cả kích thước --" error={editError.size_id} />
 

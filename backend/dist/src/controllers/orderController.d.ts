@@ -20,5 +20,10 @@ export declare class OrderController {
      * GET /api/orders/phone/:phone
      */
     static getOrdersByPhone(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
+    /**
+     * Hủy đơn hàng và hoàn trả lại số lượng tồn kho.
+     * POST /api/orders/:id/cancel
+     */
+    static cancelOrder(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
 }
 //# sourceMappingURL=orderController.d.ts.map

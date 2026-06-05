@@ -421,12 +421,12 @@ export default function ReviewsPage() {
                   <div className="flex items-center sm:items-end justify-between sm:flex-col gap-2 sm:text-right">
                     {r.order ? (
                       <button
-                        onClick={() => setSelectedOrderId(r.order.order_id)}
+                        onClick={() => setSelectedOrderId(r.order?.order_id ?? null)}
                         className="rounded bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 text-[10px] font-bold tracking-wide text-emerald-550 dark:text-emerald-400 hover:bg-emerald-500/20 transition-all active:scale-[0.97] cursor-pointer flex items-center gap-1 shadow-sm"
                         title="Bấm vào để xem chi tiết đơn hàng khách đã mua"
                       >
                         <span>
-                          ĐƠN #{r.order.order_id} ({r.order.total_order ? `${(r.order.total_order / 1000).toFixed(0)}k` : ''})
+                          ĐƠN #{r.order?.order_id} ({r.order?.total_order ? `${(r.order.total_order / 1000).toFixed(0)}k` : ''})
                         </span>
                       </button>
                     ) : (

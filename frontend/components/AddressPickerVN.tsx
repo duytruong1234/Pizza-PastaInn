@@ -43,10 +43,9 @@ export default function AddressPickerVN({
   const [initialized, setInitialized] = useState(false);
   const lastSentAddressRef = useRef(initialAddress || "");
   const lastParsedAddressRef = useRef(initialAddress || "");
+  const isUserChangeRef = useRef(false);
 
-  const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
 
   const [provinceSearch, setProvinceSearch] = useState("");
   const [wardSearch, setWardSearch] = useState("");
@@ -54,69 +53,9 @@ export default function AddressPickerVN({
   const [showWardDropdown, setShowWardDropdown] = useState(false);
 
   const handleAddressDetailChange = (val: string) => {
+    isUserChangeRef.current = true;
     setAddressDetail(val);
     setInitialized(true);
-
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
-    if (!val.trim() || val.length < 3) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
-
-    debounceTimerRef.current = setTimeout(() => {
-      const provinceObj = provinces.find((p) => String(p.code) === selectedProvince);
-      const wardObj = wards.find((w) => String(w.code) === selectedWard);
-
-      const searchContext = [
-        val.trim(),
-        wardObj ? wardObj.name : "",
-        provinceObj ? provinceObj.name : ""
-      ].filter(Boolean).join(", ");
-
-      fetch(`http://localhost:4000/api/shipping/geocode?q=${encodeURIComponent(searchContext)}`)
-        .then((res) => res.json())
-        .then((resData) => {
-          if (resData && resData.success && Array.isArray(resData.data)) {
-            const items = resData.data.map((feature: any) => {
-              const placeName = feature.place_name || feature.text || "";
-              const parts = placeName.split(",").map((s: string) => s.trim());
-              const mainText = parts.slice(0, Math.max(1, parts.length - 4)).join(", ") || parts[0];
-              const secondaryText = parts.slice(Math.max(1, parts.length - 4)).join(", ");
-              const lon = feature.geometry?.coordinates?.[0] ?? feature.center?.[0] ?? 0;
-              const lat = feature.geometry?.coordinates?.[1] ?? feature.center?.[1] ?? 0;
-              return {
-                display_name: placeName,
-                mainText,
-                secondaryText,
-                lat,
-                lon
-              };
-            });
-            setSuggestions(items);
-            setShowSuggestions(items.length > 0);
-          }
-        })
-        .catch(() => {
-          setSuggestions([]);
-          setShowSuggestions(false);
-        });
-    }, 400);
-  };
-
-  const handleSuggestionSelect = (item: any) => {
-    setAddressDetail(item.mainText);
-    setSuggestions([]);
-    setShowSuggestions(false);
-
-    onChange(item.display_name);
-
-    if (onSelectCoordinates) {
-      onSelectCoordinates(item.lat, item.lon, item.display_name);
-    }
   };
 
   // --- Fetch Tỉnh/Thành phố ---
@@ -187,10 +126,12 @@ export default function AddressPickerVN({
   // --- Kích hoạt callback onChange khi thông tin thay đổi ---
   useEffect(() => {
     if (!initialized) return;
+    if (!isUserChangeRef.current) return;
     const currentComposed = composeAddress();
     // Ngăn chặn gọi trùng lặp nếu địa chỉ giống hệt lần gửi trước
     if (currentComposed === lastSentAddressRef.current) return;
     lastSentAddressRef.current = currentComposed;
+    isUserChangeRef.current = false;
     onChange(currentComposed);
   }, [composeAddress, initialized, onChange]);
 
@@ -379,6 +320,7 @@ export default function AddressPickerVN({
                       type="button"
                       onMouseDown={(e) => {
                         e.preventDefault();
+                        isUserChangeRef.current = true;
                         setSelectedProvince(String(p.code));
                         setProvinceSearch(p.name);
                         setShowProvinceDropdown(false);
@@ -461,6 +403,7 @@ export default function AddressPickerVN({
                       type="button"
                       onMouseDown={(e) => {
                         e.preventDefault();
+                        isUserChangeRef.current = true;
                         setSelectedWard(String(w.code));
                         setWardSearch(w.name);
                         setShowWardDropdown(false);
@@ -496,39 +439,8 @@ export default function AddressPickerVN({
             value={addressDetail}
             onChange={(e) => handleAddressDetailChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            onFocus={() => {
-              if (suggestions.length > 0) setShowSuggestions(true);
-            }}
-            onBlur={() => {
-              setTimeout(() => setShowSuggestions(false), 250);
-            }}
             className="w-full bg-white/[0.06] border border-white/10 rounded-[10px] py-2.5 pl-9 pr-4 text-white text-[14px] outline-none transition-all duration-200 placeholder:text-white/25 focus:border-[#d4a017] focus:ring-2 focus:ring-[#d4a017]/15"
           />
-
-          {/* Suggestions Dropdown */}
-          {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute left-0 right-0 mt-1 bg-[#161616] border border-white/10 rounded-[10px] shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-[100] max-h-[220px] overflow-y-auto custom-scrollbar">
-              {suggestions.map((item, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    handleSuggestionSelect(item);
-                  }}
-                  className="w-full text-left px-4 py-2.5 hover:bg-[#d4a017]/10 transition-colors text-white text-[13px] border-b border-white/5 last:border-b-0 flex items-start gap-2.5"
-                >
-                  <MapPin size={16} className="text-[#d4a017] shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-white truncate">{item.mainText}</div>
-                    <div className="text-white/40 text-[11.5px] truncate mt-0.5">
-                      {item.secondaryText}
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>

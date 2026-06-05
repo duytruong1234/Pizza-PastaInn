@@ -11,5 +11,7 @@ router.get('/user/:user_id', orderController_1.OrderController.getOrdersByUser);
 router.get('/phone/:phone', orderController_1.OrderController.getOrdersByPhone);
 // Lấy chi tiết 1 đơn hàng (JOIN đầy đủ 5 bảng order)
 router.get('/:id', orderController_1.OrderController.getOrder);
+// Hủy đơn hàng và khôi phục tồn kho
+router.post('/:id/cancel', orderController_1.OrderController.cancelOrder);
 exports.default = router;
 //# sourceMappingURL=order.js.map

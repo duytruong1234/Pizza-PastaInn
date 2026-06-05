@@ -4,7 +4,7 @@ import { MapPin, Phone } from 'lucide-react';
 export default async function BranchesPage() {
   let stores = [];
   try {
-    const res = await fetch('http://localhost:4000/api/stores', { next: { revalidate: 60 } });
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/stores`, { next: { revalidate: 60 } });
     if (res.ok) {
       const json = await res.json();
       if (json.success) stores = json.data;

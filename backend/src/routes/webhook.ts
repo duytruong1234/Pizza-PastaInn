@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import crypto from 'crypto';
 import prisma from '../lib/prisma';
+import { sendPaymentSuccessEmail } from '../services/emailService';
 
 // Mở rộng interface Request của Express để hỗ trợ rawBody
 interface RequestWithRawBody extends Request {
@@ -183,6 +184,11 @@ router.post(['/sepay', '/'], async (req: RequestWithRawBody, res: Response) => {
     });
 
     console.log(`[SePay Webhook] THANH TOÁN THÀNH CÔNG: Đơn hàng ID ${orderId} đã được xác nhận thanh toán và ghi nhận lịch sử giao dịch thành công lúc ${new Date().toISOString()}`);
+
+    // Gửi email thông báo thanh toán thành công (bất đồng bộ)
+    sendPaymentSuccessEmail(orderId).catch((err) =>
+      console.error(`[SePay Webhook] Lỗi gửi email thanh toán cho đơn ${orderId}:`, err)
+    );
 
     return res.status(200).json({
       success: true,

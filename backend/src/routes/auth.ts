@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { register, login, getMe, logout, updateProfile, changePassword, uploadAvatar, deleteAvatar } from '../controllers/authController';
 import { verifyToken } from '../middleware/auth';
+import { createOtp, verifyOtp } from '../services/otpService';
+import { sendOtpEmail } from '../services/emailService';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -35,7 +37,59 @@ const upload = multer({
   },
 });
 
-// POST /api/auth/register — Đăng ký
+// POST /api/auth/send-otp — Gui ma OTP xac thuc email
+router.post('/send-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ success: false, message: 'Email khong hop le' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ success: false, message: 'Dinh dang email khong hop le' });
+    }
+
+    const otp = createOtp(email);
+    if (!otp) {
+      return res.status(429).json({ success: false, message: 'Ban da gui qua nhieu yeu cau. Vui long thu lai sau 10 phut.' });
+    }
+
+    // Gui email OTP
+    const sent = await sendOtpEmail(email, otp);
+    if (!sent) {
+      return res.status(500).json({ success: false, message: 'Khong the gui email OTP. Vui long thu lai.' });
+    }
+
+    return res.json({ success: true, message: 'Ma OTP da duoc gui den email cua ban' });
+  } catch (err) {
+    console.error('Send OTP error:', err);
+    return res.status(500).json({ success: false, message: 'Loi he thong' });
+  }
+});
+
+// POST /api/auth/verify-otp — Xac thuc ma OTP
+router.post('/verify-otp', (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, message: 'Thieu email hoac ma OTP' });
+    }
+
+    const isValid = verifyOtp(email, otp);
+    if (!isValid) {
+      return res.status(400).json({ success: false, message: 'Ma OTP khong dung hoac da het han' });
+    }
+
+    return res.json({ success: true, verified: true, message: 'Xac thuc email thanh cong' });
+  } catch (err) {
+    console.error('Verify OTP error:', err);
+    return res.status(500).json({ success: false, message: 'Loi he thong' });
+  }
+});
+
+// POST /api/auth/register — Dang ky
 router.post('/register', register);
 
 // POST /api/auth/login — Đăng nhập → trả JWT

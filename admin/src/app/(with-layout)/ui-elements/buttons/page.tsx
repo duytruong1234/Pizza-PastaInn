@@ -23,10 +23,10 @@ export default function Page() {
           </div>
 
           <div className="mb-7.5 flex flex-wrap gap-5 xl:gap-20">
-            <Button label="Button" variant="green" />
-            <Button label="Button" variant="green" shape="rounded" />
-            <Button label="Button" variant="green" shape="full" />
-            <Button label="Button" variant="outlineGreen" shape="rounded" />
+            <Button label="Button" variant="success" />
+            <Button label="Button" variant="success" shape="rounded" />
+            <Button label="Button" variant="success" shape="full" />
+            <Button label="Button" variant="outlineSuccess" shape="rounded" />
           </div>
 
           <div className="flex flex-wrap gap-5 xl:gap-20">
@@ -47,7 +47,7 @@ export default function Page() {
             />
             <Button
               label="Button With Icon"
-              variant="green"
+              variant="success"
               size="small"
               icon={<MessageOutlineIcon />}
             />
@@ -75,7 +75,7 @@ export default function Page() {
             />
             <Button
               label="Button With Icon"
-              variant="green"
+              variant="success"
               shape="rounded"
               size="small"
               icon={<MessageOutlineIcon />}
@@ -106,7 +106,7 @@ export default function Page() {
             />
             <Button
               label="Button With Icon"
-              variant="green"
+              variant="success"
               shape="full"
               size="small"
               icon={<MessageOutlineIcon />}

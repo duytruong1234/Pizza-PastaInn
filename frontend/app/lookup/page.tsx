@@ -8,6 +8,7 @@ import { Search, Phone, Calendar, Clock, CreditCard, Truck, Package, AlertCircle
 import { formatPrice } from '@/lib/utils';
 import { useUI } from '@/components/UIProvider';
 import { useRouter } from 'next/navigation';
+import { API_BASE } from '@/lib/config';
 
 interface Topping {
   topping_id: number;
@@ -91,6 +92,10 @@ interface Order {
     address_line: string;
   };
   items: OrderItem[];
+  store?: {
+    store_name: string;
+    address: string;
+  };
 }
 
 export default function OrderLookupPage() {
@@ -132,7 +137,7 @@ export default function OrderLookupPage() {
     setOrders([]);
 
     try {
-      const res = await fetch(`http://localhost:4000/api/orders/phone/${trimmedPhone}`);
+      const res = await fetch(`${API_BASE}/orders/phone/${trimmedPhone}`);
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.data) {
@@ -162,28 +167,23 @@ export default function OrderLookupPage() {
     switch (statusLower) {
       case 'pending':
         return (
-          <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(245,158,11,0.08)]">
-            Pending Approval
+          <span className="px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-500 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(249,115,22,0.08)]">
+            Pending Confirmation
           </span>
         );
       case 'confirmed':
-        return (
-          <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(16,185,129,0.08)]">
-            Confirmed
-          </span>
-        );
       case 'preparing':
       case 'processing':
         return (
-          <span className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(59,130,246,0.08)]">
+          <span className="px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(234,179,8,0.08)]">
             Preparing
           </span>
         );
       case 'shipped':
       case 'delivering':
         return (
-          <span className="px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-400 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(168,85,247,0.08)]">
-            Out for Delivery
+          <span className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-500 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(59,130,246,0.08)]">
+            Delivering
           </span>
         );
       case 'arrived':
@@ -415,6 +415,11 @@ export default function OrderLookupPage() {
                               ) : (
                                 <>
                                   Order Type: <strong className={theme === 'dark' ? 'text-white font-bold' : 'text-gray-800 font-bold'}>Store Pickup</strong>
+                                  {order.store?.address && (
+                                    <span className={`block mt-1 text-xs ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}`}>
+                                      Store: {order.store.store_name} - {order.store.address}
+                                    </span>
+                                  )}
                                 </>
                               )}
                             </span>
@@ -502,13 +507,16 @@ export default function OrderLookupPage() {
                               imageSrc = 'https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?q=80&w=100&auto=format&fit=crop';
                               const size = item.dish_price?.size?.size_name;
                               const crust = item.dish_price?.crust?.crust_name;
-                              itemSpec = `${size ? `Size: ${size}` : ''}${crust ? ` - Crust: ${crust}` : ''}`;
+                              itemSpec = `${size ? `Size: ${size}` : ''}${crust && crust.toLowerCase() !== 'none' ? ` - Crust: ${crust}` : ''}`;
                             } else {
                               dishName = item.dish_price?.dish?.dish_name || 'Dish';
                               imageSrc = item.dish_price?.dish?.image || imageSrc;
-                              const size = item.dish_price?.size?.size_name;
-                              const crust = item.dish_price?.crust?.crust_name;
-                              itemSpec = `${size ? `Size: ${size}` : ''}${crust ? ` - Crust: ${crust}` : ''}`;
+                              const isPizza = dishName.toLowerCase().includes('pizza');
+                              if (isPizza) {
+                                const size = item.dish_price?.size?.size_name;
+                                const crust = item.dish_price?.crust?.crust_name;
+                                itemSpec = `${size ? `Size: ${size}` : ''}${crust && crust.toLowerCase() !== 'none' ? ` - Crust: ${crust}` : ''}`;
+                              }
                             }
 
                             return (
@@ -533,6 +541,9 @@ export default function OrderLookupPage() {
                                         {dishName}
                                       </h4>
                                     </div>
+                                    <div className={`text-[11px] font-bold tracking-wider ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}`}>
+                                      Quantity: x{item.quantity}
+                                    </div>
                                     
                                     {itemSpec && (
                                       <p className={`text-[11px] font-bold uppercase tracking-wide ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'}`}>
@@ -556,11 +567,15 @@ export default function OrderLookupPage() {
                                               </p>
                                               
                                               <div className="pl-3 text-[10px] text-zinc-500 space-y-0.5">
-                                                {!combItem.is_half_half && (cSize || cCrust) && (
-                                                  <p className="font-bold uppercase tracking-wider">
-                                                    {cSize ? `Size: ${cSize}` : ''}{cCrust ? ` - Crust: ${cCrust}` : ''}
-                                                  </p>
-                                                )}
+                                                {!combItem.is_half_half && (() => {
+                                      const cIsPizza = cName.toLowerCase().includes('pizza');
+                                      return cIsPizza ? (
+                                        <p className="font-bold uppercase tracking-wider">
+                                          {cSize ? `Size: ${cSize}` : ''}
+                                          {cCrust && cCrust.toLowerCase() !== 'none' ? ` - Crust: ${cCrust}` : ''}
+                                        </p>
+                                      ) : null;
+                                    })()}
 
                                                 {combItem.is_half_half && combItem.halves && (
                                                   <div className="pl-2 border-l border-blue-400/30 py-0.5 space-y-1">
@@ -615,7 +630,7 @@ export default function OrderLookupPage() {
                                     )}
                                     {isHalfHalf && item.toppings && item.toppings.length > 0 && (
                                       <p className="text-[11px] text-zinc-500 font-medium pt-1">
-                                        + Toppings chung: {item.toppings.map((t) => `${t.topping?.topping_name} (+${formatPrice(t.topping_price)})`).join(', ')}
+                                        + Toppings: {item.toppings.map((t) => `${t.topping?.topping_name} (+${formatPrice(t.topping_price)})`).join(', ')}
                                       </p>
                                     )}
 
@@ -628,9 +643,6 @@ export default function OrderLookupPage() {
                                         Special Request: {item.order_item_note}
                                       </p>
                                     )}
-                                  </div>
-                                  <div className={`text-[11px] font-bold tracking-wider mt-1 block ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}`}>
-                                    Quantity: x{item.quantity}
                                   </div>
                                 </div>
                               </div>

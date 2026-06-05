@@ -35,6 +35,7 @@ import { useAuthStore } from '@/store/authStore';
 import { formatPrice } from '@/lib/utils';
 import api from '@/lib/api';
 import { useUI } from '@/components/UIProvider';
+import { BACKEND_URL } from '@/lib/config';
 
 // Complete HCMC District and Wards data
 const hcmcDistricts: Record<string, string[]> = {
@@ -470,7 +471,7 @@ type TabType = 'general' | 'addresses' | 'orders' | 'password' | 'vouchers';
 export default function ProfilePage() {
   const router = useRouter();
   const { user, token, setAuth, clearAuth } = useAuthStore();
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:4000';
+  const backendUrl = BACKEND_URL;
   const [isMounted, setIsMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('general');
 
@@ -885,27 +886,27 @@ export default function ProfilePage() {
     switch (statusLower) {
       case 'pending':
         return (
-          <span className="inline-block px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(245,158,11,0.08)]">
-            Chờ duyệt
+          <span className="inline-block px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-500 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(249,115,22,0.08)]">
+            Đang chờ xác nhận
           </span>
         );
       case 'confirmed':
         return (
-          <span className="inline-block px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(16,185,129,0.08)]">
+          <span className="inline-block px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(234,179,8,0.08)]">
             Đã xác nhận
           </span>
         );
       case 'preparing':
       case 'processing':
         return (
-          <span className="inline-block px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(59,130,246,0.08)]">
+          <span className="inline-block px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(234,179,8,0.08)]">
             Đang chuẩn bị
           </span>
         );
       case 'shipped':
       case 'delivering':
         return (
-          <span className="inline-block px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-400 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(168,85,247,0.08)]">
+          <span className="inline-block px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-500 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(59,130,246,0.08)]">
             Đang giao hàng
           </span>
         );
@@ -913,7 +914,7 @@ export default function ProfilePage() {
       case 'completed':
         return (
           <span className="inline-block px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(16,185,129,0.08)]">
-            Hoàn thành
+            Đã hoàn thành
           </span>
         );
       case 'cancelled':

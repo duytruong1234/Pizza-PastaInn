@@ -6,6 +6,7 @@ import { formatPrice } from '@/lib/utils';
 import { X, Gift, ShoppingCart, Check, ChevronDown } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useUI } from '@/components/UIProvider';
+import { API_BASE } from '@/lib/config';
 
 const CustomSelect = ({ value, options, onChange }: { value: any, options: { value: any, label: string }[], onChange: (val: any) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -101,10 +102,10 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
   const fetchToppings = async () => {
     try {
       const [pizzaRes, spaRes, crustsRes, hhRes] = await Promise.all([
-        fetch('http://localhost:4000/api/menu/toppings?type=pizza'),
-        fetch('http://localhost:4000/api/menu/toppings?type=spaghetti'),
-        fetch('http://localhost:4000/api/menu/crusts'),
-        fetch('http://localhost:4000/api/menu/dishes/65/prices')
+        fetch(`${API_BASE}/menu/toppings?type=pizza`),
+        fetch(`${API_BASE}/menu/toppings?type=spaghetti`),
+        fetch(`${API_BASE}/menu/crusts`),
+        fetch(`${API_BASE}/menu/dishes/65/prices`)
       ]);
       const pizzaData = await pizzaRes.json();
       const spaData = await spaRes.json();
@@ -132,7 +133,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
   const fetchComboDetail = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:4000/api/menu/combos/${comboId}`);
+      const res = await fetch(`${API_BASE}/menu/combos/${comboId}`);
       const json = await res.json();
       if (json.success) {
         setComboDetail(json.data);

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { useCartStore, CartItem } from './cartStore';
 import { useAuthStore } from './authStore';
+import { API_BASE } from '../lib/config';
 
 // ── Kiểu dữ liệu cho Order ─────────────────────────────────────────────────
 
@@ -52,9 +53,11 @@ type OrderStore = {
   error: string | null;
   vietqrAttempt: number;
   cartBackup: CartItem[] | null;
+  emailVerified: boolean;
 
   setStep: (step: CheckoutStep) => void;
   updateFormData: (data: Partial<OrderFormData>) => void;
+  setEmailVerified: (verified: boolean) => void;
   resetForm: () => void;
   submitOrder: (bypassVietQRStep?: boolean) => Promise<boolean>;
   cancelActiveOrder: () => Promise<boolean>;
@@ -80,7 +83,7 @@ const initialFormData: OrderFormData = {
   payment_method: 'cod',
 };
 
-const API_URL = 'http://localhost:4000/api/orders';
+const API_URL = `${API_BASE}/orders`;
 
 export const useOrderStore = create<OrderStore>()((set, get) => ({
   step: 'info',
@@ -90,14 +93,26 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
   error: null,
   vietqrAttempt: 0,
   cartBackup: null,
+  emailVerified: false,
 
   setStep: (step) => set({ step }),
 
-  updateFormData: (data) =>
-    set((state) => ({
-      formData: { ...state.formData, ...data },
-      error: null,
-    })),
+  updateFormData: (data) => {
+      const state = get();
+      // Bail out if nothing actually changed
+      const keys = Object.keys(data) as (keyof OrderFormData)[];
+      const formChanged = keys.some((key) => (data as any)[key] !== (state.formData as any)[key]);
+      if (!formChanged) return;
+
+      const emailChanged = data.customer_email !== undefined && data.customer_email !== state.formData.customer_email;
+      set({
+        formData: { ...state.formData, ...data },
+        error: null,
+        ...(emailChanged ? { emailVerified: false } : {}),
+      });
+    },
+
+  setEmailVerified: (verified) => set({ emailVerified: verified }),
 
   resetForm: () =>
     set({
@@ -130,7 +145,16 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
       return false;
     }
     if (cartStore.items.length === 0) {
-      set({ error: 'Giỏ hàng trống' });
+      set({ error: 'Gio hang trong' });
+      return false;
+    }
+    // Check email verified (bat buoc cho guest)
+    if (formData.customer_email && !get().emailVerified) {
+      set({ error: 'Vui long xac thuc email truoc khi dat hang' });
+      return false;
+    }
+    if (!formData.customer_email) {
+      set({ error: 'Vui long nhap va xac thuc email' });
       return false;
     }
 
@@ -181,7 +205,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
       }));
 
       const totalPrice = cartStore.totalPrice();
-      const shippingFee = formData.order_type === 'delivery' ? (formData.shipping_fee || 0) : 0;
+      const shippingFee = 0; // Phí ship mặc định bằng 0 sau khi xóa tính năng khoảng cách
 
       // Xử lý pickup_time
       let pickup_time: string | undefined;
@@ -208,9 +232,9 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
         customer_email: formData.customer_email,
         customer_address: formData.customer_address,
         store_id: formData.store_id,
-        customer_latitude: formData.customer_lat,
-        customer_longitude: formData.customer_lon,
-        shipping_distance_meters: formData.distance,
+        customer_latitude: formData.customer_lat || null,
+        customer_longitude: formData.customer_lon || null,
+        shipping_distance_meters: null,
         items,
       };
 
@@ -229,7 +253,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
         // Xóa giỏ hàng local
         await cartStore.clearCart();
 
-        const nextStep = formData.payment_method === 'vietqr' ? 'payment' : 'success';
+        const nextStep = 'success';
         set({
           orderResult: {
             order_id: data.data.order_id,
@@ -264,7 +288,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
 
     try {
       // 1. Gọi API Backend để hủy đơn hàng và khôi phục tồn kho
-      const res = await fetch(`http://localhost:4000/api/orders/${orderResult.order_id}/cancel`, {
+      const res = await fetch(`${API_BASE}/orders/${orderResult.order_id}/cancel`, {
         method: 'POST',
       });
       

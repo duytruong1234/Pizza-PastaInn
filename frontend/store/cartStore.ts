@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useAuthStore } from './authStore';
+import { API_BASE } from '../lib/config';
 
 // ── Kiểu dữ liệu Topping ───────────────────────────────────────────────────
 export type ToppingData = {
@@ -63,7 +64,7 @@ type CartStore = {
   totalPrice: () => number;
 };
 
-const API_URL = 'http://localhost:4000/api/cart';
+const API_URL = `${API_BASE}/cart`;
 
 export const useCartStore = create<CartStore>()(
   persist(

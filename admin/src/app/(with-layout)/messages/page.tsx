@@ -1,6 +1,6 @@
 "use client";
 
-import { api } from "@/lib/api";
+import { api, API_URL } from "@/lib/api";
 import { useEffect, useState, useRef, useMemo } from "react";
 import {
   Search, Send, Paperclip, MoreVertical, X, Check,
@@ -248,7 +248,7 @@ export default function MessagesPage() {
       if (res.data?.success) {
         const fullUrl = res.data.data.url.startsWith("http")
           ? res.data.data.url
-          : `http://localhost:4000${res.data.data.url}`;
+          : `${API_URL}${res.data.data.url}`;
         setPreviewImages((prev) => [...prev, fullUrl]);
       }
     } catch (err) {

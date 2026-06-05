@@ -1,6 +1,4 @@
 import prisma from '../lib/prisma';
-import { ShippingService } from './shippingService';
-
 // ── Kiểu dữ liệu cho request body tạo đơn hàng ─────────────────────────────
 
 interface ToppingInput {
@@ -210,25 +208,8 @@ export class OrderService {
 
       // Recalculate shipping parameters at backend for security and accuracy (delivery only)
       let storeId = input.store_id || null;
-      let shippingFee = input.shipping_fee || 0;
-      let distanceMeters = input.shipping_distance_meters || null;
-
-      if (input.order_type === 'delivery' && input.customer_latitude != null && input.customer_longitude != null) {
-        try {
-          const calc = await ShippingService.calculateShipping(
-            Number(input.customer_latitude),
-            Number(input.customer_longitude)
-          );
-          
-          console.log(`[OrderService] Verified shipping for delivery order. Calculated store_id: ${calc.store_id}, distance: ${calc.distance_meters}m, fee: ${calc.shipping_fee}. Client sent store_id: ${storeId}, distance: ${distanceMeters}m, fee: ${shippingFee}`);
-          
-          storeId = calc.store_id;
-          distanceMeters = calc.distance_meters;
-          shippingFee = calc.shipping_fee;
-        } catch (calcErr: any) {
-          console.error('[OrderService] Error recalculating shipping on order creation, using client values as fallback:', calcErr.message);
-        }
-      }
+      let shippingFee = 0; // Phí ship mặc định bằng 0 sau khi xóa tính năng khoảng cách
+      let distanceMeters = null;
 
       // 4. Tạo đơn hàng
       const order = await tx.order.create({
@@ -240,7 +221,7 @@ export class OrderService {
           total_price_dish: input.total_price_dish,
           shipping_fee: shippingFee,
           discount_amount: input.discount_amount || 0,
-          total_order: input.payment_method === 'vietqr' ? 2000 : (input.total_price_dish + shippingFee - (input.discount_amount || 0)),
+          total_order: input.total_price_dish + shippingFee - (input.discount_amount || 0),
           order_note: input.order_note || null,
           order_status: 'pending',
           order_type: input.order_type,

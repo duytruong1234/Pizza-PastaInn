@@ -7,6 +7,7 @@ import { formatPrice } from '@/lib/utils';
 import { X, ShoppingCart, Check } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useUI } from '@/components/UIProvider';
+import { API_BASE } from '@/lib/config';
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -57,8 +58,8 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
   const fetchData = async () => {
     try {
       const [sizesRes, crustsRes] = await Promise.all([
-        fetch('http://localhost:4000/api/menu/sizes'),
-        fetch('http://localhost:4000/api/menu/crusts'),
+        fetch(`${API_BASE}/menu/sizes`),
+        fetch(`${API_BASE}/menu/crusts`),
       ]);
       const sizesData = await sizesRes.json();
       const crustsData = await crustsRes.json();
@@ -105,8 +106,8 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
   const fetchToppings = async (size_id: number | null) => {
     try {
       let url = size_id
-        ? `http://localhost:4000/api/menu/toppings?size_id=${size_id}&type=${toppingType}`
-        : `http://localhost:4000/api/menu/toppings?type=${toppingType}`;
+        ? `${API_BASE}/menu/toppings?size_id=${size_id}&type=${toppingType}`
+        : `${API_BASE}/menu/toppings?type=${toppingType}`;
       const res = await fetch(url);
       const data = await res.json();
       if (data.success) {

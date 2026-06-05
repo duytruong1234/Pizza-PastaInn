@@ -1,3 +1,5 @@
+"use client";
+
 import { CheckIcon, XIcon } from "@/assets/icons";
 import { cn } from "@/lib/utils";
 import { useId, InputHTMLAttributes } from "react";

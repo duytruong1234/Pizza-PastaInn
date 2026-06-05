@@ -5,6 +5,7 @@ import { checkRole } from '../middleware/checkRole';
 import prisma from '../lib/prisma';
 import { sendSuccess, sendError } from '../utils/response';
 import { logger } from '../utils/logger';
+import { sendOrderConfirmedEmail, sendDeliveringEmail, sendDeliveredEmail } from '../services/emailService';
 import { Response } from 'express';
 
 const router = Router();
@@ -185,6 +186,21 @@ router.patch('/orders/:id/status', async (req: AuthRequest, res: Response): Prom
       where: { order_id: orderId },
       data: updateData,
     });
+
+    // Gửi email bất đồng bộ theo trạng thái mới
+    if (order_status === 'confirmed') {
+      sendOrderConfirmedEmail(orderId).catch((err: unknown) =>
+        logger.error(`Email xác nhận đơn ${orderId} thất bại:`, err)
+      );
+    } else if (order_status === 'shipped') {
+      sendDeliveringEmail(orderId).catch((err: unknown) =>
+        logger.error(`Email đang giao đơn ${orderId} thất bại:`, err)
+      );
+    } else if (order_status === 'completed') {
+      sendDeliveredEmail(orderId).catch((err: unknown) =>
+        logger.error(`Email giao thành công đơn ${orderId} thất bại:`, err)
+      );
+    }
 
     sendSuccess(res, { data: order, message: 'Cập nhật trạng thái thành công' });
   } catch (err) {

@@ -10,6 +10,7 @@ const checkRole_1 = require("../middleware/checkRole");
 const prisma_1 = __importDefault(require("../lib/prisma"));
 const response_1 = require("../utils/response");
 const logger_1 = require("../utils/logger");
+const emailService_1 = require("../services/emailService");
 const router = (0, express_1.Router)();
 // Tất cả route admin đều cần đăng nhập + role admin/cashier
 router.use(auth_1.verifyToken, (0, checkRole_1.checkRole)('admin', 'cashier'));
@@ -180,6 +181,16 @@ router.patch('/orders/:id/status', async (req, res) => {
             where: { order_id: orderId },
             data: updateData,
         });
+        // Gửi email bất đồng bộ theo trạng thái mới
+        if (order_status === 'confirmed') {
+            (0, emailService_1.sendOrderConfirmedEmail)(orderId).catch((err) => logger_1.logger.error(`Email xác nhận đơn ${orderId} thất bại:`, err));
+        }
+        else if (order_status === 'shipped') {
+            (0, emailService_1.sendDeliveringEmail)(orderId).catch((err) => logger_1.logger.error(`Email đang giao đơn ${orderId} thất bại:`, err));
+        }
+        else if (order_status === 'completed') {
+            (0, emailService_1.sendDeliveredEmail)(orderId).catch((err) => logger_1.logger.error(`Email giao thành công đơn ${orderId} thất bại:`, err));
+        }
         (0, response_1.sendSuccess)(res, { data: order, message: 'Cập nhật trạng thái thành công' });
     }
     catch (err) {
@@ -826,17 +837,30 @@ router.post('/stores', async (req, res) => {
             (0, response_1.sendError)(res, 'Tên chi nhánh không được để trống', 400);
             return;
         }
+        // Validate coordinates if provided (must be within Vietnam bounds)
+        const lat = latitude != null ? parseFloat(latitude) : null;
+        const lon = longitude != null ? parseFloat(longitude) : null;
+        if (lat != null && (isNaN(lat) || lat < 8 || lat > 24)) {
+            (0, response_1.sendError)(res, 'Vĩ độ (latitude) không hợp lệ. Phải nằm trong khoảng 8-24 cho Việt Nam.', 400);
+            return;
+        }
+        if (lon != null && (isNaN(lon) || lon < 102 || lon > 110)) {
+            (0, response_1.sendError)(res, 'Kinh độ (longitude) không hợp lệ. Phải nằm trong khoảng 102-110 cho Việt Nam.', 400);
+            return;
+        }
         const store = await prisma_1.default.store.create({
             data: {
                 store_name: store_name.trim(),
                 address: address?.trim() || null,
                 hotline: hotline?.trim() || null,
-                latitude: latitude || null,
-                longitude: longitude || null,
+                latitude: lat,
+                longitude: lon,
                 is_active: is_active ?? true,
             },
         });
-        (0, response_1.sendSuccess)(res, { data: store, message: 'Thêm chi nhánh thành công' }, 201);
+        // Warn if coordinates missing (needed for delivery fee calculation)
+        const warning = (lat == null || lon == null) ? ' ⚠️ Thiếu tọa độ GPS - chức năng tính phí giao hàng sẽ không hoạt động cho chi nhánh này.' : '';
+        (0, response_1.sendSuccess)(res, { data: store, message: 'Thêm chi nhánh thành công' + warning }, 201);
     }
     catch (err) {
         logger_1.logger.error('Admin create store error:', err);
@@ -852,18 +876,30 @@ router.put('/stores/:id', async (req, res) => {
             (0, response_1.sendError)(res, 'Tên chi nhánh không được để trống', 400);
             return;
         }
+        // Validate coordinates if provided (must be within Vietnam bounds)
+        const lat = latitude != null ? parseFloat(latitude) : null;
+        const lon = longitude != null ? parseFloat(longitude) : null;
+        if (lat != null && (isNaN(lat) || lat < 8 || lat > 24)) {
+            (0, response_1.sendError)(res, 'Vĩ độ (latitude) không hợp lệ. Phải nằm trong khoảng 8-24 cho Việt Nam.', 400);
+            return;
+        }
+        if (lon != null && (isNaN(lon) || lon < 102 || lon > 110)) {
+            (0, response_1.sendError)(res, 'Kinh độ (longitude) không hợp lệ. Phải nằm trong khoảng 102-110 cho Việt Nam.', 400);
+            return;
+        }
         const store = await prisma_1.default.store.update({
             where: { store_id: id },
             data: {
                 store_name: store_name.trim(),
                 address: address?.trim() || null,
                 hotline: hotline?.trim() || null,
-                latitude: latitude || null,
-                longitude: longitude || null,
+                latitude: lat,
+                longitude: lon,
                 is_active,
             },
         });
-        (0, response_1.sendSuccess)(res, { data: store, message: 'Cập nhật chi nhánh thành công' });
+        const warning = (lat == null || lon == null) ? ' ⚠️ Thiếu tọa độ GPS - chức năng tính phí giao hàng sẽ không hoạt động cho chi nhánh này.' : '';
+        (0, response_1.sendSuccess)(res, { data: store, message: 'Cập nhật chi nhánh thành công' + warning });
     }
     catch (err) {
         logger_1.logger.error('Admin update store error:', err);
@@ -1265,6 +1301,27 @@ router.patch('/chat/rooms/:roomId/read', async (req, res) => {
     catch (err) {
         logger_1.logger.error('Admin mark read error:', err);
         (0, response_1.sendError)(res, 'Lỗi khi đánh dấu đã đọc', 500);
+    }
+});
+/**
+ * DELETE /api/admin/chat/rooms/:roomId
+ * Xóa cuộc hội thoại (tự động cascade xóa tin nhắn và ảnh tin nhắn nhờ DB onDelete Cascade)
+ */
+router.delete('/chat/rooms/:roomId', async (req, res) => {
+    const roomId = parseInt(String(req.params.roomId));
+    if (isNaN(roomId)) {
+        (0, response_1.sendError)(res, 'Mã phòng không hợp lệ', 400);
+        return;
+    }
+    try {
+        await prisma_1.default.chatRoom.delete({
+            where: { room_id: roomId }
+        });
+        (0, response_1.sendSuccess)(res, { message: 'Xóa cuộc hội thoại thành công' });
+    }
+    catch (err) {
+        logger_1.logger.error('Admin delete chat room error:', err);
+        (0, response_1.sendError)(res, 'Lỗi khi xóa cuộc hội thoại', 500);
     }
 });
 exports.default = router;

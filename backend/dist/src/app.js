@@ -33,8 +33,13 @@ app.use((0, cors_1.default)({
     },
     credentials: true,
 }));
-// Parse JSON body
-app.use(express_1.default.json({ limit: '10mb' }));
+// Parse JSON body và lưu rawBody để xác thực chữ ký webhook SePay
+app.use(express_1.default.json({
+    limit: '10mb',
+    verify: (req, _res, buf) => {
+        req.rawBody = buf;
+    }
+}));
 // Parse URL-encoded body (form data)
 app.use(express_1.default.urlencoded({ extended: true }));
 // Serve uploaded files
@@ -110,6 +115,10 @@ app.use('/api/chat', chat_1.default);
 // Admin routes (dashboard quản trị)
 const admin_1 = __importDefault(require("./routes/admin"));
 app.use('/api/admin', admin_1.default);
+// Webhook routes (tiếp nhận thanh toán SePay)
+const webhook_1 = __importDefault(require("./routes/webhook"));
+app.use('/api/webhooks', webhook_1.default);
+app.use('/', webhook_1.default); // Fallback cho trường hợp cấu hình thiếu subpath ở cổng thanh toán SePay
 // ─── Global Error Handler ────────────────────────────────────────────────────
 app.use(errorHandler_1.globalErrorHandler);
 // ─── Start Server ────────────────────────────────────────────────────────────
@@ -127,4 +136,5 @@ startServer().catch((err) => {
 });
 // Trigger restart after freeing port 4000
 exports.default = app;
+// Trigger restart to load latest configurations.
 //# sourceMappingURL=app.js.map

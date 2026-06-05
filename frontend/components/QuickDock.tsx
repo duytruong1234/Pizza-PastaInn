@@ -5,6 +5,7 @@ import { Bot, ArrowUp, X, Send, Sparkles, MessageSquare, Paperclip, MoreVertical
 import Link from 'next/link';
 import api from '../lib/api';
 import { useAuthStore } from '../store/authStore';
+import { BACKEND_URL } from '../lib/config';
 
 interface MessageImage {
   image_id: number;
@@ -303,7 +304,7 @@ export default function QuickDock() {
         // Địa chỉ URL đầy đủ
         const fullUrl = res.data.data.url.startsWith('http') 
           ? res.data.data.url 
-          : `${process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL.replace('/api', '') : 'http://localhost:4000'}${res.data.data.url}`;
+          : `${BACKEND_URL}${res.data.data.url}`;
         
         setPreviewImages((prev) => [...prev, fullUrl]);
       }
