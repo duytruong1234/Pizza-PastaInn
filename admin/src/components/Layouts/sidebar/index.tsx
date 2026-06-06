@@ -70,7 +70,7 @@ export function Sidebar() {
           <button
             onClick={toggleCollapse}
             className="absolute -right-3.5 top-[30px] z-50 flex size-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm hover:bg-gray-50 hover:text-dark dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white transition-all"
-            title={isCollapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             <ChevronUp className={cn("size-4 transition-transform", isCollapsed ? "rotate-90" : "-rotate-90")} />
           </button>

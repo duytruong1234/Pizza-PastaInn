@@ -185,7 +185,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
         setPastaCategorySelections(initialPastaCats);
       }
     } catch (error) {
-      console.error('Lỗi khi lấy chi tiết combo', error);
+      console.error('Error fetching combo details:', error);
     } finally {
       setLoading(false);
     }
@@ -552,7 +552,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                                 ) : (
                                   <div className="space-y-3 p-3 bg-black/20 rounded-lg border border-white/10">
                                     <div>
-                                      <label className="block text-xs text-white/80 mb-1 font-semibold">Nửa 1:</label>
+                                      <label className="block text-xs text-white/80 mb-1 font-semibold">Half 1:</label>
                                       <CustomSelect
                                         value={selectedDishId}
                                         options={dishOptions}
@@ -566,7 +566,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                                       />
                                     </div>
                                     <div>
-                                      <label className="block text-xs text-white/80 mb-1 font-semibold">Nửa 2:</label>
+                                      <label className="block text-xs text-white/80 mb-1 font-semibold">Half 2:</label>
                                       <CustomSelect
                                         value={pizzaDish2Selections[group.group_id] || dishOptions[0]?.value}
                                         options={dishOptions}
@@ -658,7 +658,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                           <div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                               <div>
-                                <label className="block text-sm font-bold text-white mb-2">Phân loại</label>
+                                <label className="block text-sm font-bold text-white mb-2">Category</label>
                                 <div className="space-y-3">
                                   {['Risotto', 'Grantin', 'Spaghetti'].filter(c => catMap[c] && catMap[c].length > 0).map(cat => (
                                     <label key={cat} className="flex items-center gap-3 cursor-pointer group" onClick={() => {

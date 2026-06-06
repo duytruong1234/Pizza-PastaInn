@@ -10,14 +10,14 @@ export default async function BranchesPage() {
       if (json.success) stores = json.data;
     }
   } catch (err) {
-    console.error('Lỗi khi lấy danh sách cửa hàng:', err);
+    console.error('Error fetching store list:', err);
   }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] font-sans flex flex-col text-white">
       <Header />
       <div className="container mx-auto px-4 py-12 flex-1">
-        <h1 className="text-3xl font-bold mb-8 text-center text-[#007a3f] uppercase tracking-wider">Thông tin cửa hàng</h1>
+        <h1 className="text-3xl font-bold mb-8 text-center text-[#007a3f] uppercase tracking-wider">Store Locations</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {stores.length > 0 ? (
@@ -35,7 +35,7 @@ export default async function BranchesPage() {
                   </div>
                   {(store.latitude && store.longitude) && (
                     <div className="text-sm text-gray-500 pt-2 border-t border-[#333] mt-4">
-                      Tọa độ: {store.latitude}, {store.longitude}
+                      Coordinates: {store.latitude}, {store.longitude}
                     </div>
                   )}
                 </div>
@@ -43,7 +43,7 @@ export default async function BranchesPage() {
             ))
           ) : (
             <div className="col-span-1 md:col-span-2 text-center text-gray-500 py-12 bg-[#111] rounded-lg">
-              Hệ thống cửa hàng đang được cập nhật...
+              Store list is being updated...
             </div>
           )}
         </div>

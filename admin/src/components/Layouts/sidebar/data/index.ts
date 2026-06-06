@@ -3,14 +3,14 @@ import * as Icons from "../icons";
 
 export const NAV_DATA = [
   {
-    label: "TỔNG QUAN",
+    label: "OVERVIEW",
     items: [
       {
         title: "Dashboard",
         icon: Icons.HomeIcon,
         items: [
           {
-            title: "Tổng quan",
+            title: "Analytics",
             url: "/",
           },
         ],
@@ -18,59 +18,59 @@ export const NAV_DATA = [
     ],
   },
   {
-    label: "QUẢN LÝ",
+    label: "MANAGEMENT",
     items: [
       {
-        title: "Đơn hàng",
+        title: "Orders",
         url: "/orders",
         icon: Icons.Table,
         items: [],
       },
       {
-        title: "Thực đơn",
+        title: "Menu",
         icon: Icons.Alphabet,
         items: [
           {
-            title: "Loại món ăn",
+            title: "Categories",
             url: "/menu/categories",
           },
           {
-            title: "Món ăn",
+            title: "Dishes",
             url: "/menu/dishes",
           },
           {
-            title: "Combo",
+            title: "Combos",
             url: "/combos",
           },
           {
-            title: "Kích thước",
+            title: "Sizes",
             url: "/menu/sizes",
           },
           {
-            title: "Đế bánh",
+            title: "Crusts",
             url: "/menu/crusts",
           },
           {
-            title: "Topping",
+            title: "Toppings",
             url: "/menu/toppings",
           },
         ],
       },
 
       {
-        title: "Chi nhánh",
+        title: "Branches",
         url: "/stores",
         icon: Icons.HomeIcon,
         items: [],
       },
       {
-        title: "Khách hàng",
+        title: "Customers",
         url: "/customers",
         icon: Icons.User,
         items: [],
       },
       {
-        title: "Đánh giá",
+        title: "Reviews",
         url: "/reviews",
         icon: Icons.StarIcon,
         items: [],
@@ -78,10 +78,10 @@ export const NAV_DATA = [
     ],
   },
   {
-    label: "HỖ TRỢ",
+    label: "SUPPORT",
     items: [
       {
-        title: "Tin nhắn",
+        title: "Messages",
         url: "/messages",
         icon: Icons.ChatIcon,
         items: [],
@@ -89,20 +89,20 @@ export const NAV_DATA = [
     ],
   },
   {
-    label: "KHÁC",
+    label: "OTHERS",
     items: [
       {
-        title: "Thống kê",
+        title: "Statistics",
         icon: Icons.PieChart,
         items: [
           {
-            title: "Biểu đồ",
+            title: "Charts",
             url: "/charts/basic-chart",
           },
         ],
       },
       {
-        title: "Cài đặt",
+        title: "Settings",
         url: "/pages/settings",
         icon: Icons.Alphabet,
         items: [],

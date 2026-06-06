@@ -81,7 +81,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
         else setSelectedCrust(null);
       }
     } catch (error) {
-      console.error('Lỗi khi lấy tùy chọn', error);
+      console.error('Error fetching options:', error);
     }
   };
 
@@ -115,7 +115,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
         setToppings(sortedToppings);
       }
     } catch (error) {
-      console.error('Lỗi khi lấy topping', error);
+      console.error('Error fetching toppings:', error);
     }
   };
 

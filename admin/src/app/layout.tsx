@@ -16,12 +16,12 @@ export const metadata: Metadata = {
     default: "Pizza&PastaInn Admin",
   },
   description:
-    "Trang quản trị hệ thống Pizza&PastaInn — quản lý thực đơn, đơn hàng, khách hàng.",
+    "Pizza&PastaInn system management page — menu, orders, and customer management.",
 };
 
 export default function RootLayout({ children }: PropsWithChildren) {
   return (
-    <html lang="vi" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

@@ -63,7 +63,7 @@ function StyledSelect({
             [&>option]:text-dark-5 dark:[&>option]:text-dark-6`}
         >
           <option value="">
-            {loading ? "Đang tải..." : placeholder}
+            {loading ? "Loading..." : placeholder}
           </option>
           {options.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -212,20 +212,20 @@ export default function AddressPickerVN({ initialAddress, onChange, error }: Add
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <StyledSelect
-          label="TỈNH / THÀNH PHỐ (*)"
+          label="PROVINCE / CITY (*)"
           value={selectedProvince}
           onChange={(val) => { setSelectedProvince(val); setInitialized(true); }}
           options={provinces.map((p) => ({ value: String(p.code), label: p.name }))}
-          placeholder="Chọn Tỉnh/Thành phố"
+          placeholder="Select Province/City"
           loading={loadingProvinces}
           error={error && !selectedProvince ? " " : undefined}
         />
         <StyledSelect
-          label="PHƯỜNG / XÃ (*)"
+          label="WARD / COMMUNE (*)"
           value={selectedWard}
           onChange={(val) => { setSelectedWard(val); setInitialized(true); }}
           options={wards.map((w) => ({ value: String(w.code), label: w.name }))}
-          placeholder="Chọn Phường/Xã"
+          placeholder="Select Ward/Commune"
           loading={loadingWards}
           disabled={!selectedProvince}
           error={error && selectedProvince && !selectedWard ? " " : undefined}
@@ -235,11 +235,11 @@ export default function AddressPickerVN({ initialAddress, onChange, error }: Add
       {/* Số nhà, tên đường */}
       <div className="space-y-2">
         <label className="block text-body-sm font-medium text-dark dark:text-white">
-          SỐ NHÀ, TÊN ĐƯỜNG (*)
+          STREET ADDRESS (House number, street name...) (*)
         </label>
         <input
           type="text"
-          placeholder="Nhập số nhà, tên đường"
+          placeholder="Enter street address"
           value={addressDetail}
           onChange={(e) => { setAddressDetail(e.target.value); setInitialized(true); }}
           className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 outline-none transition focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:focus:border-primary"

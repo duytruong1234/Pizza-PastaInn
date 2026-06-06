@@ -267,7 +267,7 @@ export default function AddressPickerVN({
         {/* Dropdown Tỉnh/Thành phố */}
         <div className="space-y-1.5">
           <label className="text-[12px] font-semibold text-white/50 tracking-wider">
-            TỈNH / THÀNH PHỐ (*)
+            PROVINCE / CITY (*)
           </label>
           <div className="relative">
             <input
@@ -286,7 +286,7 @@ export default function AddressPickerVN({
                   setProvinceSearch(prov ? prov.name : "");
                 }, 250);
               }}
-              placeholder={loadingProvinces ? "Đang tải danh sách..." : "Nhập hoặc chọn Tỉnh/Thành phố"}
+              placeholder={loadingProvinces ? "Loading list..." : "Enter or select Province/City"}
               disabled={loadingProvinces}
               className="w-full bg-white/[0.06] border border-white/10 rounded-[10px] py-2.5 px-4 pr-10 text-white text-[14px] outline-none transition-all duration-200 focus:border-[#d4a017] focus:ring-2 focus:ring-[#d4a017]/15 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-white/20"
             />
@@ -332,7 +332,7 @@ export default function AddressPickerVN({
                     </button>
                   ))}
                 {provinces.filter((p) => p.name.toLowerCase().includes(provinceSearch.toLowerCase())).length === 0 && (
-                  <div className="px-4 py-2.5 text-white/30 text-[13px] text-center">Không tìm thấy kết quả</div>
+                  <div className="px-4 py-2.5 text-white/30 text-[13px] text-center">No results found</div>
                 )}
               </div>
             )}
@@ -342,7 +342,7 @@ export default function AddressPickerVN({
         {/* Dropdown Phường/Xã */}
         <div className="space-y-1.5">
           <label className="text-[12px] font-semibold text-white/50 tracking-wider">
-            PHƯỜNG / XÃ (*)
+            WARD / COMMUNE (*)
           </label>
           <div className="relative">
             <input
@@ -365,10 +365,10 @@ export default function AddressPickerVN({
               }}
               placeholder={
                 loadingWards
-                  ? "Đang tải danh sách..."
+                  ? "Loading list..."
                   : !selectedProvince
-                    ? "Vui lòng chọn Tỉnh/Thành phố trước"
-                    : "Nhập hoặc chọn Phường/Xã"
+                    ? "Please select Province/City first"
+                    : "Enter or select Ward/Commune"
               }
               disabled={loadingWards || !selectedProvince}
               className="w-full bg-white/[0.06] border border-white/10 rounded-[10px] py-2.5 px-4 pr-10 text-white text-[14px] outline-none transition-all duration-200 focus:border-[#d4a017] focus:ring-2 focus:ring-[#d4a017]/15 disabled:opacity-30 disabled:cursor-not-allowed placeholder:text-white/20"
@@ -415,7 +415,7 @@ export default function AddressPickerVN({
                     </button>
                   ))}
                 {wards.filter((w) => w.name.toLowerCase().includes(wardSearch.toLowerCase())).length === 0 && (
-                  <div className="px-4 py-2.5 text-white/30 text-[13px] text-center">Không tìm thấy kết quả</div>
+                  <div className="px-4 py-2.5 text-white/30 text-[13px] text-center">No results found</div>
                 )}
               </div>
             )}
@@ -426,7 +426,7 @@ export default function AddressPickerVN({
       {/* Input Số nhà, tên đường */}
       <div className="space-y-1.5 relative">
         <label className="text-[12px] font-semibold text-white/50 tracking-wider">
-          SỐ NHÀ, TÊN ĐƯỜNG (*)
+          STREET ADDRESS (*)
         </label>
         <div className="relative w-full">
           <MapPin
@@ -435,7 +435,7 @@ export default function AddressPickerVN({
           />
           <input
             type="text"
-            placeholder="Nhập số nhà, số ngõ, tên đường..."
+            placeholder="Enter house number, alley, street name..."
             value={addressDetail}
             onChange={(e) => handleAddressDetailChange(e.target.value)}
             onKeyDown={handleKeyDown}

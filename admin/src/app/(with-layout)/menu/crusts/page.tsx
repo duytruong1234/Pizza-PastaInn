@@ -54,24 +54,24 @@ export default function CrustsPage() {
 
   const handleAdd = async () => {
     if (!addForm.crust_name.trim()) {
-      setAddError("Vui lòng nhập tên đế bánh");
+      setAddError("Please enter crust name");
       return;
     }
     setAddError("");
     try {
       await api.post("/api/admin/crusts", addForm);
-      toast.success("Thêm đế bánh thành công");
+      toast.success("Crust added successfully");
       setAddForm({ crust_name: "", is_visible: true });
       setShowAdd(false);
       fetchData();
     } catch {
-      toast.error("Lỗi khi thêm");
+      toast.error("Error adding crust");
     }
   };
 
   const handleEdit = async () => {
     if (!editingCrust?.crust_name.trim()) {
-      setEditError("Vui lòng nhập tên đế bánh");
+      setEditError("Please enter crust name");
       return;
     }
     setEditError("");
@@ -80,11 +80,11 @@ export default function CrustsPage() {
         crust_name: editingCrust.crust_name,
         is_visible: editingCrust.is_visible
       });
-      toast.success("Cập nhật thành công");
+      toast.success("Updated successfully");
       setEditingCrust(null);
       fetchData();
     } catch {
-      toast.error("Lỗi khi cập nhật");
+      toast.error("Error updating crust");
     }
   };
 
@@ -92,24 +92,24 @@ export default function CrustsPage() {
     if (!deletingCrust) return;
     try {
       await api.delete(`/api/admin/crusts/${deletingCrust.crust_id}`);
-      toast.success("Xóa thành công");
+      toast.success("Deleted successfully");
       setDeletingCrust(null);
       fetchData();
     } catch {
-      toast.error("Lỗi khi xóa");
+      toast.error("Error deleting crust");
     }
   };
 
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-dark dark:text-white">QUẢN LÝ ĐẾ BÁNH</h1>
+        <h1 className="text-2xl font-bold text-dark dark:text-white">CRUSTS MANAGEMENT</h1>
         <Button
           onClick={() => setShowAdd(true)}
           variant="outlinePrimary"
           size="small"
           shape="full"
-          label="Thêm đế bánh"
+          label="Add Crust"
           icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5"><path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" /></svg>}
         />
       </div>
@@ -119,7 +119,7 @@ export default function CrustsPage() {
           <div className="flex w-full max-w-sm items-center">
             <input
               type="text"
-              placeholder="Tìm kiếm..."
+              placeholder="Search..."
               value={globalSearch}
               onChange={(e) => { setGlobalSearch(e.target.value); setCurrentPage(1); }}
               className="w-full rounded-l-lg border border-r-0 border-stroke bg-transparent py-2.5 pl-4 pr-3 outline-none focus:border-primary dark:border-dark-3"
@@ -131,7 +131,7 @@ export default function CrustsPage() {
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-dark dark:text-white">Hiển thị:</span>
+            <span className="text-sm font-medium text-dark dark:text-white">Show:</span>
             <select
               value={perPage}
               onChange={(e) => { setPerPage(Number(e.target.value)); setCurrentPage(1); }}
@@ -148,31 +148,31 @@ export default function CrustsPage() {
             <thead className="bg-primary text-white">
               <tr>
                 <th className="rounded-tl-lg px-6 py-4 text-sm font-semibold uppercase tracking-wide">ID</th>
-                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Tên đế bánh</th>
-                <th className="px-6 py-4 text-center text-sm font-semibold uppercase tracking-wide">Trạng thái</th>
-                <th className="rounded-tr-lg px-6 py-4 text-center text-sm font-semibold uppercase tracking-wide">Thao tác</th>
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Crust Name</th>
+                <th className="px-6 py-4 text-center text-sm font-semibold uppercase tracking-wide">Status</th>
+                <th className="rounded-tr-lg px-6 py-4 text-center text-sm font-semibold uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr><td colSpan={4} className="px-6 py-12 text-center"><div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></td></tr>
               ) : paginatedData.length === 0 ? (
-                <tr><td colSpan={4} className="px-6 py-12 text-center text-gray-400">Không có dữ liệu</td></tr>
+                <tr><td colSpan={4} className="px-6 py-12 text-center text-gray-400">No data available</td></tr>
               ) : paginatedData.map(c => (
                 <tr key={c.crust_id} className="border-b border-stroke last:border-0 dark:border-dark-3">
                   <td className="px-6 py-4 text-dark dark:text-white">{c.crust_id}</td>
                   <td className="px-6 py-4 font-medium text-dark dark:text-white">{c.crust_name}</td>
                   <td className="px-6 py-4 text-center">
                     <Badge variant={c.is_visible ? "outlineSuccess" : "outlineDanger"}>
-                      {c.is_visible ? "Hiển thị" : "Ẩn"}
+                      {c.is_visible ? "Visible" : "Hidden"}
                     </Badge>
                   </td>
                   <td className="px-6 py-4 text-center">
                     <div className="flex items-center justify-center gap-2">
-                      <button onClick={() => setEditingCrust(c)} title="Sửa" className="rounded p-1.5 text-amber-600 transition hover:bg-amber-50 dark:hover:bg-amber-900/20">
+                      <button onClick={() => setEditingCrust(c)} title="Edit" className="rounded p-1.5 text-amber-600 transition hover:bg-amber-50 dark:hover:bg-amber-900/20">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4.5"><path d="M5.433 13.917l1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" /><path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" /></svg>
                       </button>
-                      <button onClick={() => setDeletingCrust(c)} title="Xóa" className="rounded p-1.5 text-red-600 transition hover:bg-red-50 dark:hover:bg-red-900/20">
+                      <button onClick={() => setDeletingCrust(c)} title="Delete" className="rounded p-1.5 text-red-600 transition hover:bg-red-50 dark:hover:bg-red-900/20">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4.5"><path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4Z" clipRule="evenodd" /></svg>
                       </button>
                     </div>
@@ -193,47 +193,47 @@ export default function CrustsPage() {
               onPageChange={setCurrentPage}
             />
             <div className="text-sm text-gray-500">
-              Trang {currentPage} / {totalPages}
+              Page {currentPage} / {totalPages}
             </div>
           </div>
         )}
       </div>
 
       {/* --- MODALS --- */}
-      <Modal isOpen={showAdd} setIsOpen={setShowAdd} title="THÊM ĐẾ BÁNH">
+      <Modal isOpen={showAdd} setIsOpen={setShowAdd} title="ADD CRUST">
         <div className="space-y-4 p-2">
-          <InputGroup label="TÊN ĐẾ BÁNH (*)" type="text" placeholder="Nhập tên đế bánh" value={addForm.crust_name} handleChange={(e) => { setAddForm(prev => ({ ...prev, crust_name: e.target.value })); setAddError(""); }} error={addError} />
+          <InputGroup label="CRUST NAME (*)" type="text" placeholder="Enter crust name" value={addForm.crust_name} handleChange={(e) => { setAddForm(prev => ({ ...prev, crust_name: e.target.value })); setAddError(""); }} error={addError} />
           <div className="flex items-center justify-between">
-            <label className="text-sm font-semibold text-dark dark:text-white">HIỂN THỊ</label>
+            <label className="text-sm font-semibold text-dark dark:text-white">VISIBLE</label>
             <Switch checked={addForm.is_visible} onChange={(checked) => setAddForm(prev => ({ ...prev, is_visible: checked }))} />
           </div>
           <div className="mt-6 flex justify-end gap-3">
-            <Button onClick={() => setShowAdd(false)} variant="outlineDark" label="Hủy" shape="rounded" />
-            <Button onClick={handleAdd} variant="primary" label="Thêm mới" shape="rounded" />
+            <Button onClick={() => setShowAdd(false)} variant="outlineDark" label="Cancel" shape="rounded" />
+            <Button onClick={handleAdd} variant="primary" label="Add New" shape="rounded" />
           </div>
         </div>
       </Modal>
 
-      <Modal isOpen={!!editingCrust} setIsOpen={() => setEditingCrust(null)} title="SỬA ĐẾ BÁNH">
+      <Modal isOpen={!!editingCrust} setIsOpen={() => setEditingCrust(null)} title="EDIT CRUST">
         <div className="space-y-4 p-2">
-          <InputGroup label="TÊN ĐẾ BÁNH (*)" type="text" placeholder="Nhập tên đế bánh" value={editingCrust?.crust_name || ""} handleChange={(e) => { setEditingCrust(prev => prev ? { ...prev, crust_name: e.target.value } : null); setEditError(""); }} error={editError} />
+          <InputGroup label="CRUST NAME (*)" type="text" placeholder="Enter crust name" value={editingCrust?.crust_name || ""} handleChange={(e) => { setEditingCrust(prev => prev ? { ...prev, crust_name: e.target.value } : null); setEditError(""); }} error={editError} />
           <div className="flex items-center justify-between">
-            <label className="text-sm font-semibold text-dark dark:text-white">HIỂN THỊ</label>
+            <label className="text-sm font-semibold text-dark dark:text-white">VISIBLE</label>
             <Switch checked={editingCrust?.is_visible || false} onChange={(checked) => setEditingCrust(prev => prev ? { ...prev, is_visible: checked } : null)} />
           </div>
           <div className="mt-6 flex justify-end gap-3">
-            <Button onClick={() => setEditingCrust(null)} variant="outlineDark" label="Hủy" shape="rounded" />
-            <Button onClick={handleEdit} variant="primary" label="Lưu thay đổi" shape="rounded" />
+            <Button onClick={() => setEditingCrust(null)} variant="outlineDark" label="Cancel" shape="rounded" />
+            <Button onClick={handleEdit} variant="primary" label="Save Changes" shape="rounded" />
           </div>
         </div>
       </Modal>
 
-      <Modal isOpen={!!deletingCrust} setIsOpen={() => setDeletingCrust(null)} title="XÓA ĐẾ BÁNH">
+      <Modal isOpen={!!deletingCrust} setIsOpen={() => setDeletingCrust(null)} title="DELETE CRUST">
         <div className="p-2">
-          <p className="mb-6 text-gray-500">Bạn có chắc chắn muốn xóa đế bánh <strong>{deletingCrust?.crust_name}</strong>? Hành động này không thể hoàn tác.</p>
+          <p className="mb-6 text-gray-500">Are you sure you want to delete crust <strong>{deletingCrust?.crust_name}</strong>? This action cannot be undone.</p>
           <div className="flex justify-end gap-3">
-            <Button onClick={() => setDeletingCrust(null)} variant="outlineDark" label="Hủy" shape="rounded" />
-            <Button onClick={handleDelete} variant="danger" label="Xóa ngay" shape="rounded" />
+            <Button onClick={() => setDeletingCrust(null)} variant="outlineDark" label="Cancel" shape="rounded" />
+            <Button onClick={handleDelete} variant="danger" label="Delete" shape="rounded" />
           </div>
         </div>
       </Modal>

@@ -79,10 +79,10 @@ export default function ReviewsPage() {
   const [reviewsList, setReviewsList] = useState<ReviewItem[]>([
     {
       id: 1,
-      name: 'TRẦN MỸ QUYÊN',
+      name: 'MY QUYEN TRAN',
       orderId: 'INN-9921',
       rating: 5,
-      comment: 'Đế pizza nướng lò rất thơm và có độ giòn xốp hoàn hảo. Điểm nhấn là đĩa salad kèm xốt giấm tây dầu ô-liu và xốt mayo đặc trưng của quán ăn kèm siêu bắt vị, không bị ngấy mỡ chút nào!',
+      comment: 'The oven-baked pizza crust is very fragrant and has a perfect crispness. The highlight is the side salad with balsamic vinaigrette and the shop\'s signature mayo sauce, which is extremely appetizing and not greasy at all!',
       images: [
         'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=300&auto=format&fit=crop',
         'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?q=80&w=300&auto=format&fit=crop'
@@ -91,10 +91,10 @@ export default function ReviewsPage() {
     },
     {
       id: 2,
-      name: 'LÊ HOÀNG NAM',
+      name: 'HOANG NAM LE',
       orderId: 'INN-8712',
       rating: 5,
-      comment: 'Mì Spaghetti truyền thống ở đây luộc chuẩn, số lượng đầy đặn. Phần cơm Ý bùi ngậy béo mềm ăn lúc còn nóng hổi giao tận nơi cực kỳ ngon. Đóng gói hộp giấy rất lịch sự và bảo vệ môi trường.',
+      comment: 'The traditional Spaghetti here is cooked perfectly, with a generous portion. The Italian risotto is rich, creamy, soft, and extremely delicious when delivered hot. Packed in very polite and environmentally friendly paper boxes.',
       images: [],
       time: '1 hour ago'
     }
@@ -123,7 +123,7 @@ export default function ReviewsPage() {
             let formattedTime = 'Recently';
             if (r.created_at) {
               const date = new Date(r.created_at);
-              formattedTime = date.toLocaleDateString('vi-VN', {
+              formattedTime = date.toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric',
@@ -134,7 +134,7 @@ export default function ReviewsPage() {
 
             return {
               id: r.review_id,
-              name: r.user?.username?.toUpperCase() || 'KHÁCH HÀNG THÂN THIẾT',
+              name: r.user?.username?.toUpperCase() || 'LOYAL CUSTOMER',
               userId: r.user_id || null,
               orderId: r.order_id ? `${r.order_id}` : 'ONLINE',
               rating: r.rating_star || 5,
@@ -170,7 +170,7 @@ export default function ReviewsPage() {
 
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-      alert('Chỉ chấp nhận file ảnh (jpg, png, gif, webp)');
+      alert('Only image files are accepted (jpg, png, gif, webp)');
       return;
     }
 
@@ -193,11 +193,11 @@ export default function ReviewsPage() {
           setReviewImages((prev) => [...prev, fullUrl]);
         }
       } else {
-        alert('Không thể tải ảnh lên, vui lòng thử lại.');
+        alert('Failed to upload image, please try again.');
       }
     } catch (err) {
-      console.error('Lỗi upload ảnh:', err);
-      alert('Lỗi kết nối máy chủ khi tải ảnh.');
+      console.error('Image upload error:', err);
+      alert('Server connection error while uploading image.');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -224,7 +224,7 @@ export default function ReviewsPage() {
   };
 
   const handleDeleteReview = async (reviewId: number | string) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa đánh giá này không?")) return;
+    if (!window.confirm("Are you sure you want to delete this review?")) return;
 
     try {
       const response = await fetch(`${API_BASE}/reviews/${reviewId}?user_id=${user ? user.user_id : ''}`, {
@@ -237,27 +237,27 @@ export default function ReviewsPage() {
         }
         fetchReviews();
       } else {
-        alert('Có lỗi xảy ra khi xóa đánh giá.');
+        alert('An error occurred while deleting the review.');
       }
     } catch (err) {
       console.error('Error deleting review:', err);
-      alert('Không thể kết nối đến máy chủ.');
+      alert('Could not connect to the server.');
     }
   };
 
   const handleSubmitReview = async () => {
     if (!user) {
-      alert('Vui lòng đăng nhập để gửi đánh giá của bạn!');
+      alert('Please log in to submit your review!');
       window.location.href = '/login?redirect=/reviews';
       return;
     }
 
     if (userRating === 0) {
-      alert('Vui lòng chọn mức độ hài lòng của bạn!');
+      alert('Please select your satisfaction level!');
       return;
     }
 
-    const commentText = userComment || 'Chất lượng món ăn và dịch vụ của quán quá tuyệt vời!';
+    const commentText = userComment || 'The quality of food and service here is absolutely wonderful!';
 
     try {
       let response;
@@ -304,11 +304,11 @@ export default function ReviewsPage() {
           window.location.href = '/reviews';
         }, 1200);
       } else {
-        alert('Có lỗi xảy ra khi gửi đánh giá, vui lòng thử lại.');
+        alert('An error occurred while submitting review, please try again.');
       }
     } catch (err) {
       console.error('Error submitting review:', err);
-      alert('Không thể kết nối đến máy chủ. Vui lòng thử lại sau.');
+      alert('Could not connect to the server. Please try again later.');
     }
   };
 
@@ -369,10 +369,10 @@ export default function ReviewsPage() {
                 </div>
                 <div className="space-y-1.5">
                   <h4 className={`text-base font-black uppercase tracking-wide ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
-                    BẠN CẦN ĐĂNG NHẬP
+                    LOGIN REQUIRED
                   </h4>
                   <p className={`text-xs font-medium leading-relaxed max-w-xs mx-auto ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}`}>
-                    Khách vãng lai không được phép bình luận. Vui lòng đăng nhập tài khoản của bạn để gửi đánh giá món ăn và dịch vụ.
+                    Guest users are not allowed to review. Please log in to your account to submit food and service reviews.
                   </p>
                 </div>
                 <button
@@ -383,7 +383,7 @@ export default function ReviewsPage() {
                       : 'bg-[#007a3f] hover:bg-[#006030] text-white'
                     }`}
                 >
-                  ĐĂNG NHẬP NGAY
+                  LOG IN NOW
                 </button>
               </div>
             ) : (
@@ -579,7 +579,7 @@ export default function ReviewsPage() {
                           </svg>
                         </span>
                         <span className="text-[10px] font-black uppercase tracking-widest text-[#007a3f] dark:text-[#3cd070]">
-                          Phản hồi từ cửa hàng
+                          Response from Store
                         </span>
                       </div>
                       <p className={`text-xs md:text-[13px] leading-relaxed font-semibold ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-650'
@@ -598,14 +598,14 @@ export default function ReviewsPage() {
                           onClick={() => handleStartEdit(review)}
                           className="text-amber-500 hover:text-amber-600 transition-colors cursor-pointer"
                         >
-                          Sửa
+                          Edit
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDeleteReview(review.id)}
                           className="text-rose-500 hover:text-rose-600 transition-colors cursor-pointer"
                         >
-                          Xóa
+                          Delete
                         </button>
                       </div>
                     )}

@@ -614,7 +614,7 @@ export default function OrderLookupPage() {
                                             <span className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>{half.dish?.dish_name}</span>
                                             {half.order_item_toppings && half.order_item_toppings.length > 0 && (
                                               <span className="text-zinc-500 block ml-3 italic">
-                                                + Toppings riêng: {half.order_item_toppings.map(t => `${t.topping?.topping_name} (+${formatPrice(t.topping_price)})`).join(', ')}
+                                                + Custom Toppings: {half.order_item_toppings.map(t => `${t.topping?.topping_name} (+${formatPrice(t.topping_price)})`).join(', ')}
                                               </span>
                                             )}
                                           </div>

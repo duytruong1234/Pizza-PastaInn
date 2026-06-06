@@ -87,7 +87,7 @@ export default function HeaderClient({ storeName }: { storeName: string }) {
         <button
           onClick={toggleTheme}
           className="group cursor-pointer rounded-full bg-black/45 p-[3px] outline-none transition-all duration-300 hover:bg-black/60 focus:outline-none border border-white/[0.08] hover:border-white/15 active:scale-95 shadow-sm"
-          title={theme === 'dark' ? "Chuyển sang giao diện Sáng" : "Chuyển sang giao diện Tối"}
+          title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
         >
           <span className="sr-only">
             Switch to {theme === 'dark' ? 'light' : 'dark'} mode

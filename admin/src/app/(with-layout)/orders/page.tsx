@@ -48,12 +48,12 @@ const STATUS_COLORS: Record<string, "warning" | "info" | "primary" | "secondary"
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: "Đang chờ xác nhận",
-  confirmed: "Đã xác nhận",
-  preparing: "Đang chuẩn bị",
-  shipped: "Đang giao hàng",
-  completed: "Đã hoàn thành",
-  cancelled: "Đã hủy",
+  pending: "Pending",
+  confirmed: "Confirmed",
+  preparing: "Preparing",
+  shipped: "Shipped",
+  completed: "Completed",
+  cancelled: "Cancelled",
 };
 
 function renderStatusBadge(status: string) {
@@ -78,13 +78,13 @@ function renderStatusBadge(status: string) {
 }
 
 const PAYMENT_LABELS: Record<string, string> = {
-  cod: "Tiền mặt (COD)",
-  vietqr: "Chuyển khoản VietQR",
+  cod: "Cash on Delivery (COD)",
+  vietqr: "VietQR Bank Transfer",
 };
 
 const ORDER_TYPE_LABELS: Record<string, string> = {
-  delivery: "Giao tận nơi",
-  pickup: "Đến lấy tại quán",
+  delivery: "Delivery",
+  pickup: "Store Pickup",
 };
 
 // ── Modal chi tiết đơn hàng ──────────────────────────────────────────────────
@@ -100,7 +100,7 @@ function renderOrderItemDetails(item: any) {
         {item.combos && item.combos.length > 0 && (
           <div className="space-y-2 mt-1">
             {item.combos.map((sel: any, idx: number) => {
-              const dishName = sel.dish_price?.dish?.dish_name || sel.dish_price_id || "Món trong combo";
+              const dishName = sel.dish_price?.dish?.dish_name || sel.dish_price_id || "Combo item";
               const sizeName = sel.dish_price?.size?.size_name;
               const crustName = sel.dish_price?.crust?.crust_name;
               const isPizza = dishName.toLowerCase().includes("pizza");
@@ -115,7 +115,7 @@ function renderOrderItemDetails(item: any) {
                     {(sizeName || crustName) && isPizza && (
                       <p>
                         {sizeName && <span>Size: <strong>{sizeName}</strong> </span>}
-                        {crustName && <span>Đế: <strong>{crustName}</strong></span>}
+                        {crustName && <span>Crust: <strong>{crustName}</strong></span>}
                       </p>
                     )}
                     {sel.toppings && sel.toppings.length > 0 && (
@@ -125,10 +125,10 @@ function renderOrderItemDetails(item: any) {
                     )}
                     {sel.is_half_half && sel.halves && sel.halves.length > 0 && (
                       <div className="mt-1 border-l border-blue-300 pl-2 text-xs">
-                        <p className="text-blue-500 font-semibold">Nửa-Nửa (Half-Half):</p>
+                        <p className="text-blue-500 font-semibold">Half-Half:</p>
                         {sel.halves.map((h: any, hIdx: number) => (
                           <div key={hIdx} className="ml-1 text-[11px]">
-                            <span>• Nửa {hIdx + 1}: <strong>{h.dish?.dish_name}</strong></span>
+                            <span>• Half {hIdx + 1}: <strong>{h.dish?.dish_name}</strong></span>
                             {h.order_item_toppings && h.order_item_toppings.length > 0 && (
                               <span className="text-gray-500 block ml-2">
                                 + Toppings: {h.order_item_toppings.map((t: any) => `${t.topping?.topping_name} (${(t.topping_price || t.topping?.price_topping || 0).toLocaleString()} đ)`).join(", ")}
@@ -139,7 +139,7 @@ function renderOrderItemDetails(item: any) {
                       </div>
                     )}
                     {sel.order_combo_note && (
-                      <p className="text-red-500 italic text-[11px]">Ghi chú: {sel.order_combo_note}</p>
+                      <p className="text-red-500 italic text-[11px]">Note: {sel.order_combo_note}</p>
                     )}
                   </div>
                 </div>
@@ -159,23 +159,23 @@ function renderOrderItemDetails(item: any) {
     return (
       <div className="text-xs space-y-1.5 mt-1 border-l-2 border-blue-500/20 pl-3">
         <p className="font-bold text-blue-500 text-[13px] uppercase">
-          Bánh Nửa-Nửa (Half-Half)
+          Half-Half Pizza
         </p>
         {(sizeName || crustName) && (
           <p className="text-gray-500">
             {sizeName && <span>Size: <strong>{sizeName}</strong> </span>}
-            {crustName && <span>Đế: <strong>{crustName}</strong></span>}
+            {crustName && <span>Crust: <strong>{crustName}</strong></span>}
           </p>
         )}
         {item.halves && item.halves.length > 0 && (
           <div className="space-y-1.5 mt-1 pl-2">
             {item.halves.map((h: any, idx: number) => (
               <div key={idx} className="text-xs text-gray-700 dark:text-gray-300">
-                <span className="font-semibold">• Nửa {idx + 1}: </span>
+                <span className="font-semibold">• Half {idx + 1}: </span>
                 <span className="font-bold text-dark dark:text-white">{h.dish?.dish_name}</span>
                 {h.order_item_toppings && h.order_item_toppings.length > 0 && (
                   <span className="text-gray-500 block ml-3 italic">
-                    + Toppings riêng: {h.order_item_toppings.map((t: any) => `${t.topping?.topping_name} (${(t.topping_price || t.topping?.price_topping || 0).toLocaleString()} đ)`).join(", ")}
+                    + Custom Toppings: {h.order_item_toppings.map((t: any) => `${t.topping?.topping_name} (${(t.topping_price || t.topping?.price_topping || 0).toLocaleString()} đ)`).join(", ")}
                   </span>
                 )}
               </div>
@@ -192,7 +192,7 @@ function renderOrderItemDetails(item: any) {
   }
 
   // 3. Món thường (regular)
-  const dishName = item.dish_price?.dish?.dish_name || item.dish_price_id || "Món ăn";
+  const dishName = item.dish_price?.dish?.dish_name || item.dish_price_id || "Dish";
   const sizeName = item.dish_price?.size?.size_name;
   const crustName = item.dish_price?.crust?.crust_name;
   const isPizza = dishName.toLowerCase().includes("pizza");
@@ -203,7 +203,7 @@ function renderOrderItemDetails(item: any) {
       {(sizeName || crustName) && isPizza && (
         <p className="text-gray-500">
           {sizeName && <span>Size: <strong>{sizeName}</strong> </span>}
-          {crustName && <span>Đế: <strong>{crustName}</strong></span>}
+          {crustName && <span>Crust: <strong>{crustName}</strong></span>}
         </p>
       )}
       {item.toppings && item.toppings.length > 0 && (
@@ -270,7 +270,7 @@ function OrderDetailModal({
       });
       setShowConfirmForm(false);
     } catch {
-      alert("Lỗi khi duyệt đơn hàng");
+      alert("Error approving order");
     } finally {
       setSubmitting(false);
     }
@@ -283,7 +283,7 @@ function OrderDetailModal({
         <div className="flex items-center justify-between border-b border-stroke px-6 py-4 dark:border-dark-3">
           <div>
             <h2 className="text-lg font-bold text-dark dark:text-white">
-              CHI TIẾT ĐƠN HÀNG #{order.order_id}
+              ORDER DETAILS #{order.order_id}
             </h2>
             <p className="text-xs text-gray-400 mt-1">
               {order.created_at ? dayjs(order.created_at).format("DD/MM/YYYY HH:mm:ss") : "N/A"}
@@ -300,20 +300,20 @@ function OrderDetailModal({
         <div className="p-6 space-y-5">
           {/* Info grid */}
           <div className="grid grid-cols-2 gap-4">
-            {/* Thông tin khách hàng */}
+            {/* Customer Details */}
             <div className="rounded-xl border border-stroke p-4 dark:border-dark-3">
               <h3 className="text-sm font-bold text-dark dark:text-white mb-3 uppercase tracking-wide">
-                Thông tin khách hàng
+                Customer Details
               </h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Tên:</span>
+                  <span className="text-gray-400">Name:</span>
                   <span className="font-medium text-dark dark:text-white">
                     {order.customer_name || order.user?.username || "N/A"}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">SĐT:</span>
+                  <span className="text-gray-400">Phone:</span>
                   <span className="font-medium text-dark dark:text-white">
                     {order.customer_phone || order.user?.phone || "N/A"}
                   </span>
@@ -326,7 +326,7 @@ function OrderDetailModal({
                 </div>
                 {order.user_address?.address_line && (
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Địa chỉ:</span>
+                    <span className="text-gray-400">Address:</span>
                     <span className="font-medium text-dark dark:text-white text-right max-w-[60%]">
                       {order.user_address.address_line}
                     </span>
@@ -335,37 +335,37 @@ function OrderDetailModal({
               </div>
             </div>
 
-            {/* Thông tin đơn hàng */}
+            {/* Order Information */}
             <div className="rounded-xl border border-stroke p-4 dark:border-dark-3">
               <h3 className="text-sm font-bold text-dark dark:text-white mb-3 uppercase tracking-wide">
-                Thông tin đơn hàng
+                Order Information
               </h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Trạng thái:</span>
+                  <span className="text-gray-400">Status:</span>
                   {renderStatusBadge(order.order_status)}
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Hình thức:</span>
+                  <span className="text-gray-400">Order Type:</span>
                   <span className="font-medium text-dark dark:text-white">
                     {ORDER_TYPE_LABELS[order.order_type] || order.order_type}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Thanh toán:</span>
+                  <span className="text-gray-400">Payment:</span>
                   <span className="font-medium text-dark dark:text-white">
                     {PAYMENT_LABELS[order.payment_method] || order.payment_method}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">TT thanh toán:</span>
+                  <span className="text-gray-400">Payment Status:</span>
                   <Badge variant={order.payment_status === "paid" ? "success" : "warning"}>
-                    {order.payment_status === "paid" ? "Đã thanh toán" : "Chưa thanh toán"}
+                    {order.payment_status === "paid" ? "Paid" : "Unpaid"}
                   </Badge>
                 </div>
                 {order.estimated_delivery_time && (
                   <div className="flex justify-between border-t border-stroke pt-1.5 mt-1.5 dark:border-dark-3 font-semibold">
-                    <span className="text-gray-400">Giao dự kiến:</span>
+                    <span className="text-gray-400">Est. Delivery:</span>
                     <span className="font-extrabold text-[#d4a017]">
                       {dayjs(order.estimated_delivery_time).format("HH:mm - DD/MM/YYYY")}
                     </span>
@@ -375,16 +375,16 @@ function OrderDetailModal({
             </div>
           </div>
 
-          {/* Thông tin giao hàng / Cửa hàng xử lý */}
+          {/* Delivery Information / Cửa hàng xử lý */}
           {(order.store || order.shipping_distance_meters || order.customer_latitude) && (
             <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 dark:border-blue-800/30 dark:bg-blue-950/20">
               <h3 className="text-sm font-bold text-dark dark:text-white mb-3 uppercase tracking-wide flex items-center gap-2">
-                <span>📍</span> Thông tin giao hàng
+                <span>📍</span> Delivery Information
               </h3>
               <div className="space-y-2 text-sm">
                 {order.store && (
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Cửa hàng xử lý:</span>
+                    <span className="text-gray-400">Assigned Store:</span>
                     <span className="font-bold text-primary">
                       {order.store.store_name}
                     </span>
@@ -392,7 +392,7 @@ function OrderDetailModal({
                 )}
                 {order.store?.address && (
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Địa chỉ cửa hàng:</span>
+                    <span className="text-gray-400">Store Address:</span>
                     <span className="font-medium text-dark dark:text-white text-right max-w-[60%]">
                       {order.store.address}
                     </span>
@@ -400,7 +400,7 @@ function OrderDetailModal({
                 )}
                 {order.shipping_distance_meters != null && order.shipping_distance_meters > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Khoảng cách:</span>
+                    <span className="text-gray-400">Distance:</span>
                     <span className="font-bold text-dark dark:text-white">
                       {(Number(order.shipping_distance_meters) / 1000).toFixed(2)} km
                     </span>
@@ -408,7 +408,7 @@ function OrderDetailModal({
                 )}
                 {order.customer_latitude != null && order.customer_longitude != null && (
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Tọa độ khách:</span>
+                    <span className="text-gray-400">Customer Coordinates:</span>
                     <span className="font-medium text-gray-600 dark:text-gray-300 text-xs">
                       {Number(order.customer_latitude).toFixed(7)}, {Number(order.customer_longitude).toFixed(7)}
                     </span>
@@ -421,7 +421,7 @@ function OrderDetailModal({
           {/* Chi tiết món */}
           <div className="rounded-xl border border-stroke p-4 dark:border-dark-3">
             <h3 className="text-sm font-bold text-dark dark:text-white mb-3 uppercase tracking-wide">
-              Chi tiết món ({order.items?.length || 0} món)
+              Item Details ({order.items?.length || 0} items)
             </h3>
             <div className="space-y-2">
               {(order.items || []).map((item: any, idx: number) => (
@@ -437,7 +437,7 @@ function OrderDetailModal({
                       {renderOrderItemDetails(item)}
                       {item.order_item_note && (
                         <p className="text-xs text-red-500 font-bold mt-1 bg-red-50 dark:bg-red-950/30 px-2 py-1 rounded inline-block">
-                          Ghi chú món: {item.order_item_note}
+                          Item Note: {item.order_item_note}
                         </p>
                       )}
                     </div>
@@ -450,31 +450,31 @@ function OrderDetailModal({
             </div>
           </div>
 
-          {/* Tổng tiền */}
+          {/* Total Price */}
           <div className="rounded-xl border border-stroke p-4 dark:border-dark-3">
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-400">Tạm tính:</span>
+                <span className="text-gray-400">Subtotal:</span>
                 <span className="text-dark dark:text-white">
                   {(order.total_price_dish || 0).toLocaleString()} đ
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Phí vận chuyển:</span>
+                <span className="text-gray-400">Shipping Fee:</span>
                 <span className="text-green-500 font-medium">
-                  {order.shipping_fee ? `${order.shipping_fee.toLocaleString()} đ` : "Miễn phí"}
+                  {order.shipping_fee ? `${order.shipping_fee.toLocaleString()} đ` : "Free"}
                 </span>
               </div>
               {(order.discount_amount || 0) > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Giảm giá:</span>
+                  <span className="text-gray-400">Discount:</span>
                   <span className="text-red-500">
                     -{(order.discount_amount || 0).toLocaleString()} đ
                   </span>
                 </div>
               )}
               <div className="flex justify-between border-t border-stroke pt-2 mt-2 dark:border-dark-3">
-                <span className="font-bold text-dark dark:text-white text-base">Tổng cộng:</span>
+                <span className="font-bold text-dark dark:text-white text-base">Total:</span>
                 <span className="font-bold text-primary text-lg">
                   {(order.total_order || 0).toLocaleString()} đ
                 </span>
@@ -482,11 +482,11 @@ function OrderDetailModal({
             </div>
           </div>
 
-          {/* Ghi chú đơn hàng */}
+          {/* Order Note */}
           {order.order_note && (
             <div className="rounded-xl border border-stroke p-4 dark:border-dark-3">
               <h3 className="text-sm font-bold text-dark dark:text-white mb-2 uppercase tracking-wide">
-                Ghi chú đơn hàng
+                Order Note
               </h3>
               <p className="text-sm text-gray-500 italic">&quot;{order.order_note}&quot;</p>
             </div>
@@ -495,11 +495,11 @@ function OrderDetailModal({
           {/* Cột mốc thời gian */}
           {(() => {
             const milestones = [
-              { label: "Khách đặt", time: order.created_at },
-              { label: "Xác nhận", time: order.confirmed_at },
-              { label: "Giao hàng", time: order.shipped_at },
-              { label: "Hoàn thành", time: order.completed_at },
-              { label: "Đã hủy", time: order.cancelled_at },
+              { label: "Placed", time: order.created_at },
+              { label: "Confirmed", time: order.confirmed_at },
+              { label: "Shipped", time: order.shipped_at },
+              { label: "Completed", time: order.completed_at },
+              { label: "Cancelled", time: order.cancelled_at },
             ].filter(m => m.time);
 
             if (milestones.length === 0) return null;
@@ -507,7 +507,7 @@ function OrderDetailModal({
             return (
               <div className="rounded-xl border border-stroke p-4 dark:border-dark-3 bg-gray-50/50 dark:bg-dark-2/50">
                 <h3 className="text-sm font-bold text-dark dark:text-white mb-3 uppercase tracking-wide">
-                  Tiến trình đơn hàng (Cột mốc thời gian)
+                  Order Progress (Timeline)
                 </h3>
                 <div className="flex flex-wrap gap-4 items-center">
                   {milestones.map((m, idx) => (
@@ -538,17 +538,17 @@ function OrderDetailModal({
                       onClick={() => setShowConfirmForm(true)}
                       className="rounded-xl bg-green-500 px-6 py-3 font-bold text-white hover:bg-green-600 transition shadow-lg active:scale-95"
                     >
-                      Xác nhận đặt hàng
+                      Confirm Order
                     </button>
                     <button
                       onClick={async () => {
-                        if (confirm("Bạn có chắc chắn muốn hủy đơn hàng này?")) {
+                        if (confirm("Are you sure you want to cancel this order?")) {
                           await onUpdateStatus(order.order_id, "cancelled");
                         }
                       }}
                       className="rounded-xl bg-red-500 px-6 py-3 font-bold text-white hover:bg-red-600 transition shadow-lg active:scale-95"
                     >
-                      Hủy đơn
+                      Cancel Order
                     </button>
                   </>
                 )}
@@ -558,7 +558,7 @@ function OrderDetailModal({
                     onClick={() => onUpdateStatus(order.order_id, "shipped")}
                     className="rounded-xl bg-blue px-6 py-3 font-bold text-white hover:bg-opacity-90 transition shadow-lg active:scale-95"
                   >
-                    Giao hàng cho shipper
+                    Ship Order
                   </button>
                 )}
 
@@ -567,19 +567,19 @@ function OrderDetailModal({
                     onClick={() => onUpdateStatus(order.order_id, "completed")}
                     className="rounded-xl bg-green px-6 py-3 font-bold text-white hover:bg-opacity-90 transition shadow-lg active:scale-95"
                   >
-                    Hoàn thành đơn hàng
+                    Complete Order
                   </button>
                 )}
 
                 {order.order_status === "completed" && (
                   <p className="text-green-500 font-bold flex items-center gap-1.5">
-                    <span>✓</span> Đơn hàng đã hoàn thành tốt đẹp!
+                    <span>✓</span> Order completed successfully!
                   </p>
                 )}
 
                 {order.order_status === "cancelled" && (
                   <p className="text-red-500 font-bold flex items-center gap-1.5">
-                    <span>✕</span> Đơn hàng này đã bị hủy!
+                    <span>✕</span> This order has been cancelled!
                   </p>
                 )}
               </div>
@@ -591,7 +591,7 @@ function OrderDetailModal({
                     {/* Popup Header */}
                     <div className="flex items-center justify-between border-b border-stroke px-6 py-4 dark:border-dark-3">
                       <h4 className="text-base font-bold text-dark dark:text-white uppercase tracking-wide">
-                        Duyệt đơn #{order.order_id}
+                        Approve Order #{order.order_id}
                       </h4>
                       <button
                         onClick={() => setShowConfirmForm(false)}
@@ -607,7 +607,7 @@ function OrderDetailModal({
                         {/* Nhập phí ship */}
                         <div>
                           <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">
-                            Phí Ship (đ)
+                            Shipping Fee (VND)
                           </label>
                           <input
                             type="number"
@@ -621,7 +621,7 @@ function OrderDetailModal({
                         {/* Nhập giảm giá */}
                         <div>
                           <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">
-                            Giảm giá (đ)
+                            Discount (VND)
                           </label>
                           <input
                             type="number"
@@ -636,25 +636,25 @@ function OrderDetailModal({
                       {/* Chọn thời gian giao */}
                       <div>
                         <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">
-                          Thời gian giao dự kiến
+                          Estimated Delivery Time
                         </label>
                         <select
                           value={deliveryDuration}
                           onChange={(e) => setDeliveryDuration(e.target.value)}
                           className="w-full rounded-lg border border-stroke bg-white px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-gray-dark font-medium"
                         >
-                          <option value="30">30 phút (Hôm nay)</option>
-                          <option value="45">45 phút (Hôm nay)</option>
-                          <option value="60">60 phút (Hôm nay)</option>
-                          <option value="90">90 phút (Hôm nay)</option>
-                          <option value="custom">Chọn giờ cụ thể</option>
+                          <option value="30">30 minutes (Today)</option>
+                          <option value="45">45 minutes (Today)</option>
+                          <option value="60">60 minutes (Today)</option>
+                          <option value="90">90 minutes (Today)</option>
+                          <option value="custom">Select specific time</option>
                         </select>
                       </div>
 
                       {deliveryDuration === "custom" && (
                         <div>
                           <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">
-                            Chọn Giờ Giao
+                            Select Delivery Time
                           </label>
                           <input
                             type="time"
@@ -667,7 +667,7 @@ function OrderDetailModal({
 
                       {/* Sub-total review */}
                       <div className="bg-gray-50 dark:bg-dark-2 p-3 rounded-lg flex justify-between items-center text-sm border border-stroke dark:border-dark-3 font-semibold">
-                        <span className="text-gray-500">Thành tiền sau điều chỉnh:</span>
+                        <span className="text-gray-500">Adjusted Total:</span>
                         <span className="text-primary text-base font-extrabold">
                           {Math.max(0, (order.total_price_dish || 0) + shippingFee - discountAmount).toLocaleString()} đ
                         </span>
@@ -679,13 +679,13 @@ function OrderDetailModal({
                           disabled={submitting}
                           className="rounded-lg bg-green-500 px-5 py-2.5 font-bold text-white hover:bg-green-600 transition shadow active:scale-95 disabled:opacity-50"
                         >
-                          {submitting ? "Đang xử lý..." : "✓ Xác nhận duyệt"}
+                          {submitting ? "Processing..." : "✓ Confirm Approval"}
                         </button>
                         <button
                           onClick={() => setShowConfirmForm(false)}
                           className="rounded-lg bg-gray-200 px-5 py-2.5 font-bold text-gray-700 hover:bg-gray-300 transition dark:bg-dark-3 dark:text-gray-300 dark:hover:bg-dark-1 active:scale-95"
                         >
-                          Quay lại
+                          Go Back
                         </button>
                       </div>
                     </div>
@@ -745,7 +745,7 @@ export default function OrdersPage() {
         viewDetail(orderId);
       }
     } catch (err) {
-      alert("Lỗi khi cập nhật trạng thái");
+      alert("Error updating status");
     }
   };
 
@@ -755,7 +755,7 @@ export default function OrdersPage() {
       const res = await api.get(`/api/admin/orders/${orderId}`);
       setDetailOrder(res.data.data);
     } catch {
-      alert("Lỗi khi lấy chi tiết đơn hàng");
+      alert("Error fetching order details");
     } finally {
       setLoadingDetail(false);
     }
@@ -765,9 +765,9 @@ export default function OrdersPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-dark dark:text-white">
-          QUẢN LÝ ĐƠN HÀNG
+          ORDERS MANAGEMENT
         </h1>
-        <span className="text-sm text-gray-500">Tổng: {total} đơn</span>
+        <span className="text-sm text-gray-500">Total: {total} orders</span>
       </div>
 
       {/* Filter */}
@@ -776,7 +776,7 @@ export default function OrdersPage() {
           onClick={() => { setStatusFilter(""); setPage(1); }}
           className={`rounded-lg px-4 py-2 text-sm font-medium transition ${!statusFilter ? "bg-primary text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-dark-2 dark:text-gray-300"}`}
         >
-          Tất cả
+          All
         </button>
         {Object.entries(STATUS_LABELS).map(([key, label]) => (
           <button
@@ -796,28 +796,28 @@ export default function OrdersPage() {
             <thead className="bg-primary text-white">
               <tr className="border-b border-stroke dark:border-dark-3">
                 <th className="rounded-tl-lg px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
-                  Mã đơn
+                  Order Code
                 </th>
                 <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
-                  Khách hàng
+                  Customer
                 </th>
                 <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
-                  Hình thức
+                  Order Type
                 </th>
                 <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
-                  Tổng tiền
+                  Total Price
                 </th>
                 <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
-                  Loại thanh toán
+                  Payment Type
                 </th>
                 <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
-                  Trạng thái
+                  Status
                 </th>
                 <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
-                  Ngày đặt hàng
+                  Order Date
                 </th>
                 <th className="rounded-tr-lg px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
-                  Thao tác
+                  Action
                 </th>
               </tr>
             </thead>
@@ -831,7 +831,7 @@ export default function OrdersPage() {
               ) : orders.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
-                    Không có đơn hàng nào
+                    No orders found
                   </td>
                 </tr>
               ) : (
@@ -891,7 +891,7 @@ export default function OrdersPage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-stroke px-6 py-4 dark:border-dark-3">
             <span className="text-sm text-gray-500">
-              Trang {page} / {totalPages}
+              Page {page} / {totalPages}
             </span>
             <div className="flex gap-2">
               <button
@@ -899,14 +899,14 @@ export default function OrdersPage() {
                 onClick={() => setPage(page - 1)}
                 className="rounded-lg border px-4 py-2 text-sm disabled:opacity-50 dark:border-dark-3"
               >
-                Trước
+                Previous
               </button>
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage(page + 1)}
                 className="rounded-lg border px-4 py-2 text-sm disabled:opacity-50 dark:border-dark-3"
               >
-                Sau
+                Next
               </button>
             </div>
           </div>

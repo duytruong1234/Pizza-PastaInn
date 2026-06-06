@@ -4,7 +4,7 @@ import SigninWithPassword from "../SigninWithPassword";
 
 export default function Signin() {
   return (
-    <Suspense fallback={<div>Đang tải...</div>}>
+    <Suspense fallback={<div>Loading...</div>}>
       <div>
         <SigninWithPassword />
       </div>

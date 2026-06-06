@@ -1,4 +1,4 @@
-// Profile Image Uploader — placeholder, không dùng Better Auth
+// Profile Image Uploader — placeholder, does not use Better Auth
 "use client";
 
 import Image from "next/image";

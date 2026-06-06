@@ -49,12 +49,12 @@ export default function RegisterPage() {
     setError('');
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Mat khau xac nhan khong khop');
+      setError('Confirm password does not match');
       return;
     }
 
     if (!formData.email) {
-      setError('Vui long nhap email');
+      setError('Please enter email');
       return;
     }
 
@@ -67,7 +67,7 @@ export default function RegisterPage() {
       setCountdown(60);
       setTimeout(() => otpRefs.current[0]?.focus(), 100);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Khong the gui ma OTP');
+      setError(err.response?.data?.message || 'Unable to send OTP code');
     } finally {
       setSendingOtp(false);
     }
@@ -84,7 +84,7 @@ export default function RegisterPage() {
       setOtpValues(['', '', '', '', '', '']);
       otpRefs.current[0]?.focus();
     } catch (err: any) {
-      setOtpError(err.response?.data?.message || 'Khong the gui lai OTP');
+      setOtpError(err.response?.data?.message || 'Unable to resend OTP');
     } finally {
       setSendingOtp(false);
     }
@@ -121,7 +121,7 @@ export default function RegisterPage() {
   const handleVerifyAndRegister = async () => {
     const otp = otpValues.join('');
     if (otp.length !== 6) {
-      setOtpError('Vui long nhap du 6 so OTP');
+      setOtpError('Please enter all 6 OTP digits');
       return;
     }
 
@@ -144,7 +144,7 @@ export default function RegisterPage() {
       setAuth(user, token);
       router.push('/');
     } catch (err: any) {
-      setOtpError(err.response?.data?.message || 'Xac thuc that bai');
+      setOtpError(err.response?.data?.message || 'Verification failed');
     } finally {
       setOtpLoading(false);
     }
@@ -154,8 +154,8 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-pizza-cream p-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8 border border-pizza-card/10">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-pizza-darkred mb-2">Tao tai khoan</h1>
-          <p className="text-gray-500">Dang ky de dat hang de dang hon</p>
+          <h1 className="text-3xl font-bold text-pizza-darkred mb-2">Create Account</h1>
+          <p className="text-gray-500">Register to order easily</p>
         </div>
 
         {error && (
@@ -166,7 +166,7 @@ export default function RegisterPage() {
 
         <form onSubmit={handleRegister} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Ho va ten</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
             <input
               type="text"
               name="username"
@@ -174,7 +174,7 @@ export default function RegisterPage() {
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-pizza-red focus:border-pizza-red text-black"
               value={formData.username}
               onChange={handleChange}
-              placeholder="Nguyen Van A"
+              placeholder="John Doe"
             />
           </div>
 
@@ -192,7 +192,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">So dien thoai (Tuy chon)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number (Optional)</label>
             <input
               type="tel"
               name="phone"
@@ -204,7 +204,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Mat khau</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
             <input
               type="password"
               name="password"
@@ -218,7 +218,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Xac nhan mat khau</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
             <input
               type="password"
               name="confirmPassword"
@@ -236,14 +236,14 @@ export default function RegisterPage() {
             disabled={loading || sendingOtp}
             className="w-full bg-pizza-red text-white py-2 px-4 rounded-md hover:bg-pizza-darkred focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pizza-red transition-colors mt-6 disabled:opacity-50"
           >
-            {sendingOtp ? 'Dang gui ma xac thuc...' : 'Dang ky'}
+            {sendingOtp ? 'Sending verification code...' : 'Register'}
           </button>
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-600">
-          Da co tai khoan?{' '}
+          Already have an account?{' '}
           <Link href="/login" className="text-pizza-red hover:underline font-semibold">
-            Dang nhap
+            Sign in
           </Link>
         </div>
       </div>
@@ -265,9 +265,9 @@ export default function RegisterPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h2 className="text-xl font-bold text-gray-800 mb-1">Xac thuc Email</h2>
+              <h2 className="text-xl font-bold text-gray-800 mb-1">Email Verification</h2>
               <p className="text-sm text-gray-500">
-                Ma xac thuc 6 so da duoc gui den
+                A 6-digit verification code has been sent to
               </p>
               <p className="text-sm font-semibold text-pizza-red mt-1">{formData.email}</p>
             </div>
@@ -300,13 +300,13 @@ export default function RegisterPage() {
               disabled={otpLoading || otpValues.join('').length !== 6}
               className="w-full bg-pizza-red text-white py-3 px-4 rounded-xl font-bold hover:bg-pizza-darkred transition-colors disabled:opacity-50 mb-4"
             >
-              {otpLoading ? 'Dang xac thuc...' : 'Xac nhan va dang ky'}
+              {otpLoading ? 'Verifying...' : 'Confirm & Register'}
             </button>
 
             <div className="text-center">
               {countdown > 0 ? (
                 <p className="text-sm text-gray-400">
-                  Gui lai ma sau <span className="font-bold text-pizza-red">{countdown}s</span>
+                  Resend code in <span className="font-bold text-pizza-red">{countdown}s</span>
                 </p>
               ) : (
                 <button
@@ -314,7 +314,7 @@ export default function RegisterPage() {
                   disabled={sendingOtp}
                   className="text-sm text-pizza-red hover:underline font-semibold disabled:opacity-50"
                 >
-                  {sendingOtp ? 'Dang gui...' : 'Gui lai ma xac thuc'}
+                  {sendingOtp ? 'Sending...' : 'Resend verification code'}
                 </button>
               )}
             </div>

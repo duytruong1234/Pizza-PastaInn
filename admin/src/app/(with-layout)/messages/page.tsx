@@ -88,8 +88,8 @@ export default function MessagesPage() {
         }
       }
     } catch (err) {
-      console.error("Lỗi khi tải danh sách phòng chat:", err);
-      if (!silent) toast.error("Không thể tải danh sách phòng chat");
+      console.error("Error loading chat room list:", err);
+      if (!silent) toast.error("Failed to load chat room list");
     } finally {
       if (!silent) setLoadingRooms(false);
     }
@@ -104,8 +104,8 @@ export default function MessagesPage() {
         setMessages(res.data.data);
       }
     } catch (err) {
-      console.error("Lỗi khi tải tin nhắn:", err);
-      if (!silent) toast.error("Không thể tải lịch sử tin nhắn");
+      console.error("Error loading messages:", err);
+      if (!silent) toast.error("Failed to load message history");
     } finally {
       if (!silent) setLoadingMessages(false);
     }
@@ -141,7 +141,7 @@ export default function MessagesPage() {
         prev.map((r) => r.room_id === roomId ? { ...r, unreadCount: 0 } : r)
       );
     } catch (err) {
-      console.error("Lỗi khi đánh dấu đã đọc:", err);
+      console.error("Error marking as read:", err);
     }
   };
 
@@ -185,22 +185,22 @@ export default function MessagesPage() {
 
   // Action: Delete conversation
   const handleDeleteConversation = async (roomId: number) => {
-    if (!window.confirm("Cảnh báo: Hành động này sẽ xóa vĩnh viễn cuộc hội thoại này cùng toàn bộ tin nhắn. Bạn có chắc chắn muốn xóa?")) return;
+    if (!window.confirm("Warning: This action will permanently delete this conversation and all its messages. Are you sure you want to delete?")) return;
 
     try {
       const res = await api.delete(`/api/admin/chat/rooms/${roomId}`);
       if (res.data?.success) {
-        toast.success("Xóa cuộc hội thoại thành công");
+        toast.success("Deleted conversation successfully");
         setActiveRoomId(null);
         setMessages([]);
         setShowOptionsDropdown(false);
         fetchRooms(true);
       } else {
-        toast.error("Không thể xóa cuộc hội thoại");
+        toast.error("Failed to delete conversation");
       }
     } catch (err) {
-      console.error("Lỗi khi xóa cuộc hội thoại:", err);
-      toast.error("Lỗi khi kết nối đến máy chủ");
+      console.error("Error deleting conversation:", err);
+      toast.error("Error connecting to the server");
     }
   };
 
@@ -227,8 +227,8 @@ export default function MessagesPage() {
         fetchRooms(true);
       }
     } catch (err) {
-      console.error("Lỗi khi gửi phản hồi:", err);
-      toast.error("Không thể gửi tin nhắn");
+      console.error("Error sending response:", err);
+      toast.error("Failed to send message");
     }
   };
 
@@ -252,8 +252,8 @@ export default function MessagesPage() {
         setPreviewImages((prev) => [...prev, fullUrl]);
       }
     } catch (err) {
-      console.error("Lỗi upload ảnh:", err);
-      toast.error("Không thể tải ảnh lên");
+      console.error("Error uploading image:", err);
+      toast.error("Failed to upload image");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -268,13 +268,13 @@ export default function MessagesPage() {
         room_status: status
       });
       if (res.data?.success) {
-        toast.success(`Đã đổi trạng thái phòng thành công`);
+        toast.success(`Room status changed successfully`);
         setShowOptionsDropdown(false);
         fetchRooms(true);
       }
     } catch (err) {
-      console.error("Lỗi cập nhật trạng thái phòng:", err);
-      toast.error("Không thể cập nhật trạng thái phòng");
+      console.error("Error updating room status:", err);
+      toast.error("Failed to update room status");
     }
   };
 
@@ -319,7 +319,7 @@ export default function MessagesPage() {
             <button
               onClick={() => fetchRooms()}
               className="text-gray-400 hover:text-[#5c54e5] transition-colors duration-200"
-              title="Làm mới danh sách"
+              title="Refresh list"
             >
               <RefreshCw size={15} className={loadingRooms ? "animate-spin text-[#5c54e5]" : ""} />
             </button>
@@ -348,7 +348,7 @@ export default function MessagesPage() {
               </div>
             ) : filteredRooms.length === 0 ? (
               <div className="text-center py-16 text-gray-400 font-bold text-xs">
-                Không có cuộc hội thoại nào
+                No conversations found
               </div>
             ) : (
               filteredRooms.map((room) => {
@@ -360,8 +360,8 @@ export default function MessagesPage() {
 
                 const lastMsg = room.messages?.[0];
                 const lastMsgText = lastMsg
-                  ? lastMsg.message_text || "[Hình ảnh]"
-                  : "Chưa có cuộc trò chuyện";
+                  ? lastMsg.message_text || "[Image]"
+                  : "No conversation yet";
 
                 const statusColor = room.room_status === 'pending'
                   ? 'bg-amber-400'
@@ -390,7 +390,7 @@ export default function MessagesPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <h4 className="truncate text-sm font-extrabold text-[#1c2434] dark:text-white leading-snug">
-                          {displayName || "Khách vãng lai"}
+                          {displayName || "Guest Customer"}
                         </h4>
 
                         {/* Last message time + Unread badge */}
@@ -430,16 +430,16 @@ export default function MessagesPage() {
                   </div>
                   <div>
                     <h3 className="text-sm font-extrabold text-[#1c2434] dark:text-white leading-snug">
-                      {activeRoom.guest_name || activeRoom.customer?.username || "Khách vãng lai"}
+                      {activeRoom.guest_name || activeRoom.customer?.username || "Guest Customer"}
                     </h3>
                     {isOnline ? (
                       <span className="text-[11px] font-bold text-emerald-500 leading-none mt-1.5 flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        Đang truy cập
+                        Online
                       </span>
                     ) : (
                       <span className="text-[11px] font-semibold text-gray-400 leading-none mt-1.5 block">
-                        Đã ngừng truy cập
+                        Offline
                       </span>
                     )}
                   </div>
@@ -457,21 +457,21 @@ export default function MessagesPage() {
                   {showOptionsDropdown && (
                     <div className="absolute right-0 mt-1.5 w-48 rounded-xl bg-white p-2 shadow-[0_10px_25px_rgba(0,0,0,0.06)] border border-[#e2e8f0] dark:bg-gray-dark dark:border-dark-3 z-50">
                       <div className="px-3 py-1.5 text-[9px] font-black text-gray-400 tracking-wider uppercase border-b border-[#f1f5f9] dark:border-dark-3 mb-1">
-                        Cập nhật trạng thái
+                        Update Status
                       </div>
                       <button
                         onClick={() => handleUpdateRoomStatus("active")}
                         className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all cursor-pointer"
                       >
                         <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-                        <span>Hoạt động</span>
+                        <span>Active</span>
                       </button>
                       <button
                         onClick={() => handleUpdateRoomStatus("closed")}
                         className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all cursor-pointer"
                       >
                         <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
-                        <span>Đóng hội thoại</span>
+                        <span>Close Conversation</span>
                       </button>
                       <div className="border-t border-[#f1f5f9] dark:border-dark-3 my-1"></div>
                       <button
@@ -479,7 +479,7 @@ export default function MessagesPage() {
                         className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all cursor-pointer"
                       >
                         <Trash2 size={13} className="text-rose-500 shrink-0" />
-                        <span>Xóa cuộc hội thoại</span>
+                        <span>Delete Conversation</span>
                       </button>
                     </div>
                   )}
@@ -494,14 +494,14 @@ export default function MessagesPage() {
                       {activeRoom.customer?.phone && (
                         <div className="flex items-center gap-1.5">
                           <Phone size={12} className="text-[#5c54e5] dark:text-indigo-400" />
-                          <span>SĐT: <span className="font-extrabold text-[#1c2434] dark:text-zinc-100">{activeRoom.customer.phone}</span></span>
+                          <span>Phone: <span className="font-extrabold text-[#1c2434] dark:text-zinc-100">{activeRoom.customer.phone}</span></span>
                         </div>
                       )}
                       {(activeRoom.customer?.addresses && activeRoom.customer.addresses.length > 0) && (
                         <div className="flex items-center gap-1.5 flex-1 min-w-0">
                           <MapPin size={12} className="text-[#5c54e5] dark:text-indigo-400 shrink-0" />
                           <span className="truncate">
-                            Địa chỉ: <span className="font-extrabold text-[#1c2434] dark:text-zinc-100">
+                            Address: <span className="font-extrabold text-[#1c2434] dark:text-zinc-100">
                               {(() => {
                                 const addr = activeRoom.customer.addresses.find(addr => addr.is_default)?.address_line 
                                              || activeRoom.customer.addresses[0]?.address_line;
@@ -526,13 +526,13 @@ export default function MessagesPage() {
                       {activeRoom.guest_phone && (
                         <div className="flex items-center gap-1.5">
                           <Phone size={12} className="text-amber-600" />
-                          <span>SĐT: <span className="font-extrabold">{activeRoom.guest_phone}</span></span>
+                          <span>Phone: <span className="font-extrabold">{activeRoom.guest_phone}</span></span>
                         </div>
                       )}
                       {activeRoom.guest_address && (
                         <div className="flex items-center gap-1.5 flex-1 min-w-0">
                           <MapPin size={12} className="text-amber-600 shrink-0" />
-                          <span className="truncate">Địa chỉ: <span className="font-extrabold">{activeRoom.guest_address}</span></span>
+                          <span className="truncate">Address: <span className="font-extrabold">{activeRoom.guest_address}</span></span>
                         </div>
                       )}
                     </>
@@ -550,13 +550,13 @@ export default function MessagesPage() {
                 ) : messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 text-gray-400 select-none">
                     <MessageSquare className="w-12 h-12 mb-3 opacity-30 text-indigo-500 animate-pulse" />
-                    <p className="text-sm font-bold">Chưa có tin nhắn</p>
-                    <p className="text-xs text-gray-400 mt-1">Bắt đầu trò chuyện với khách hàng.</p>
+                    <p className="text-sm font-bold">No messages yet</p>
+                    <p className="text-xs text-gray-400 mt-1">Start chatting with the customer.</p>
                   </div>
                 ) : (
                   messages.map((msg) => {
                     const isAdmin = msg.sender_type === "admin";
-                    const senderName = activeRoom.guest_name || activeRoom.customer?.username || "Khách";
+                    const senderName = activeRoom.guest_name || activeRoom.customer?.username || "Customer";
 
                     return (
                       <div
@@ -614,7 +614,7 @@ export default function MessagesPage() {
               {activeRoom.room_status === 'closed' && (
                 <div className="bg-zinc-50 border-t border-b border-[#cbd5e1] p-3 flex items-center justify-center gap-2 text-xs font-bold text-zinc-500 shrink-0 select-none">
                   <AlertTriangle size={14} className="text-amber-500 shrink-0" />
-                  <span>Cuộc hội thoại đã đóng. Tin nhắn phản hồi tiếp theo sẽ kích hoạt lại phòng chat.</span>
+                  <span>The conversation is closed. The next response message will reactivate the chat room.</span>
                 </div>
               )}
 
@@ -649,7 +649,7 @@ export default function MessagesPage() {
                       type="text"
                       value={inputText}
                       onChange={(e) => setInputText(e.target.value)}
-                      placeholder={isUploading ? "Đang tải ảnh lên..." : "Nhập nội dung tin nhắn..."}
+                      placeholder={isUploading ? "Uploading image..." : "Enter message text..."}
                       disabled={isUploading}
                       className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-xl py-3.5 pl-5 pr-20 text-xs font-semibold outline-none focus:bg-white focus:border-[#5c54e5] dark:bg-dark-2 dark:border-dark-3 dark:focus:bg-transparent dark:text-zinc-100 placeholder-gray-400"
                     />
@@ -660,7 +660,7 @@ export default function MessagesPage() {
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         className="hover:text-[#5c54e5] transition-colors cursor-pointer"
-                        title="Đính kèm ảnh"
+                        title="Attach image"
                       >
                         <Paperclip size={19} />
                       </button>
@@ -692,10 +692,10 @@ export default function MessagesPage() {
             <div className="flex-1 flex flex-col items-center justify-center text-gray-400 select-none">
               <MessageSquare className="w-16 h-16 mb-3 text-gray-300 dark:text-zinc-700 animate-bounce" />
               <h3 className="text-sm font-extrabold text-dark dark:text-white leading-snug">
-                Hệ thống Chat Quản trị viên
+                Admin Support Chat
               </h3>
               <p className="text-[12px] text-gray-400 mt-1 max-w-[280px] text-center font-semibold leading-relaxed">
-                Vui lòng chọn một cuộc trò chuyện từ danh sách bên trái để bắt đầu trao đổi với khách hàng.
+                Please select a conversation from the list on the left to start chatting with the customer.
               </p>
             </div>
           )}

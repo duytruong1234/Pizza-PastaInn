@@ -29,12 +29,17 @@ let _transporter: nodemailer.Transporter | null = null;
 function getTransporter(): nodemailer.Transporter {
   if (!_transporter) {
     _transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
       auth: {
         user: process.env.GMAIL_USER,
         pass: process.env.GMAIL_APP_PASSWORD,
       },
-    });
+      // Ép buộc kết nối bằng IPv4 do các môi trường host như Render thường không hỗ trợ định tuyến IPv6,
+      // dẫn đến lỗi ENETUNREACH khi tự động phân giải và kết nối tới địa chỉ IPv6 của Gmail.
+      family: 4,
+    } as any);
   }
   return _transporter;
 }

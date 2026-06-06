@@ -50,7 +50,7 @@ export default function QuickDock() {
     {
       id: 1,
       sender: 'bot',
-      text: "Hi! Chào mừng bạn đến với Pizza & Pasta Inn. Tôi là ChefBot, trợ lý ẩm thực AI của bạn! Tôi có thể giúp gì cho bạn hôm nay? Hãy hỏi tôi về pizza, mỳ ý hoặc tra cứu đơn hàng nhé! Để được nhân viên cửa hàng hỗ trợ trực tiếp, bạn vui lòng nhấn chọn 'Gặp nhân viên' hoặc gửi tin nhắn số '1'. Pizza & Pasta Inn xin cảm ơn!",
+      text: "Hi! Welcome to Pizza & Pasta Inn. I am ChefBot, your AI culinary assistant! How can I help you today? Ask me about pizzas, pasta, or look up your order! To speak with our staff directly, please click 'Talk to Staff' or send '1'. Thank you!",
       timestamp: new Date(),
     },
   ]);
@@ -107,7 +107,7 @@ export default function QuickDock() {
           setDbMessages(response.data.data);
         }
       } catch (err) {
-        console.error('Lỗi khi cập nhật tin nhắn live chat:', err);
+        console.error('Error updating live chat messages:', err);
       }
     };
 
@@ -154,19 +154,19 @@ export default function QuickDock() {
       const lower = trimmed.toLowerCase();
 
       if (lower.includes('pizza') || lower.includes('bánh')) {
-        botResponse = 'Ôi, bạn nhất định phải thử Seafood Pizza đặc trưng (với tôm tươi, mực và phô mai mozzarella béo ngậy) hoặc bánh Double Cheese huyền thoại của chúng tôi! Bạn có muốn tôi dẫn bạn tới menu không?';
+        botResponse = 'Oh, you definitely have to try our signature Seafood Pizza (with fresh shrimp, squid, and creamy mozzarella cheese) or our legendary Double Cheese pizza! Would you like me to guide you to the menu?';
       } else if (lower.includes('pasta') || lower.includes('mì')) {
-        botResponse = 'Mamma Mia! Món Mỳ Ý Carbonara Sốt Kem của chúng tôi cực kỳ nổi tiếng, được làm từ sốt lòng đỏ trứng béo ngậy, thịt xông khói giòn và phô mai parmesan. Chúng tôi cũng có Spaghetti Bolognese truyền thống nữa đấy!';
+        botResponse = 'Mamma Mia! Our Carbonara Pasta with Cream Sauce is extremely famous, made with rich egg yolk sauce, crispy bacon, and parmesan cheese. We also have traditional Spaghetti Bolognese!';
       } else if (lower.includes('track') || lower.includes('đơn hàng') || lower.includes('tra cứu') || lower.includes('lookup')) {
-        botResponse = 'Việc tra cứu đơn hàng vô cùng đơn giản! Hãy nhấp vào mục Tra cứu đơn hàng trên thanh menu và nhập số điện thoại để kiểm tra trạng thái đơn hàng thời gian thực nhé!';
+        botResponse = 'Tracking your order is extremely simple! Just click on "Order Lookup" in the navigation menu and enter your phone number to check your real-time order status!';
       } else if (lower.includes('hour') || lower.includes('giờ') || lower.includes('mở cửa') || lower.includes('open')) {
-        botResponse = 'Chúng tôi rất hân hạnh được phục vụ bạn tất cả các ngày trong tuần từ 9:00 AM đến 10:00 PM! Đặt mua trực tuyến để thưởng thức pizza nóng hổi giao tận nơi trong vòng 45 phút!';
+        botResponse = 'We are pleased to serve you every day of the week from 9:00 AM to 10:00 PM! Order online to enjoy hot pizzas delivered within 45 minutes!';
       } else if (lower.includes('promotion') || lower.includes('khuyến mãi') || lower.includes('giảm giá')) {
-        botResponse = 'Tin vui đây! Chúng tôi đang áp dụng chương trình FREESHIP cho mọi đơn hàng trên 200.000 đ! Bạn cũng có thể tìm thấy các mã giảm giá hấp dẫn khác ngay tại trang Checkout.';
+        botResponse = 'Good news! We offer FREE SHIPPING on all orders over 200,000 đ! You can also find other attractive discount codes right at the Checkout page.';
       } else if (lower.includes('nhân viên') || lower.includes('quản trị') || lower.includes('gặp admin') || lower.includes('live chat') || lower.includes('tư vấn')) {
-        botResponse = 'Để gặp trực tiếp nhân viên tư vấn, vui lòng nhấp vào nút "Gặp nhân viên" ngay bên dưới hoặc trong menu Hỗ trợ nhé!';
+        botResponse = 'To speak directly with our support staff, please click the "Talk to Staff" button below or in the Support menu!';
       } else {
-        botResponse = "Đó là một câu hỏi tuyệt vời! Tôi là ChefBot và tôi có thể gợi ý các món ăn ngon, chia sẻ giờ mở cửa hoặc hướng dẫn tra cứu đơn hàng. Bạn có muốn kết nối với nhân viên hỗ trợ trực tiếp không?";
+        botResponse = "That's a great question! I am ChefBot and I can recommend delicious dishes, share opening hours, or guide you on order lookups. Would you like to connect with our support staff?";
       }
 
       const botMsg: Message = {
@@ -199,7 +199,7 @@ export default function QuickDock() {
           setShowGuestForm(false);
         }
       } catch (err) {
-        console.error('Không thể khởi tạo chat room cho thành viên:', err);
+        console.error('Failed to initialize chat room for member:', err);
       }
       return;
     }
@@ -220,7 +220,7 @@ export default function QuickDock() {
           return;
         }
       } catch (err) {
-        console.error('Lỗi khi tải phòng chat khách vãng lai cũ:', err);
+        console.error('Error loading old guest chat room:', err);
       }
     }
 
@@ -233,18 +233,18 @@ export default function QuickDock() {
     e.preventDefault();
     const errors: Record<string, string> = {};
     if (!guestName.trim()) {
-      errors.name = 'Vui lòng nhập họ và tên';
+      errors.name = 'Please enter your full name';
     }
 
     const phoneTrimmed = guestPhone.trim();
     if (!phoneTrimmed) {
-      errors.phone = 'Vui lòng nhập số điện thoại';
+      errors.phone = 'Please enter your phone number';
     } else if (!/^0\d{9}$/.test(phoneTrimmed)) {
-      errors.phone = 'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng số 0';
+      errors.phone = 'Phone number must be 10 digits starting with 0';
     }
 
     if (!guestAddress.trim()) {
-      errors.address = 'Vui lòng nhập địa chỉ giao hàng';
+      errors.address = 'Please enter delivery address';
     }
 
     if (Object.keys(errors).length > 0) {
@@ -274,7 +274,7 @@ export default function QuickDock() {
         setShowGuestForm(false);
       }
     } catch (err) {
-      console.error('Lỗi đăng ký phòng chat khách vãng lai:', err);
+      console.error('Error registering guest chat room:', err);
     }
   };
 
@@ -285,7 +285,7 @@ export default function QuickDock() {
 
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-      alert('Chỉ chấp nhận file ảnh (jpg, png, gif, webp)');
+      alert('Only image files are accepted (jpg, png, gif, webp)');
       return;
     }
 
@@ -309,8 +309,8 @@ export default function QuickDock() {
         setPreviewImages((prev) => [...prev, fullUrl]);
       }
     } catch (err) {
-      console.error('Lỗi tải ảnh lên:', err);
-      alert('Không thể tải ảnh lên, vui lòng thử lại');
+      console.error('Error uploading image:', err);
+      alert('Unable to upload image, please try again');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -353,12 +353,12 @@ export default function QuickDock() {
         setRoomStatus('pending'); // Reset room status back to pending/active when customer sends a message
       }
     } catch (err) {
-      console.error('Không thể gửi tin nhắn live chat:', err);
+      console.error('Failed to send live chat message:', err);
     }
   };
 
   const handleSuggestionClick = (suggestionText: string) => {
-    if (suggestionText === 'Gặp nhân viên hỗ trợ') {
+    if (suggestionText === 'Talk to Staff') {
       startLiveChat();
     } else {
       if (liveChatActive) {
@@ -397,7 +397,7 @@ export default function QuickDock() {
           {/* Header */}
           <div className="flex items-center justify-between pb-3">
             <h4 className="font-extrabold text-lg tracking-wide text-zinc-100">
-              Liên hệ hỗ trợ
+              Contact Support
             </h4>
             <button 
               onClick={() => setContactOpen(false)}
@@ -483,13 +483,13 @@ export default function QuickDock() {
                 <path d="M 55,50 Q 62,42 68,50" stroke="#ee2828" strokeWidth="4.5" strokeLinecap="round" fill="none" />
                 <path d="M 46,58 Q 50,64 55,58" stroke="#ee2828" strokeWidth="4" strokeLinecap="round" fill="none" />
               </svg>
-              <span className="font-extrabold text-sm text-white">Trợ lý ChefBot AI & Chat Trực tuyến</span>
+              <span className="font-extrabold text-sm text-white">ChefBot AI Assistant & Live Chat</span>
             </div>
           </div>
 
           {/* Footer Info Lines */}
           <div className="text-left text-xs font-semibold text-zinc-300 space-y-2 border-t border-white/5 pt-4 mt-1 leading-relaxed">
-            <p>Hỗ trợ trực tuyến từ 9:00 AM đến 10:00 PM hàng ngày</p>
+            <p>Live support from 9:00 AM to 10:00 PM daily</p>
           </div>
         </div>
       )}
@@ -525,11 +525,11 @@ export default function QuickDock() {
                     {liveChatActive ? 'Live Support' : 'Chat with'}
                   </span>
                   <h4 className="font-extrabold text-[15px] text-white tracking-wide leading-snug mt-0.5">
-                    {liveChatActive ? 'Nhân viên hỗ trợ' : 'ChefBot AI'}
+                    {liveChatActive ? 'Support Staff' : 'ChefBot AI'}
                   </h4>
                   <div className="flex items-center gap-1.5 mt-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span className="text-[10px] text-emerald-400/90 font-bold uppercase tracking-wider">Trực tuyến</span>
+                    <span className="text-[10px] text-emerald-400/90 font-bold uppercase tracking-wider">Online</span>
                   </div>
                 </div>
               </div>
@@ -550,17 +550,17 @@ export default function QuickDock() {
                       ? "bg-white text-[#ee2828] border-white shadow"
                       : "bg-transparent text-white border-white/30 hover:border-white"
                   }`}
-                  title={liveChatActive ? "Chuyển về Bot tự động" : "Kết nối với nhân viên trực tiếp"}
+                  title={liveChatActive ? "Switch to Auto Bot" : "Connect with Support Staff"}
                 >
                   {liveChatActive ? (
                     <span className="flex items-center gap-1">
                       <Bot size={13} className="shrink-0" />
-                      <span>Hỏi Bot AI</span>
+                      <span>Ask Bot AI</span>
                     </span>
                   ) : (
                     <span className="flex items-center gap-1">
                       <MessageSquare size={13} className="shrink-0" />
-                      <span>Gặp nhân viên</span>
+                      <span>Talk to Staff</span>
                     </span>
                   )}
                 </button>
@@ -589,10 +589,10 @@ export default function QuickDock() {
             <div className="flex-1 bg-[#1a1513] text-white p-6 flex flex-col justify-between overflow-y-auto custom-scrollbar">
               <div className="text-center pt-2">
                 <h3 className="font-extrabold text-zinc-100 text-[17px] tracking-wide">
-                  KẾT NỐI VỚI NHÂN VIÊN CỦA CỬA HÀNG
+                  CONNECT WITH OUR SUPPORT STAFF
                 </h3>
                 <p className="text-zinc-400 text-xs mt-1.5 leading-relaxed max-w-[280px] mx-auto font-medium">
-                  Vui lòng cung cấp thông tin để nhân viên chi nhánh hỗ trợ bạn tốt nhất nhé!
+                  Please provide your information so our staff can assist you best!
                 </p>
               </div>
 
@@ -600,13 +600,13 @@ export default function QuickDock() {
                 {/* Full name input */}
                 <div>
                   <label className="block text-[10px] font-black text-zinc-400 tracking-widest uppercase mb-1.5">
-                    Họ và tên (*)
+                    Full Name (*)
                   </label>
                   <input
                     type="text"
                     value={guestName}
                     onChange={(e) => setGuestName(e.target.value)}
-                    placeholder="Nhập tên của bạn"
+                    placeholder="Enter your name"
                     className="w-full bg-[#2a221f] text-white border border-white/[0.08] rounded-xl py-3 px-4 focus:outline-none focus:border-amber-500 transition-all placeholder-zinc-500 text-sm font-semibold shadow-inner"
                   />
                   {formErrors.name && (
@@ -617,13 +617,13 @@ export default function QuickDock() {
                 {/* Phone number input */}
                 <div>
                   <label className="block text-[10px] font-black text-zinc-400 tracking-widest uppercase mb-1.5">
-                    Số điện thoại (*) <span className="text-[#ffc107] font-bold normal-case tracking-normal ml-1">ĐK: 10 SỐ BẮT ĐẦU = 0</span>
+                    Phone Number (*) <span className="text-[#ffc107] font-bold normal-case tracking-normal ml-1">Format: 10 digits starting with 0</span>
                   </label>
                   <input
                     type="tel"
                     value={guestPhone}
                     onChange={(e) => setGuestPhone(e.target.value)}
-                    placeholder="Nhập số điện thoại của bạn"
+                    placeholder="Enter your phone number"
                     className="w-full bg-[#2a221f] text-white border border-white/[0.08] rounded-xl py-3 px-4 focus:outline-none focus:border-amber-500 transition-all placeholder-zinc-500 text-sm font-semibold shadow-inner"
                   />
                   {formErrors.phone && (
@@ -634,13 +634,13 @@ export default function QuickDock() {
                 {/* Delivery address input */}
                 <div>
                   <label className="block text-[10px] font-black text-zinc-400 tracking-widest uppercase mb-1.5">
-                    Địa chỉ giao hàng (*)
+                    Delivery Address (*)
                   </label>
                   <input
                     type="text"
                     value={guestAddress}
                     onChange={(e) => setGuestAddress(e.target.value)}
-                    placeholder="Nhập địa chỉ của bạn"
+                    placeholder="Enter your address"
                     className="w-full bg-[#2a221f] text-white border border-white/[0.08] rounded-xl py-3 px-4 focus:outline-none focus:border-amber-500 transition-all placeholder-zinc-500 text-sm font-semibold shadow-inner"
                   />
                   {formErrors.address && (
@@ -652,7 +652,7 @@ export default function QuickDock() {
                   type="submit"
                   className="w-full bg-[#ffc107] hover:bg-[#ffb300] active:scale-95 text-zinc-950 font-black text-sm uppercase py-4 rounded-2xl shadow-lg transition-all tracking-wider mt-2.5 cursor-pointer"
                 >
-                  Bắt đầu trò chuyện
+                  Start Chatting
                 </button>
               </form>
 
@@ -661,7 +661,7 @@ export default function QuickDock() {
                 onClick={() => setShowGuestForm(false)}
                 className="text-zinc-500 hover:text-zinc-400 text-xs font-bold text-center underline cursor-pointer"
               >
-                Quay lại ChefBot AI
+                Back to ChefBot AI
               </button>
             </div>
           ) : (
@@ -674,11 +674,11 @@ export default function QuickDock() {
                   <>
                     <div className="text-center py-1 select-none">
                       <span className="px-3 py-1 bg-zinc-200/60 rounded-full text-zinc-500 text-[10px] font-extrabold uppercase tracking-wide">
-                        Kênh hỗ trợ trực tuyến
+                        Live Support Channel
                       </span>
                       {roomStatus === 'closed' && (
                         <div className="mt-2.5 bg-rose-50 border border-rose-100/50 rounded-xl p-2.5 text-rose-600 text-xs font-semibold leading-relaxed mx-2">
-                          Hội thoại đã kết thúc. Gửi tin nhắn mới để mở lại phòng chat nhé!
+                          Conversation has ended. Send a new message to reopen the chat.
                         </div>
                       )}
                     </div>
@@ -686,8 +686,8 @@ export default function QuickDock() {
                     {dbMessages.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-12 text-zinc-400 select-none">
                         <MessageSquare className="w-10 h-10 mb-2 opacity-30 animate-pulse text-[#ee2828]" />
-                        <p className="text-xs font-bold">Chưa có tin nhắn nào</p>
-                        <p className="text-[10px] text-zinc-400/80 mt-1">Hãy gửi lời chào đầu tiên tới nhân viên nhé!</p>
+                        <p className="text-xs font-bold">No messages yet</p>
+                        <p className="text-[10px] text-zinc-400/80 mt-1">Say hello to start chatting with our staff!</p>
                       </div>
                     ) : (
                       dbMessages.map((msg) => {
@@ -776,10 +776,10 @@ export default function QuickDock() {
               <div className="px-4.5 py-2.5 bg-[#f4f7f9] border-t border-zinc-100/50 flex gap-2 overflow-x-auto whitespace-nowrap scrollbar-none shrink-0 select-none">
                 {!liveChatActive && (
                   <button 
-                    onClick={() => handleSuggestionClick('Gặp nhân viên hỗ trợ')}
+                    onClick={() => handleSuggestionClick('Talk to Staff')}
                     className="px-3.5 py-2 rounded-full bg-white border border-zinc-200 text-[#ee2828] border-[#ee2828]/20 text-[11px] font-black hover:bg-[#ee2828] hover:text-white transition-all shadow-sm cursor-pointer inline-flex items-center gap-1.5"
                   >
-                    <span>Gặp nhân viên</span>
+                    <span>Talk to Staff</span>
                     <MessageSquare size={12} className="shrink-0" />
                   </button>
                 )}
@@ -796,10 +796,10 @@ export default function QuickDock() {
                   Recommend Pasta
                 </button>
                 <button 
-                  onClick={() => handleSuggestionClick('Tra cứu đơn hàng')}
+                  onClick={() => handleSuggestionClick('lookup')}
                   className="px-3.5 py-2 rounded-full bg-white border border-zinc-200/80 text-zinc-600 text-[11px] font-bold hover:border-[#ee2828] hover:text-[#ee2828] transition-all shadow-sm cursor-pointer"
                 >
-                  Tra cứu đơn
+                  Order Lookup
                 </button>
               </div>
 
@@ -831,7 +831,7 @@ export default function QuickDock() {
                   type="text" 
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  placeholder={isUploading ? "Đang tải ảnh lên..." : "Nhập tin nhắn..."}
+                  placeholder={isUploading ? "Uploading image..." : "Type a message..."}
                   disabled={isUploading}
                   className="w-full bg-transparent text-[#202c3d] focus:outline-none placeholder-zinc-400 text-[13px] pl-4 pr-16 py-2.5 font-semibold"
                 />
@@ -854,7 +854,7 @@ export default function QuickDock() {
                         type="button" 
                         onClick={() => fileInputRef.current?.click()}
                         className="hover:text-[#007a3f] transition-colors cursor-pointer" 
-                        title="Đính kèm hình ảnh"
+                        title="Attach image"
                       >
                         <Paperclip size={20} />
                       </button>

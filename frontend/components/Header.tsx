@@ -11,7 +11,7 @@ export default async function Header() {
       }
     }
   } catch (err) {
-    console.error('Lỗi khi lấy tên cửa hàng:', err);
+    console.error('Error fetching store name:', err);
   }
 
   return (

@@ -591,11 +591,11 @@ export default function ProfilePage() {
           setExpandedOrders({ [sorted[0].order_id]: true });
         }
       } else {
-        setOrdersError(json.message || 'Không thể tải danh sách đơn hàng');
+        setOrdersError(json.message || 'Failed to load order history');
       }
     } catch (err) {
       console.error('Fetch orders error:', err);
-      setOrdersError('Lỗi kết nối mạng, vui lòng thử lại sau');
+      setOrdersError('Network connection error, please try again later');
     } finally {
       setOrdersLoading(false);
     }
@@ -627,7 +627,7 @@ export default function ProfilePage() {
       const json = res.data;
 
       if (json.success) {
-        setProfileMessage({ type: 'success', text: 'Cập nhật thông tin cá nhân thành công!' });
+        setProfileMessage({ type: 'success', text: 'Profile updated successfully!' });
         setAuth(
           {
             ...user,
@@ -640,11 +640,11 @@ export default function ProfilePage() {
         );
         setIsEditingProfile(false);
       } else {
-        setProfileMessage({ type: 'error', text: json.message || 'Lỗi khi cập nhật thông tin' });
+        setProfileMessage({ type: 'error', text: json.message || 'Error updating profile information' });
       }
     } catch (err) {
       console.error('Update profile error:', err);
-      setProfileMessage({ type: 'error', text: 'Lỗi kết nối đến máy chủ' });
+      setProfileMessage({ type: 'error', text: 'Server connection error' });
     } finally {
       setProfileLoading(false);
     }
@@ -655,7 +655,7 @@ export default function ProfilePage() {
     if (!user || !token) return;
 
     if (newPassword !== confirmPassword) {
-      setPasswordMessage({ type: 'error', text: 'Mật khẩu mới và xác nhận mật khẩu không khớp' });
+      setPasswordMessage({ type: 'error', text: 'New password and confirmation password do not match' });
       return;
     }
 
@@ -667,16 +667,16 @@ export default function ProfilePage() {
       const json = res.data;
 
       if (json.success) {
-        setPasswordMessage({ type: 'success', text: 'Đổi mật khẩu thành công!' });
+        setPasswordMessage({ type: 'success', text: 'Password changed successfully!' });
         setOldPassword('');
         setNewPassword('');
         setConfirmPassword('');
       } else {
-        setPasswordMessage({ type: 'error', text: json.message || 'Lỗi khi đổi mật khẩu' });
+        setPasswordMessage({ type: 'error', text: json.message || 'Error changing password' });
       }
     } catch (err) {
       console.error('Change password error:', err);
-      setPasswordMessage({ type: 'error', text: 'Lỗi kết nối đến máy chủ' });
+      setPasswordMessage({ type: 'error', text: 'Server connection error' });
     } finally {
       setPasswordLoading(false);
     }
@@ -687,12 +687,12 @@ export default function ProfilePage() {
     if (!file || !user || !token) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Vui lòng chọn tệp tin hình ảnh');
+      alert('Please select an image file');
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      alert('Kích thước ảnh tối đa là 2MB');
+      alert('Maximum image size is 2MB');
       return;
     }
 
@@ -716,13 +716,13 @@ export default function ProfilePage() {
           },
           token
         );
-        setProfileMessage({ type: 'success', text: 'Cập nhật ảnh đại diện thành công!' });
+        setProfileMessage({ type: 'success', text: 'Avatar updated successfully!' });
       } else {
-        alert(json.message || 'Lỗi khi tải lên ảnh đại diện');
+        alert(json.message || 'Error uploading avatar');
       }
     } catch (err) {
       console.error('Upload avatar error:', err);
-      alert('Lỗi kết nối máy chủ');
+      alert('Server connection error');
     } finally {
       setAvatarUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -731,7 +731,7 @@ export default function ProfilePage() {
 
   const handleDeleteAvatar = async () => {
     if (!user || !token) return;
-    if (!confirm('Bạn có chắc chắn muốn xóa ảnh đại diện hiện tại?')) return;
+    if (!confirm('Are you sure you want to delete your current avatar?')) return;
 
     setAvatarUploading(true);
 
@@ -747,13 +747,13 @@ export default function ProfilePage() {
           },
           token
         );
-        setProfileMessage({ type: 'success', text: 'Đã xóa ảnh đại diện thành công' });
+        setProfileMessage({ type: 'success', text: 'Avatar deleted successfully' });
       } else {
-        alert(json.message || 'Lỗi khi xóa ảnh đại diện');
+        alert(json.message || 'Error deleting avatar');
       }
     } catch (err) {
       console.error('Delete avatar error:', err);
-      alert('Lỗi kết nối máy chủ');
+      alert('Server connection error');
     } finally {
       setAvatarUploading(false);
     }
@@ -763,7 +763,7 @@ export default function ProfilePage() {
   const handleAddressSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!receiverName.trim() || !receiverPhone.trim() || !streetName.trim() || !houseNumber.trim() || !selectedDistrict || !selectedWard || !receiverEmail.trim()) {
-      alert('Vui lòng nhập đầy đủ tất cả các trường thông tin địa chỉ');
+      alert('Please fill in all address information fields');
       return;
     }
 
@@ -802,7 +802,7 @@ export default function ProfilePage() {
       }
     } catch (err) {
       console.error('Submit address error:', err);
-      alert('Không thể lưu địa chỉ. Vui lòng kiểm tra lại kết nối.');
+      alert('Unable to save address. Please check your connection.');
     } finally {
       setAddressesLoading(false);
     }
@@ -887,40 +887,40 @@ export default function ProfilePage() {
       case 'pending':
         return (
           <span className="inline-block px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-500 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(249,115,22,0.08)]">
-            Đang chờ xác nhận
+            Pending
           </span>
         );
       case 'confirmed':
         return (
           <span className="inline-block px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(234,179,8,0.08)]">
-            Đã xác nhận
+            Confirmed
           </span>
         );
       case 'preparing':
       case 'processing':
         return (
           <span className="inline-block px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(234,179,8,0.08)]">
-            Đang chuẩn bị
+            Preparing
           </span>
         );
       case 'shipped':
       case 'delivering':
         return (
           <span className="inline-block px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-500 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(59,130,246,0.08)]">
-            Đang giao hàng
+            Delivering
           </span>
         );
       case 'arrived':
       case 'completed':
         return (
           <span className="inline-block px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(16,185,129,0.08)]">
-            Đã hoàn thành
+            Completed
           </span>
         );
       case 'cancelled':
         return (
           <span className="inline-block px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-500 text-[11px] font-black uppercase tracking-wider shadow-[0_0_15px_rgba(239,68,68,0.08)]">
-            Đã hủy
+            Cancelled
           </span>
         );
       default:
@@ -935,7 +935,7 @@ export default function ProfilePage() {
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
-    return date.toLocaleDateString('vi-VN', {
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -956,17 +956,17 @@ export default function ProfilePage() {
   const getTabTitle = () => {
     switch (activeTab) {
       case 'general':
-        return 'Thông tin của tôi';
+        return 'My Profile';
       case 'addresses':
-        return 'Số địa chỉ';
+        return 'Address Book';
       case 'orders':
-        return 'Lịch sử mua hàng';
+        return 'Order History';
       case 'password':
-        return 'Đổi mật khẩu';
+        return 'Change Password';
       case 'vouchers':
-        return 'Voucher của tôi';
+        return 'My Vouchers';
       default:
-        return 'Hồ sơ cá nhân';
+        return 'My Profile';
     }
   };
 
@@ -974,7 +974,7 @@ export default function ProfilePage() {
     return (
       <div className={`min-h-screen flex flex-col justify-center items-center ${theme === 'dark' ? 'bg-[#0a0a0a] text-white' : 'bg-gray-50 text-gray-800'}`}>
         <Loader2 className="animate-spin text-[#007a3f] w-10 h-10 mb-4" />
-        <p className="text-zinc-500 text-sm font-bold uppercase tracking-wider">ĐANG TẢI HỒ SƠ...</p>
+        <p className="text-zinc-500 text-sm font-bold uppercase tracking-wider">LOADING PROFILE...</p>
       </div>
     );
   }
@@ -995,7 +995,7 @@ export default function ProfilePage() {
           <div className="lg:col-span-1 space-y-6">
             <div className={`border transition-all duration-300 rounded-[28px] overflow-hidden shadow-sm ${theme === 'dark' ? 'bg-[#121212] border-white/[0.06] shadow-2xl' : 'bg-white border-gray-200'
               }`}>
-              {/* Header: Tài khoản của USER */}
+              {/* Header: Account of USER */}
               <div className={`px-6 py-6 border-b transition-colors duration-300 flex items-center gap-4 ${theme === 'dark' ? 'bg-white/[0.02] border-white/[0.06]' : 'bg-gray-100/60 border-gray-200/60'
                 }`}>
                 <div className={`relative w-12 h-12 rounded-full overflow-hidden border shrink-0 shadow-sm ${theme === 'dark' ? 'border-white/[0.08]' : 'border-gray-200'
@@ -1026,7 +1026,7 @@ export default function ProfilePage() {
                 <div className="overflow-hidden">
                   <span className={`text-[10px] font-bold uppercase tracking-wider block leading-none ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'
                     }`}>
-                    Tài khoản của
+                    Account of
                   </span>
                   <h3 className={`font-extrabold text-base tracking-wide uppercase truncate mt-1 ${theme === 'dark' ? 'text-white' : 'text-gray-800'
                     }`}>
@@ -1056,7 +1056,7 @@ export default function ProfilePage() {
                     }`}
                 >
                   <User size={16} />
-                  <span>Thông tin của tôi</span>
+                  <span>My Profile</span>
                 </button>
 
                 <button
@@ -1071,7 +1071,7 @@ export default function ProfilePage() {
                     }`}
                 >
                   <Package size={16} />
-                  <span>Lịch sử mua hàng</span>
+                  <span>Order History</span>
                 </button>
 
                 <button
@@ -1086,7 +1086,7 @@ export default function ProfilePage() {
                     }`}
                 >
                   <Lock size={16} />
-                  <span>Đổi mật khẩu</span>
+                  <span>Change Password</span>
                 </button>
 
                 <button
@@ -1101,7 +1101,7 @@ export default function ProfilePage() {
                     }`}
                 >
                   <Ticket size={16} />
-                  <span>Voucher của tôi</span>
+                  <span>My Vouchers</span>
                 </button>
 
                 <hr className={`my-2 ${theme === 'dark' ? 'border-white/[0.06]' : 'border-gray-200'}`} />
@@ -1111,7 +1111,7 @@ export default function ProfilePage() {
                   className="w-full py-3 px-4 rounded-xl text-[13px] font-black text-left text-red-500 hover:bg-red-500/10 transition-all flex items-center gap-3"
                 >
                   <LogOut size={16} />
-                  <span>Đăng xuất</span>
+                  <span>Log Out</span>
                 </button>
               </div>
             </div>
@@ -1129,7 +1129,7 @@ export default function ProfilePage() {
             </div>
             {activeTab === 'general' && (
               <div className="space-y-8 animate-fadeIn">
-                {/* Card 1: THÔNG TIN TÀI KHOẢN */}
+                {/* Card 1: ACCOUNT INFORMATION */}
                 <div className={`border transition-all duration-300 rounded-[28px] p-6 md:p-8 shadow-sm relative overflow-hidden ${theme === 'dark' ? 'bg-[#121212] border-white/[0.06] shadow-2xl' : 'bg-white border-gray-200'
                   }`}>
                   <div className="relative z-10 space-y-6">
@@ -1137,7 +1137,7 @@ export default function ProfilePage() {
                       }`}>
                       <h3 className={`text-xs font-black tracking-widest uppercase ${theme === 'dark' ? 'text-pizza-gold' : 'text-[#007a3f]'
                         }`}>
-                        THÔNG TIN TÀI KHOẢN
+                        ACCOUNT INFORMATION
                       </h3>
                       {!isEditingProfile ? (
                         <button
@@ -1148,7 +1148,7 @@ export default function ProfilePage() {
                           className="text-[13px] font-black text-[#007a3f] hover:underline flex items-center gap-1.5 transition-all"
                         >
                           <Edit3 size={14} className="stroke-[3px]" />
-                          Chỉnh sửa
+                          Edit
                         </button>
                       ) : (
                         <button
@@ -1156,7 +1156,7 @@ export default function ProfilePage() {
                           className={`text-[13px] font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-zinc-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'
                             }`}
                         >
-                          Hủy bỏ
+                          Cancel
                         </button>
                       )}
                     </div>
@@ -1183,21 +1183,21 @@ export default function ProfilePage() {
                         <div className="space-y-1">
                           <span className={`text-xs font-bold uppercase tracking-wider block ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'
                             }`}>
-                            Họ và tên
+                            Full Name
                           </span>
                           <strong className={`text-base font-extrabold block ${theme === 'dark' ? 'text-white' : 'text-gray-800'
                             }`}>
-                            {user.username || 'Chưa cập nhật'}
+                            {user.username || 'Not updated'}
                           </strong>
                         </div>
                         <div className="space-y-1">
                           <span className={`text-xs font-bold uppercase tracking-wider block ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'
                             }`}>
-                            Số điện thoại
+                            Phone Number
                           </span>
                           <strong className={`text-base font-extrabold block ${theme === 'dark' ? 'text-white' : 'text-gray-800'
                             }`}>
-                            {user.phone || 'Chưa cập nhật'}
+                            {user.phone || 'Not updated'}
                           </strong>
                         </div>
                         <div className="space-y-1">
@@ -1207,7 +1207,7 @@ export default function ProfilePage() {
                           </span>
                           <strong className={`text-base font-extrabold block truncate ${theme === 'dark' ? 'text-white' : 'text-gray-800'
                             }`}>
-                            {user.email || 'Chưa cập nhật'}
+                            {user.email || 'Not updated'}
                           </strong>
                         </div>
                       </div>
@@ -1216,7 +1216,7 @@ export default function ProfilePage() {
                       <form onSubmit={handleUpdateProfile} className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div className="space-y-2">
                           <label className={`text-xs font-black uppercase tracking-wider ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'
-                            }`}>Họ và Tên</label>
+                            }`}>Full Name</label>
                           <div className="relative">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500">
                               <User size={16} />
@@ -1236,7 +1236,7 @@ export default function ProfilePage() {
 
                         <div className="space-y-2">
                           <label className={`text-xs font-black uppercase tracking-wider ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'
-                            }`}>Số Điện Thoại</label>
+                            }`}>Phone Number</label>
                           <div className="relative">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500">
                               <Phone size={16} />
@@ -1256,7 +1256,7 @@ export default function ProfilePage() {
 
                         <div className="space-y-2 md:col-span-2">
                           <label className={`text-xs font-black uppercase tracking-wider ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'
-                            }`}>Địa Chỉ Email</label>
+                            }`}>Email Address</label>
                           <div className="relative">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500">
                               <Mail size={16} />
@@ -1281,7 +1281,7 @@ export default function ProfilePage() {
                             className="bg-[#007a3f] hover:bg-[#006030] text-white font-black text-xs tracking-widest uppercase px-6 py-3.5 rounded-xl shadow active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-55"
                           >
                             {profileLoading ? <Loader2 size={16} className="animate-spin" /> : null}
-                            LƯU THAY ĐỔI
+                            SAVE CHANGES
                           </button>
                           <button
                             type="button"
@@ -1291,7 +1291,7 @@ export default function ProfilePage() {
                               : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300'
                               }`}
                           >
-                            HỦY
+                            CANCEL
                           </button>
                         </div>
                       </form>
@@ -1299,22 +1299,22 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                {/* Card 2: ĐƠN HÀNG GẦN ĐÂY NHẤT */}
+                {/* Card 2: MOST RECENT ORDER */}
                 <div className={`border transition-all duration-300 rounded-[28px] p-6 shadow-sm ${theme === 'dark' ? 'bg-[#121212] border-white/[0.06] shadow-2xl' : 'bg-white border-gray-200'
                   }`}>
                   <h3 className={`text-xs font-black tracking-widest uppercase border-b pb-3 mb-4 transition-colors duration-300 ${theme === 'dark' ? 'text-pizza-green border-white/[0.06]' : 'text-[#007a3f] border-gray-100'
                     }`}>
-                    ĐƠN HÀNG GẦN ĐÂY NHẤT
+                    MOST RECENT ORDER
                   </h3>
 
                   {ordersLoading ? (
                     <div className="text-center py-10 flex flex-col items-center gap-2">
                       <Loader2 className="animate-spin text-[#007a3f] w-6 h-6" />
-                      <p className="text-zinc-500 text-xs">Đang tải thông tin đơn hàng...</p>
+                      <p className="text-zinc-500 text-xs">Loading order information...</p>
                     </div>
                   ) : !latestOrder ? (
                     <div className="text-center py-8 text-zinc-500 text-sm font-semibold uppercase">
-                      Bạn chưa có đơn hàng nào
+                      You do not have any orders yet
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
@@ -1322,11 +1322,11 @@ export default function ProfilePage() {
                         <thead>
                           <tr className={`font-extrabold uppercase text-xs border transition-colors duration-300 ${theme === 'dark' ? 'bg-[#0d0d0d] text-zinc-400 border-white/[0.06]' : 'bg-gray-50 text-gray-500 border-gray-200'
                             }`}>
-                            <th className="px-5 py-4">Mã</th>
-                            <th className="px-5 py-4">Sản Phẩm</th>
-                            <th className="px-5 py-4">Ngày mua</th>
-                            <th className="px-5 py-4">Tổng tiền</th>
-                            <th className="px-5 py-4">Trạng thái</th>
+                            <th className="px-5 py-4">Order ID</th>
+                            <th className="px-5 py-4">Products</th>
+                            <th className="px-5 py-4">Date</th>
+                            <th className="px-5 py-4">Total</th>
+                            <th className="px-5 py-4">Status</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1365,7 +1365,7 @@ export default function ProfilePage() {
                   <div className="flex justify-between items-center border-b pb-3 mb-4 transition-colors duration-300 border-gray-100">
                     <h3 className={`text-xs font-black tracking-widest uppercase ${theme === 'dark' ? 'text-pizza-green' : 'text-[#007a3f]'
                       }`}>
-                      Số địa chỉ
+                      Address Book
                     </h3>
                     <button
                       onClick={() => {
@@ -1376,7 +1376,7 @@ export default function ProfilePage() {
                       className="bg-[#007a3f] hover:bg-[#006030] text-white font-extrabold text-xs tracking-wider uppercase px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all active:scale-95 shadow cursor-pointer"
                     >
                       <PlusCircle size={14} />
-                      Thêm địa chỉ
+                      Add Address
                     </button>
                   </div>
 
@@ -1385,14 +1385,14 @@ export default function ProfilePage() {
                     <div className="text-center py-10 flex flex-col items-center gap-2">
                       <Loader2 className="animate-spin text-[#007a3f] w-8 h-8" />
                       <p className="text-zinc-550 text-xs font-bold uppercase tracking-wider">
-                        Đang tải danh sách địa chỉ...
+                        Loading address list...
                       </p>
                     </div>
                   ) : addresses.length === 0 ? (
                     <div className="border border-dashed rounded-[28px] py-12 px-6 text-center space-y-3 border-gray-200">
                       <MapPin size={24} className="mx-auto text-zinc-500" />
                       <p className="text-zinc-550 text-sm font-semibold uppercase">
-                        Bạn chưa có địa chỉ giao hàng nào được lưu
+                        You do not have any saved shipping addresses
                       </p>
                     </div>
                   ) : (
@@ -1412,11 +1412,11 @@ export default function ProfilePage() {
                                   <MapPin size={16} />
                                 </span>
                                 <span className={`font-extrabold text-sm truncate max-w-[220px] ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
-                                  {addr.recipient_name ? `Địa chỉ nhận hàng: ${addr.recipient_name}` : 'Địa chỉ nhận hàng'}
+                                  {addr.recipient_name ? `Recipient: ${addr.recipient_name}` : 'Shipping Address'}
                                 </span>
                                 {addr.is_default && (
                                   <span className="bg-[#007a3f]/10 text-pizza-green border border-[#007a3f]/20 px-2 py-0.5 rounded text-[10px] font-bold">
-                                    Mặc định
+                                    Default
                                   </span>
                                 )}
                               </div>
@@ -1425,7 +1425,7 @@ export default function ProfilePage() {
                               </p>
                               {addr.recipient_phone && (
                                 <p className={`text-[11px] font-bold ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'}`}>
-                                  SĐT: {addr.recipient_phone}
+                                  Phone: {addr.recipient_phone}
                                 </p>
                               )}
                               <p className={`text-[11px] font-bold ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'}`}>
@@ -1439,14 +1439,14 @@ export default function ProfilePage() {
                                 className="text-pizza-gold hover:underline flex items-center gap-1 cursor-pointer"
                               >
                                 <Edit3 size={12} />
-                                Sửa
+                                Edit
                               </button>
                               <button
                                 onClick={() => confirmDeleteAddress(addr.user_address_id)}
                                 className="text-red-400 hover:underline flex items-center gap-1 cursor-pointer"
                               >
                                 <Trash2 size={12} />
-                                Xóa
+                                Delete
                               </button>
                             </div>
                           </div>
@@ -1463,16 +1463,16 @@ export default function ProfilePage() {
             {/* Tab: Lịch sử mua hàng */}
             {activeTab === 'orders' && (
               <div className="space-y-6 animate-fadeIn">
-                {/* Header Tra Cứu Đơn Hàng Form */}
+                {/* Header Track Order Form */}
                 <div className={`border p-6 md:p-8 rounded-[28px] shadow-sm space-y-4 transition-colors duration-300 ${theme === 'dark' ? 'bg-[#121212] border-white/[0.06] shadow-2xl' : 'bg-white border-gray-200'
                   }`}>
                   <h2 className={`text-lg font-black tracking-wide border-b pb-3 ${theme === 'dark' ? 'text-white border-white/[0.06]' : 'text-gray-800 border-gray-100'
                     }`}>
-                    Tra Cứu Đơn Hàng
+                    Track Order
                   </h2>
                   <form onSubmit={handleSearchLookup} className="space-y-3">
                     <label className={`text-sm font-extrabold block ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-800'}`}>
-                      Nhập số điện thoại hoặc mã đơn hàng
+                      Enter phone number or order ID
                     </label>
                     <div className="flex flex-col sm:flex-row gap-3">
                       <div className="relative flex-1">
@@ -1481,7 +1481,7 @@ export default function ProfilePage() {
                         </span>
                         <input
                           type="text"
-                          placeholder="Nhập số điện thoại hoặc mã đơn hàng"
+                          placeholder="Enter phone number or order ID"
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           className={`w-full border rounded-xl py-3 pl-12 pr-4 text-sm focus:outline-none transition-colors ${theme === 'dark'
@@ -1494,21 +1494,21 @@ export default function ProfilePage() {
                         type="submit"
                         className="bg-[#007a3f] hover:bg-[#006030] text-white font-black text-sm tracking-wider uppercase px-6 py-3 rounded-xl transition-all shadow-md active:scale-95 whitespace-nowrap cursor-pointer"
                       >
-                        Tra Cứu
+                        Track
                       </button>
                     </div>
                   </form>
                 </div>
 
                 <div className={`border-b pb-2 ${theme === 'dark' ? 'border-white/[0.06]' : 'border-gray-200'}`}>
-                  <h3 className={`text-base font-extrabold tracking-wide ${theme === 'dark' ? 'text-white' : 'text-gray-805'}`}>Lịch sử đơn hàng</h3>
+                  <h3 className={`text-base font-extrabold tracking-wide ${theme === 'dark' ? 'text-white' : 'text-gray-805'}`}>Order History</h3>
                 </div>
 
                 {ordersLoading && (
                   <div className="text-center py-20 flex flex-col items-center gap-3">
                     <Loader2 className="w-10 h-10 text-[#007a3f] animate-spin" />
                     <p className="text-zinc-550 text-xs font-bold uppercase tracking-wider">
-                      Đang lấy dữ liệu đơn hàng...
+                      Fetching order data...
                     </p>
                   </div>
                 )}
@@ -1525,7 +1525,7 @@ export default function ProfilePage() {
                         : 'bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-600'
                         }`}
                     >
-                      Thử lại
+                      Try Again
                     </button>
                   </div>
                 )}
@@ -1538,9 +1538,9 @@ export default function ProfilePage() {
                       <Package size={28} />
                     </div>
                     <div className="space-y-1">
-                      <h4 className={`text-lg font-bold uppercase ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>KHÔNG TÌM THẤY ĐƠN HÀNG</h4>
+                      <h4 className={`text-lg font-bold uppercase ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>NO ORDERS FOUND</h4>
                       <p className="text-zinc-500 text-xs font-medium max-w-sm mx-auto leading-relaxed">
-                        Hãy thử điều chỉnh lại số điện thoại hoặc mã đơn hàng của bạn để tìm kiếm nhé.
+                        Please try adjusting your phone number or order ID to search again.
                       </p>
                     </div>
                   </div>
@@ -1571,12 +1571,12 @@ export default function ProfilePage() {
                               <div>
                                 <div className="flex items-center gap-3 flex-wrap">
                                   <h4 className="text-base font-black text-[#007a3f] uppercase tracking-wide">
-                                    ĐƠN HÀNG: #{order.order_id}
+                                    ORDER: #{order.order_id}
                                   </h4>
                                   {getStatusBadge(order.order_status)}
                                 </div>
                                 <p className="text-zinc-500 text-xs font-medium mt-1">
-                                  Ngày đặt: {formatDate(order.created_at)}
+                                  Order Date: {formatDate(order.created_at)}
                                 </p>
                               </div>
                             </div>
@@ -1585,7 +1585,7 @@ export default function ProfilePage() {
                               }`}>
                               <div className="text-left md:text-right">
                                 <span className="text-[10px] text-zinc-500 font-extrabold tracking-wider uppercase block">
-                                  TỔNG TIỀN
+                                  TOTAL PRICE
                                 </span>
                                 <span className={`text-lg font-black tracking-wide ${theme === 'dark' ? 'text-pizza-gold' : 'text-[#007a3f]'}`}>
                                   {formatPrice(order.total_order)}
@@ -1606,7 +1606,7 @@ export default function ProfilePage() {
                                 <div className="space-y-4">
                                   <h5 className={`text-[11px] font-black uppercase tracking-widest block border-b pb-2 ${theme === 'dark' ? 'text-pizza-gold border-white/5' : 'text-[#007a3f] border-gray-200'
                                     }`}>
-                                    THÔNG TIN KHÁCH HÀNG & GIAO HÀNG
+                                    CUSTOMER & DELIVERY INFORMATION
                                   </h5>
                                   <div className="space-y-3 font-semibold">
                                     <div className="flex items-start gap-3">
@@ -1614,7 +1614,7 @@ export default function ProfilePage() {
                                         <User size={15} />
                                       </span>
                                       <span>
-                                        Người nhận: <strong className={theme === 'dark' ? 'text-white' : 'text-gray-800'}>{order.customer_name}</strong>
+                                        Recipient: <strong className={theme === 'dark' ? 'text-white' : 'text-gray-800'}>{order.customer_name}</strong>
                                       </span>
                                     </div>
                                     <div className="flex items-start gap-3">
@@ -1622,7 +1622,7 @@ export default function ProfilePage() {
                                         <Phone size={15} />
                                       </span>
                                       <span>
-                                        Số điện thoại:{' '}
+                                        Phone Number:{' '}
                                         <strong className={theme === 'dark' ? 'text-white' : 'text-gray-800'}>{order.customer_phone}</strong>
                                       </span>
                                     </div>
@@ -1651,7 +1651,7 @@ export default function ProfilePage() {
                                         ) : (
                                           <>
                                             Hình thức:{' '}
-                                            <strong className={theme === 'dark' ? 'text-white' : 'text-gray-800'}>Nhận tại cửa hàng</strong>
+                                            <strong className={theme === 'dark' ? 'text-white' : 'text-gray-800'}>Pick up at store</strong>
                                           </>
                                         )}
                                       </span>
@@ -1662,7 +1662,7 @@ export default function ProfilePage() {
                                 <div className="space-y-4">
                                   <h5 className={`text-[11px] font-black uppercase tracking-widest block border-b pb-2 ${theme === 'dark' ? 'text-pizza-gold border-white/5' : 'text-[#007a3f] border-gray-200'
                                     }`}>
-                                    THANH TOÁN & THỜI GIAN
+                                    PAYMENT & TIMING
                                   </h5>
                                   <div className="space-y-3 font-semibold">
                                     <div className="flex items-start gap-3">
@@ -1673,8 +1673,8 @@ export default function ProfilePage() {
                                         Phương thức:{' '}
                                         <strong className={theme === 'dark' ? 'text-white' : 'text-gray-800'}>
                                           {order.payment_method === 'vietqr'
-                                            ? 'Chuyển khoản VietQR'
-                                            : 'Thanh toán tiền mặt (COD)'}
+                                            ? 'VietQR Bank Transfer'
+                                            : 'Cash on Delivery (COD)'}
                                         </strong>
                                       </span>
                                     </div>
@@ -1691,7 +1691,7 @@ export default function ProfilePage() {
                                               : 'text-amber-500 font-bold'
                                           }
                                         >
-                                          {order.payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                                          {order.payment_status === 'paid' ? 'Paid' : 'Unpaid'}
                                         </strong>
                                       </span>
                                     </div>
@@ -1711,7 +1711,7 @@ export default function ProfilePage() {
                                           <>
                                             Thời gian giao:{' '}
                                             <strong className={theme === 'dark' ? 'text-white' : 'text-gray-800'}>
-                                              Giao hàng ngay (30-45 phút)
+                                              Standard Delivery (30-45 mins)
                                             </strong>
                                           </>
                                         )}
@@ -1728,7 +1728,7 @@ export default function ProfilePage() {
                                   </span>
                                   <div className="text-xs font-semibold">
                                     <span className="text-zinc-500 block uppercase tracking-wider font-extrabold mb-1">
-                                      Ghi chú đơn hàng:
+                                      Order Notes:
                                     </span>
                                     <p className="leading-relaxed italic">&ldquo;{order.order_note}&rdquo;</p>
                                   </div>
@@ -1740,7 +1740,7 @@ export default function ProfilePage() {
                                 <div className="lg:col-span-7 space-y-4">
                                   <h5 className={`text-[11px] font-black uppercase tracking-widest block border-b pb-2 ${theme === 'dark' ? 'text-pizza-gold border-white/5' : 'text-[#007a3f] border-gray-200'
                                     }`}>
-                                    MÓN ĂN ĐÃ ĐẶT
+                                    ORDERED ITEMS
                                   </h5>
 
                                   <div className={`divide-y p-5 rounded-2xl border ${theme === 'dark' ? 'divide-white/5 bg-[#121212]/50 border-white/[0.04]' : 'divide-gray-150 bg-white border-gray-200/80'
@@ -1760,18 +1760,18 @@ export default function ProfilePage() {
                                           item.combo?.image_combo ||
                                           'https://images.unsplash.com/photo-1579751626657-72bc17010498?q=80&w=100&auto=format&fit=crop';
                                       } else if (isHalfHalf) {
-                                        dishName = 'PIZZA HALF & HALF (NỬA NỬA)';
+                                        dishName = 'PIZZA HALF & HALF';
                                         imageSrc =
                                           'https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?q=80&w=100&auto=format&fit=crop';
                                         const size = item.dish_price?.size?.size_name;
                                         const crust = item.dish_price?.crust?.crust_name;
-                                        itemSpec = `${size ? `Size: ${size}` : ''}${crust ? ` - Đế: ${crust}` : ''}`;
+                                        itemSpec = `${size ? `Size: ${size}` : ''}${crust ? ` - Crust: ${crust}` : ''}`;
                                       } else {
                                         dishName = item.dish_price?.dish?.dish_name || 'Món ăn';
                                         imageSrc = item.dish_price?.dish?.image || imageSrc;
                                         const size = item.dish_price?.size?.size_name;
                                         const crust = item.dish_price?.crust?.crust_name;
-                                        itemSpec = `${size ? `Size: ${size}` : ''}${crust ? ` - Đế: ${crust}` : ''}`;
+                                        itemSpec = `${size ? `Size: ${size}` : ''}${crust ? ` - Crust: ${crust}` : ''}`;
                                       }
 
                                       return (
@@ -1819,7 +1819,7 @@ export default function ProfilePage() {
                                                               {combItem.halves.map((ch, chIdx) => (
                                                                 <div key={chIdx} className="text-[11px]">
                                                                   <span className="text-zinc-500 font-medium">
-                                                                    Nửa {chIdx + 1}:{' '}
+                                                                    Half {chIdx + 1}:{' '}
                                                                   </span>
                                                                   <span className={`font-bold ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
                                                                     {ch.dish?.dish_name}
@@ -1866,13 +1866,13 @@ export default function ProfilePage() {
                                                 <div className="mt-2 pl-3 border-l-2 border-blue-500/30 text-xs text-zinc-400 space-y-2">
                                                   {item.halves.map((half, hIdx) => (
                                                     <div key={hIdx} className="text-xs text-zinc-350">
-                                                      <span className="font-semibold">• Nửa {hIdx + 1}: </span>
+                                                      <span className="font-semibold">• Half {hIdx + 1}: </span>
                                                       <span className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
                                                         {half.dish?.dish_name}
                                                       </span>
                                                       {half.order_item_toppings && half.order_item_toppings.length > 0 && (
                                                         <span className="text-zinc-500 block ml-3 italic">
-                                                          + Toppings riêng:{' '}
+                                                          + Custom Toppings:{' '}
                                                           {half.order_item_toppings
                                                             .map(
                                                               (t) =>
@@ -1901,7 +1901,7 @@ export default function ProfilePage() {
                                               )}
                                               {isHalfHalf && item.toppings && item.toppings.length > 0 && (
                                                 <p className="text-[11px] text-zinc-500 font-medium pt-1">
-                                                  + Toppings chung:{' '}
+                                                  + Shared Toppings:{' '}
                                                   {item.toppings
                                                     .map(
                                                       (t) =>
@@ -1913,12 +1913,12 @@ export default function ProfilePage() {
 
                                               {item.order_item_note && (
                                                 <p className="text-[10px] bg-[#9f280a]/20 text-[#ff8b70] border border-[#9f280a]/30 px-2 py-0.5 mt-2 rounded inline-block font-semibold">
-                                                  Yêu cầu đặc biệt: {item.order_item_note}
+                                                  Special requests: {item.order_item_note}
                                                 </p>
                                               )}
                                             </div>
                                             <div className="text-[11px] text-zinc-400 font-bold tracking-wider mt-1 block">
-                                              Số lượng: x{item.quantity}
+                                              Quantity: x{item.quantity}
                                             </div>
                                           </div>
                                         </div>
@@ -1930,36 +1930,36 @@ export default function ProfilePage() {
                                 <div className="lg:col-span-5 flex flex-col justify-start space-y-4">
                                   <h5 className={`text-[11px] font-black uppercase tracking-widest block border-b pb-2 ${theme === 'dark' ? 'text-pizza-gold border-white/5' : 'text-[#007a3f] border-gray-200'
                                     }`}>
-                                    TỔNG KẾT ĐƠN HÀNG
+                                    ORDER SUMMARY
                                   </h5>
 
                                   <div className={`border p-5 rounded-2xl space-y-3.5 text-xs md:text-sm font-semibold shadow-sm transition-all duration-300 ${theme === 'dark' ? 'bg-[#121212] border-white/[0.06] text-zinc-300' : 'bg-white border-gray-200 text-gray-700'
                                     }`}>
                                     <div className="flex justify-between items-center text-zinc-500 gap-4">
-                                      <span className="whitespace-nowrap">Tiền món ăn:</span>
+                                      <span className="whitespace-nowrap">Subtotal:</span>
                                       <span className={`whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
                                         {formatPrice(order.total_price_dish)}
                                       </span>
                                     </div>
                                     <div className="flex justify-between items-center text-zinc-500 gap-4">
-                                      <span className="whitespace-nowrap">Phí giao hàng:</span>
+                                      <span className="whitespace-nowrap">Shipping Fee:</span>
                                       {order.shipping_fee > 0 ? (
                                         <span className={`whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
                                           {formatPrice(order.shipping_fee)}
                                         </span>
                                       ) : (
-                                        <span className="text-emerald-500 font-bold whitespace-nowrap">Miễn phí</span>
+                                        <span className="text-emerald-500 font-bold whitespace-nowrap">Free</span>
                                       )}
                                     </div>
                                     {order.discount_amount > 0 && (
                                       <div className="flex justify-between items-center text-red-400 gap-4">
-                                        <span className="whitespace-nowrap">Giảm giá:</span>
+                                        <span className="whitespace-nowrap">Discount:</span>
                                         <span className="whitespace-nowrap">-{formatPrice(order.discount_amount)}</span>
                                       </div>
                                     )}
                                     <div className={`flex justify-between items-center text-base font-black pt-2.5 border-t gap-4 ${theme === 'dark' ? 'border-white/5' : 'border-gray-150'
                                       }`}>
-                                      <span className={`whitespace-nowrap ${theme === 'dark' ? 'text-pizza-gold' : 'text-[#007a3f]'}`}>TỔNG CỘNG:</span>
+                                      <span className={`whitespace-nowrap ${theme === 'dark' ? 'text-pizza-gold' : 'text-[#007a3f]'}`}>GRAND TOTAL:</span>
                                       <span className={`tracking-wide text-lg whitespace-nowrap ${theme === 'dark' ? 'text-pizza-gold' : 'text-[#007a3f]'}`}>
                                         {formatPrice(order.total_order)}
                                       </span>
@@ -1976,7 +1976,7 @@ export default function ProfilePage() {
                                           : 'bg-[#007a3f] hover:bg-[#006030] text-white hover:shadow-[0_0_15px_rgba(0,122,63,0.2)]'
                                       }`}
                                     >
-                                      <span>Đánh giá đơn hàng</span>
+                                      <span>Rate Order</span>
                                     </button>
                                   )}
                                 </div>
@@ -1998,7 +1998,7 @@ export default function ProfilePage() {
                   }`}>
                   <div className="relative z-10 space-y-6">
                     <h3 className="text-xs font-black text-pizza-gold tracking-widest uppercase border-b pb-3 border-white/[0.06]">
-                      THAY ĐỔI MẬT KHẨU BẢO MẬT
+                      CHANGE SECURITY PASSWORD
                     </h3>
 
                     {passwordMessage && (
@@ -2018,10 +2018,10 @@ export default function ProfilePage() {
                     )}
 
                     <form onSubmit={handleChangePassword} className="space-y-5">
-                      {/* Mật khẩu cũ: * */}
+                      {/* Old Password: * */}
                       <div className="space-y-1.5">
                         <label className={`text-sm font-extrabold block ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-800'}`}>
-                          Mật khẩu cũ: <span className="text-red-500">*</span>
+                          Old Password: <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
                           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500">
@@ -2030,7 +2030,7 @@ export default function ProfilePage() {
                           <input
                             type="password"
                             required
-                            placeholder="Nhập mật khẩu cũ của bạn"
+                            placeholder="Enter your old password"
                             value={oldPassword}
                             onChange={(e) => setOldPassword(e.target.value)}
                             className={`w-full border rounded-2xl py-3.5 pl-12 pr-4 text-sm focus:outline-none transition-colors ${theme === 'dark'
@@ -2041,10 +2041,10 @@ export default function ProfilePage() {
                         </div>
                       </div>
 
-                      {/* Mật khẩu mới: * */}
+                      {/* New Password: * */}
                       <div className="space-y-1.5">
                         <label className={`text-sm font-extrabold block ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-800'}`}>
-                          Mật khẩu mới: <span className="text-red-500">*</span>
+                          New Password: <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
                           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500">
@@ -2053,7 +2053,7 @@ export default function ProfilePage() {
                           <input
                             type="password"
                             required
-                            placeholder="Tối thiểu 6 ký tự"
+                            placeholder="Minimum 6 characters"
                             value={newPassword}
                             onChange={(e) => setNewPassword(e.target.value)}
                             className={`w-full border rounded-2xl py-3.5 pl-12 pr-4 text-sm focus:outline-none transition-colors ${theme === 'dark'
@@ -2064,10 +2064,10 @@ export default function ProfilePage() {
                         </div>
                       </div>
 
-                      {/* Xác nhận mật khẩu: * */}
+                      {/* Confirm Password: * */}
                       <div className="space-y-1.5">
                         <label className={`text-sm font-extrabold block ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-800'}`}>
-                          Xác nhận mật khẩu: <span className="text-red-500">*</span>
+                          Confirm Password: <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
                           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500">
@@ -2076,7 +2076,7 @@ export default function ProfilePage() {
                           <input
                             type="password"
                             required
-                            placeholder="Nhập lại mật khẩu mới"
+                            placeholder="Confirm new password"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             className={`w-full border rounded-2xl py-3.5 pl-12 pr-4 text-sm focus:outline-none transition-colors ${theme === 'dark'
@@ -2094,7 +2094,7 @@ export default function ProfilePage() {
                           className="bg-[#007a3f] hover:bg-[#006030] text-white font-black text-xs tracking-widest uppercase px-6 py-4 rounded-xl shadow active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-55 cursor-pointer"
                         >
                           {passwordLoading ? <Loader2 size={16} className="animate-spin" /> : null}
-                          ĐỔI MẬT KHẨU
+                          CHANGE PASSWORD
                         </button>
                       </div>
                     </form>
@@ -2123,14 +2123,14 @@ export default function ProfilePage() {
                     <div className={`p-4 flex-1 flex flex-col justify-between text-zinc-300 transition-colors duration-300 ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'
                       }`}>
                       <div className="space-y-1">
-                        <h4 className={`font-black text-sm uppercase ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>Miễn phí giao hàng</h4>
+                        <h4 className={`font-black text-sm uppercase ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>Free giao hàng</h4>
                         <p className="text-[11px] text-zinc-500 font-semibold leading-relaxed">
-                          Áp dụng cho mọi đơn hàng giá trị thanh toán từ 200.000đ trở lên.
+                          Applicable for all orders with a payment value of 200,000đ or more.
                         </p>
                       </div>
                       <div className={`pt-3 border-t flex justify-between items-center text-[10px] font-bold text-zinc-500 transition-colors duration-300 ${theme === 'dark' ? 'border-white/[0.06]' : 'border-gray-100'
                         }`}>
-                        <span>HSD: 31/12/2026</span>
+                        <span>Expiry: 12/31/2026</span>
                         <span className="text-[#007a3f] uppercase tracking-wider font-extrabold">PIZZAFREESHIP</span>
                       </div>
                     </div>
@@ -2145,20 +2145,20 @@ export default function ProfilePage() {
                       <div className={`absolute -bottom-3 -right-3 w-6 h-6 rounded-full transition-colors duration-300 ${theme === 'dark' ? 'bg-[#0a0a0a]' : 'bg-gray-50'
                         }`}></div>
                       <Ticket size={28} className="mb-2" />
-                      <span className="font-extrabold text-lg">GIẢM 10%</span>
+                      <span className="font-extrabold text-lg">10% OFF</span>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">DISCOUNT</span>
                     </div>
                     <div className={`p-4 flex-1 flex flex-col justify-between text-zinc-300 transition-colors duration-300 ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'
                       }`}>
                       <div className="space-y-1">
-                        <h4 className={`font-black text-sm uppercase ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>Mừng khách hàng mới</h4>
+                        <h4 className={`font-black text-sm uppercase ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>New Customer Welcome</h4>
                         <p className="text-[11px] text-zinc-500 font-semibold leading-relaxed">
-                          Giảm ngay 10% tổng giá trị món ăn cho đơn hàng đầu tiên của bạn.
+                          Get 10% off the total price of food on your first order.
                         </p>
                       </div>
                       <div className={`pt-3 border-t flex justify-between items-center text-[10px] font-bold text-zinc-500 transition-colors duration-300 ${theme === 'dark' ? 'border-white/[0.06]' : 'border-gray-100'
                         }`}>
-                        <span>HSD: 31/12/2026</span>
+                        <span>Expiry: 12/31/2026</span>
                         <span className="text-[#ee2828] uppercase tracking-wider font-extrabold">WELCOMEINN</span>
                       </div>
                     </div>
@@ -2187,7 +2187,7 @@ export default function ProfilePage() {
             {/* Modal Header */}
             <div className="flex justify-between items-center border-b pb-3 border-zinc-200/20">
               <h3 className="text-xs font-black text-pizza-gold tracking-widest uppercase">
-                {editingAddressId ? 'CẬP NHẬT ĐỊA CHỈ' : 'THÊM ĐỊA CHỈ GIAO HÀNG MỚI'}
+                {editingAddressId ? 'UPDATE ADDRESS' : 'ADD NEW SHIPPING ADDRESS'}
               </h3>
               <button
                 onClick={() => {
@@ -2196,21 +2196,21 @@ export default function ProfilePage() {
                 }}
                 className="bg-[#ee2828] hover:bg-[#c02020] text-white font-extrabold text-xs tracking-wider uppercase px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all active:scale-95 shadow cursor-pointer"
               >
-                ĐÓNG FORM
+                CLOSE FORM
               </button>
             </div>
 
             <form onSubmit={handleAddressSubmit} className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Họ và tên: * */}
+                {/* Full Name: * */}
                 <div className="space-y-1.5 md:col-span-2">
                   <label className={`text-sm font-extrabold block ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-800'}`}>
-                    Họ và tên: <span className="text-red-500">*</span>
+                    Full Name: <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="Nhập họ và tên người nhận"
+                    placeholder="Enter recipient's full name"
                     value={receiverName}
                     onChange={(e) => setReceiverName(e.target.value)}
                     className={`w-full border rounded-xl py-3 px-4 text-sm focus:outline-none transition-colors ${theme === 'dark'
@@ -2220,15 +2220,15 @@ export default function ProfilePage() {
                   />
                 </div>
 
-                {/* Số điện thoại: * */}
+                {/* Phone Number: * */}
                 <div className="space-y-1.5">
                   <label className={`text-sm font-extrabold block ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-800'}`}>
-                    Số điện thoại: <span className="text-red-500">*</span>
+                    Phone Number: <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="tel"
                     required
-                    placeholder="Nhập số điện thoại liên hệ"
+                    placeholder="Enter recipient's phone number"
                     value={receiverPhone}
                     onChange={(e) => setReceiverPhone(e.target.value)}
                     className={`w-full border rounded-xl py-3 px-4 text-sm focus:outline-none transition-colors ${theme === 'dark'
@@ -2238,15 +2238,15 @@ export default function ProfilePage() {
                   />
                 </div>
 
-                {/* Địa chỉ Email: * */}
+                {/* Email Address: * */}
                 <div className="space-y-1.5">
                   <label className={`text-sm font-extrabold block ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-800'}`}>
-                    Địa chỉ Email: <span className="text-red-500">*</span>
+                    Email Address: <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="email"
                     required
-                    placeholder="Nhập email liên hệ"
+                    placeholder="Enter contact email"
                     value={receiverEmail}
                     onChange={(e) => setReceiverEmail(e.target.value)}
                     className={`w-full border rounded-xl py-3 px-4 text-sm focus:outline-none transition-colors ${theme === 'dark'
@@ -2256,15 +2256,15 @@ export default function ProfilePage() {
                   />
                 </div>
 
-                {/* Số nhà: * */}
+                {/* House Number: * */}
                 <div className="space-y-1.5">
                   <label className={`text-sm font-extrabold block ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-800'}`}>
-                    Số nhà: <span className="text-red-500">*</span>
+                    House Number: <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="Nhập số nhà"
+                    placeholder="Enter house number"
                     value={houseNumber}
                     onChange={(e) => setHouseNumber(e.target.value)}
                     className={`w-full border rounded-xl py-3 px-4 text-sm focus:outline-none transition-colors ${theme === 'dark'
@@ -2274,15 +2274,15 @@ export default function ProfilePage() {
                   />
                 </div>
 
-                {/* Tên đường: * */}
+                {/* Street Name: * */}
                 <div className="space-y-1.5">
                   <label className={`text-sm font-extrabold block ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-800'}`}>
-                    Tên đường: <span className="text-red-500">*</span>
+                    Street Name: <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="Nhập tên đường"
+                    placeholder="Enter street name"
                     value={streetName}
                     onChange={(e) => setStreetName(e.target.value)}
                     className={`w-full border rounded-xl py-3 px-4 text-sm focus:outline-none transition-colors ${theme === 'dark'
@@ -2292,10 +2292,10 @@ export default function ProfilePage() {
                   />
                 </div>
 
-                {/* Phường/Xã, Quận/Huyện: * */}
+                {/* Ward, District: * */}
                 <div className="space-y-1.5">
                   <label className={`text-sm font-extrabold block ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-800'}`}>
-                    Phường/Xã, Quận/Huyện: <span className="text-red-500">*</span>
+                    Ward, District: <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <select
@@ -2317,7 +2317,7 @@ export default function ProfilePage() {
                         : 'bg-white border-gray-300 focus:border-[#007a3f] focus:ring-1 focus:ring-[#007a3f] text-gray-850'
                         }`}
                     >
-                      <option value="" className={theme === 'dark' ? 'bg-[#121212]' : 'bg-white'}>Chọn Phường/Xã, Quận/Huyện</option>
+                      <option value="" className={theme === 'dark' ? 'bg-[#121212]' : 'bg-white'}>Select Ward, District</option>
                       {hcmcWardsList.map((item) => (
                         <option key={item.label} value={item.label} className={theme === 'dark' ? 'bg-[#121212]' : 'bg-white'}>
                           {item.label}
@@ -2330,10 +2330,10 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                {/* Tỉnh/Thành: * */}
+                {/* Province/City: * */}
                 <div className="space-y-1.5">
                   <label className={`text-sm font-extrabold block ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-800'}`}>
-                    Tỉnh/Thành: <span className="text-red-500">*</span>
+                    Province/City: <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -2353,7 +2353,7 @@ export default function ProfilePage() {
                   type="submit"
                   className="bg-[#007a3f] hover:bg-[#006030] text-white font-black text-xs tracking-widest uppercase px-6 py-3.5 rounded-xl transition-all shadow-lg cursor-pointer"
                 >
-                  LƯU ĐỊA CHỈ
+                  SAVE ADDRESS
                 </button>
                 <button
                   type="button"
@@ -2366,7 +2366,7 @@ export default function ProfilePage() {
                     : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300'
                     }`}
                 >
-                  HỦY
+                  CANCEL
                 </button>
               </div>
             </form>
@@ -2398,10 +2398,10 @@ export default function ProfilePage() {
               </div>
               <div className="space-y-1.5">
                 <h3 className={`text-base font-black uppercase tracking-wide ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
-                  Xác nhận xóa địa chỉ
+                  Confirm Address Deletion
                 </h3>
                 <p className={`text-xs font-semibold leading-relaxed ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}`}>
-                  Bạn có chắc chắn muốn xóa địa chỉ giao hàng này không? Hành động này không thể hoàn tác và địa chỉ sẽ bị loại bỏ vĩnh viễn khỏi tài khoản của bạn.
+                  Are you sure you want to delete this shipping address? This action cannot be undone, and the address will be permanently removed from your account.
                 </p>
               </div>
             </div>
@@ -2419,7 +2419,7 @@ export default function ProfilePage() {
                     : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300'
                   }`}
               >
-                HỦY
+                CANCEL
               </button>
               <button
                 type="button"
@@ -2429,7 +2429,7 @@ export default function ProfilePage() {
                 {addressesLoading ? (
                   <Loader2 className="animate-spin w-4 h-4" />
                 ) : (
-                  <span>XÓA ĐỊA CHỈ</span>
+                  <span>DELETE ADDRESS</span>
                 )}
               </button>
             </div>

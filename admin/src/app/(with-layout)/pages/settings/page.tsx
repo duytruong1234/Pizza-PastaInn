@@ -1,4 +1,4 @@
-// Trang cài đặt — thông tin cá nhân admin
+// Settings page — admin personal info
 "use client";
 
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
@@ -10,16 +10,16 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto w-full max-w-270">
-      <Breadcrumb pageName="Cài đặt" />
+      <Breadcrumb pageName="Settings" />
 
       <div className="rounded-2xl border border-stroke bg-white p-6 shadow-sm dark:border-dark-3 dark:bg-gray-dark">
         <h3 className="mb-5 text-lg font-bold text-dark dark:text-white">
-          Thông tin cá nhân
+          Personal Information
         </h3>
 
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-500">Tên</label>
+            <label className="mb-1 block text-sm font-medium text-gray-500">Name</label>
             <p className="text-dark dark:text-white">{user?.username || "N/A"}</p>
           </div>
           <div>
@@ -27,7 +27,7 @@ export default function SettingsPage() {
             <p className="text-dark dark:text-white">{user?.email || "N/A"}</p>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-500">Vai trò</label>
+            <label className="mb-1 block text-sm font-medium text-gray-500">Role</label>
             <p className="text-dark dark:text-white capitalize">{user?.role || "N/A"}</p>
           </div>
         </div>

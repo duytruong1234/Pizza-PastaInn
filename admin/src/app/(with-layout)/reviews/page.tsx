@@ -1,4 +1,4 @@
-// Trang quản lý đánh giá cao cấp
+// Premium reviews management page
 "use client";
 
 import { api } from "@/lib/api";
@@ -64,11 +64,11 @@ export default function ReviewsPage() {
         if (r.data.success && r.data.data) {
           setReviews(r.data.data.reviews || []);
         } else {
-          setError("Không thể tải danh sách đánh giá");
+          setError("Failed to load reviews list");
         }
       })
       .catch(() => {
-        setError("Lỗi kết nối đến máy chủ");
+        setError("Server connection error");
       })
       .finally(() => {
         setLoading(false);
@@ -104,7 +104,7 @@ export default function ReviewsPage() {
         ));
       }
     } catch (err) {
-      alert("Lỗi khi thay đổi trạng thái hiển thị");
+      alert("Error changing visibility status");
     }
   };
 
@@ -127,7 +127,7 @@ export default function ReviewsPage() {
         setReplyText("");
       }
     } catch (err) {
-      alert("Lỗi khi gửi phản hồi");
+      alert("Error sending response");
     } finally {
       setReplyLoading(false);
     }
@@ -135,7 +135,7 @@ export default function ReviewsPage() {
 
   // Action: Delete shop reply
   const handleDeleteReply = async (reviewId: number) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa phản hồi này không?")) return;
+    if (!confirm("Are you sure you want to delete this response?")) return;
 
     try {
       const res = await api.patch(`/api/admin/reviews/${reviewId}`, {
@@ -147,13 +147,13 @@ export default function ReviewsPage() {
         ));
       }
     } catch (err) {
-      alert("Lỗi khi xóa phản hồi");
+      alert("Error deleting response");
     }
   };
 
   // Action: Delete review completely
   const handleDeleteReview = async (reviewId: number) => {
-    if (!confirm("Cảnh báo: Hành động này sẽ xóa vĩnh viễn đánh giá này khỏi hệ thống. Bạn có chắc chắn muốn xóa?")) return;
+    if (!confirm("Warning: This action will permanently delete this review. Are you sure you want to delete it?")) return;
 
     try {
       const res = await api.delete(`/api/admin/reviews/${reviewId}`);
@@ -161,7 +161,7 @@ export default function ReviewsPage() {
         setReviews(prev => prev.filter(r => r.review_id !== reviewId));
       }
     } catch (err) {
-      alert("Lỗi khi xóa đánh giá");
+      alert("Error deleting review");
     }
   };
 
@@ -230,16 +230,16 @@ export default function ReviewsPage() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-black uppercase tracking-wide text-dark dark:text-white">
-            QUẢN LÝ ĐÁNH GIÁ CỬA HÀNG
+            STORE REVIEWS MANAGEMENT
           </h1>
           <p className="text-xs font-semibold text-gray-500 dark:text-zinc-400">
-            Xem, phản hồi trực tiếp và lọc hiển thị đánh giá công khai từ khách hàng.
+            View, reply directly to, and filter public reviews from customers.
           </p>
         </div>
         <button 
           onClick={fetchReviews}
           className="rounded-xl border border-stroke bg-white p-2.5 text-gray-500 hover:bg-gray-100 hover:text-primary dark:border-dark-3 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-dark-2 transition-all active:scale-[0.95] cursor-pointer inline-flex items-center justify-center shadow-sm"
-          title="Làm mới danh sách"
+          title="Refresh list"
         >
           <RotateCw size={16} className={`${loading ? "animate-spin" : ""}`} />
         </button>
@@ -257,19 +257,19 @@ export default function ReviewsPage() {
           {/* Column 1: Rating summary */}
           <div className="rounded-[24px] border border-stroke bg-white p-6 shadow-sm dark:border-dark-3 dark:bg-gray-dark flex flex-col justify-center items-center gap-2">
             <span className="text-xs font-extrabold uppercase tracking-widest text-gray-500 dark:text-zinc-400">
-              ĐIỂM TRUNG BÌNH
+              AVERAGE RATING
             </span>
             <div className="text-5xl font-black tracking-tight text-primary dark:text-white">
               {averageRating} <span className="text-lg text-gray-400 font-semibold">/ 5</span>
             </div>
             <div className="mt-1">{renderStars(Math.round(parseFloat(averageRating)))}</div>
-            <span className="text-xs font-semibold text-gray-400 mt-1">Dựa trên {totalReviews} lượt đánh giá thực tế</span>
+            <span className="text-xs font-semibold text-gray-400 mt-1">Based on {totalReviews} real reviews</span>
           </div>
 
           {/* Column 2: Rating breakdown bars */}
           <div className="md:col-span-2 rounded-[24px] border border-stroke bg-white p-6 shadow-sm dark:border-dark-3 dark:bg-gray-dark space-y-2">
             <h3 className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-zinc-400 border-b pb-1.5 mb-2">
-              PHÂN TÍCH TỶ LỆ SAO
+              RATING BREAKDOWN
             </h3>
             {[5, 4, 3, 2, 1].map((star) => {
               const count = starCounts[star];
@@ -297,7 +297,7 @@ export default function ReviewsPage() {
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-black uppercase text-dark dark:text-white">
             <Filter size={16} className="text-primary" />
-            <span>Bộ lọc & Tìm kiếm</span>
+            <span>Filters & Search</span>
           </div>
           
           <div className="relative w-full sm:w-80">
@@ -306,7 +306,7 @@ export default function ReviewsPage() {
             </span>
             <input 
               type="text" 
-              placeholder="Tìm theo tên, email, nhận xét..."
+              placeholder="Search by name, email, comment..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full rounded-xl border border-stroke bg-gray-50 py-2.5 pl-10 pr-4 text-xs font-semibold text-dark outline-none focus:border-primary dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-white focus:dark:border-primary"
@@ -318,46 +318,46 @@ export default function ReviewsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
           {/* Star Filter */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500">Mức độ sao</label>
+            <label className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500">Star rating</label>
             <select
               value={starFilter}
               onChange={e => setStarFilter(e.target.value)}
               className="w-full rounded-xl border border-stroke bg-white py-2.5 px-3 text-xs font-bold text-dark-4 outline-none focus:border-primary dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
             >
-              <option value="all">Tất cả số sao</option>
-              <option value="5">5★ Hoàn hảo</option>
-              <option value="4">4★ Rất tốt</option>
-              <option value="3">3★ Tạm ổn</option>
-              <option value="2">2★ Kém</option>
-              <option value="1">1★ Rất kém</option>
+              <option value="all">All stars</option>
+              <option value="5">5★ Perfect</option>
+              <option value="4">4★ Very good</option>
+              <option value="3">3★ Average</option>
+              <option value="2">2★ Poor</option>
+              <option value="1">1★ Very poor</option>
             </select>
           </div>
 
           {/* Visibility Filter */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500">Trạng thái hiển thị</label>
+            <label className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500">Visibility status</label>
             <select
               value={visibilityFilter}
               onChange={e => setVisibilityFilter(e.target.value)}
               className="w-full rounded-xl border border-stroke bg-white py-2.5 px-3 text-xs font-bold text-dark-4 outline-none focus:border-primary dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
             >
-              <option value="all">Tất cả hiển thị</option>
-              <option value="visible">Đang hiển thị</option>
-              <option value="hidden">Đang ẩn</option>
+              <option value="all">All visibility</option>
+              <option value="visible">Visible</option>
+              <option value="hidden">Hidden</option>
             </select>
           </div>
 
           {/* Reply Filter */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500">Trạng thái phản hồi</label>
+            <label className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500">Reply status</label>
             <select
               value={replyFilter}
               onChange={e => setReplyFilter(e.target.value)}
               className="w-full rounded-xl border border-stroke bg-white py-2.5 px-3 text-xs font-bold text-dark-4 outline-none focus:border-primary dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
             >
-              <option value="all">Tất cả phản hồi</option>
-              <option value="replied">Đã phản hồi</option>
-              <option value="unreplied">Chưa phản hồi</option>
+              <option value="all">All replies</option>
+              <option value="replied">Replied</option>
+              <option value="unreplied">Unreplied</option>
             </select>
           </div>
         </div>
@@ -378,9 +378,9 @@ export default function ReviewsPage() {
         ) : filteredReviews.length === 0 ? (
           <div className="rounded-[24px] border border-stroke bg-white py-16 text-center shadow-sm dark:border-dark-3 dark:bg-gray-dark flex flex-col items-center justify-center gap-3">
             <MessageSquareOff size={32} className="text-gray-400" />
-            <div className="text-sm font-bold text-gray-500 dark:text-zinc-400">KHÔNG TÌM THẤY ĐÁNH GIÁ NÀO</div>
+            <div className="text-sm font-bold text-gray-500 dark:text-zinc-400">NO REVIEWS FOUND</div>
             <p className="text-xs text-gray-450 dark:text-zinc-500 max-w-xs leading-relaxed">
-              Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm để xem các đánh giá khác.
+              Try changing the filters or search query to view other reviews.
             </p>
           </div>
         ) : (
@@ -402,11 +402,11 @@ export default function ReviewsPage() {
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                   <div className="flex gap-3">
                     <div className="h-10 w-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-black text-primary dark:text-white shrink-0 shadow-sm text-sm uppercase">
-                      {r.user?.username?.charAt(0) || "K"}
+                      {r.user?.username?.charAt(0) || "C"}
                     </div>
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-extrabold text-sm text-dark dark:text-white">{r.user?.username || 'Khách hàng ẩn danh'}</span>
+                        <span className="font-extrabold text-sm text-dark dark:text-white">{r.user?.username || 'Anonymous Customer'}</span>
                         <span className="text-[11px] font-semibold text-gray-400">{r.user?.email}</span>
                       </div>
                       <div className="flex items-center gap-2.5 mt-1.5">
@@ -423,7 +423,7 @@ export default function ReviewsPage() {
                       <button
                         onClick={() => setSelectedOrderId(r.order?.order_id ?? null)}
                         className="rounded bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 text-[10px] font-bold tracking-wide text-emerald-550 dark:text-emerald-400 hover:bg-emerald-500/20 transition-all active:scale-[0.97] cursor-pointer flex items-center gap-1 shadow-sm"
-                        title="Bấm vào để xem chi tiết đơn hàng khách đã mua"
+                        title="Click to view details of the order purchased by the customer"
                       >
                         <span>
                           ĐƠN #{r.order?.order_id} ({r.order?.total_order ? `${(r.order.total_order / 1000).toFixed(0)}k` : ''})
@@ -431,7 +431,7 @@ export default function ReviewsPage() {
                       </button>
                     ) : (
                       <span className="rounded bg-gray-100 dark:bg-zinc-800 px-2 py-0.5 text-[10px] font-semibold text-gray-400 dark:text-zinc-550">
-                        Hội thoại vãng lai
+                        Feedback without order
                       </span>
                     )}
 
@@ -445,7 +445,7 @@ export default function ReviewsPage() {
                             ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/20"
                             : "bg-amber-500/10 border-amber-500/20 text-amber-500 hover:bg-amber-500/20"
                         }`}
-                        title={r.is_visible ? "Click để ẩn khỏi Frontend" : "Click để hiện trên Frontend"}
+                        title={r.is_visible ? "Click to hide from frontend" : "Click to show on frontend"}
                       >
                         {r.is_visible ? <Eye size={14} className="stroke-[2.5px]" /> : <EyeOff size={14} className="stroke-[2.5px]" />}
                       </button>
@@ -454,7 +454,7 @@ export default function ReviewsPage() {
                       <button 
                         onClick={() => handleDeleteReview(r.review_id)}
                         className="p-2 rounded-xl border bg-red-500/10 border-red-500/20 text-red-500 hover:bg-red-500/20 transition-all cursor-pointer"
-                        title="Xóa đánh giá vĩnh viễn"
+                        title="Permanently delete review"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -489,7 +489,7 @@ export default function ReviewsPage() {
                     <div className="pl-6 space-y-1 text-left">
                       <div className="flex items-center justify-between gap-4">
                         <span className="text-[11px] font-black uppercase tracking-widest text-primary dark:text-white">
-                          PHẢN HỒI TỪ CỬA HÀNG
+                          STORE REPLY
                         </span>
                         
                         <div className="flex items-center gap-2.5">
@@ -501,14 +501,14 @@ export default function ReviewsPage() {
                             className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
                           >
                             <Edit3 size={11} />
-                            Sửa
+                            Edit
                           </button>
                           <button 
                             onClick={() => handleDeleteReply(r.review_id)}
                             className="text-[10px] font-bold text-red-500 hover:underline flex items-center gap-1 cursor-pointer"
                           >
                             <Trash2 size={11} />
-                            Xóa
+                            Delete
                           </button>
                         </div>
                       </div>
@@ -524,14 +524,14 @@ export default function ReviewsPage() {
                   <div className="mt-4 border-t pt-4 border-stroke dark:border-zinc-800 animate-fadeIn">
                     <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-primary mb-2">
                       <MessageSquare size={13} />
-                      <span>Viết phản hồi cho {r.user?.username || 'Khách hàng'}</span>
+                      <span>Write reply for {r.user?.username || 'Customer'}</span>
                     </div>
                     
                     <div className="flex gap-2">
                       <textarea
                         value={replyText}
                         onChange={e => setReplyText(e.target.value)}
-                        placeholder="Nhập nội dung phản hồi của cửa hàng..."
+                        placeholder="Enter store reply content..."
                         rows={2}
                         className="flex-1 rounded-xl border border-stroke bg-gray-50 p-3 text-xs font-semibold text-dark outline-none focus:border-primary dark:border-zinc-800 dark:bg-zinc-900 dark:text-white focus:dark:border-primary"
                       />
@@ -541,7 +541,7 @@ export default function ReviewsPage() {
                           onClick={() => handleSendReply(r.review_id)}
                           disabled={replyLoading || !replyText.trim()}
                           className="rounded-xl bg-primary p-3 text-white hover:bg-primary/95 disabled:opacity-50 transition-all flex items-center justify-center shrink-0 cursor-pointer shadow-sm"
-                          title="Gửi phản hồi"
+                          title="Send reply"
                         >
                           <Send size={14} />
                         </button>
@@ -551,7 +551,7 @@ export default function ReviewsPage() {
                             setReplyText("");
                           }}
                           className="rounded-xl bg-gray-150 dark:bg-zinc-800 p-3 text-gray-500 dark:text-zinc-300 hover:bg-gray-200 transition-all flex items-center justify-center shrink-0 cursor-pointer"
-                          title="Hủy bỏ"
+                          title="Cancel"
                         >
                           <X size={14} />
                         </button>
@@ -565,14 +565,14 @@ export default function ReviewsPage() {
                   <div className="mt-4 border-t pt-4 border-stroke dark:border-zinc-800 animate-fadeIn">
                     <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-primary mb-2">
                       <Edit3 size={13} />
-                      <span>Chỉnh sửa phản hồi</span>
+                      <span>Edit reply</span>
                     </div>
                     
                     <div className="flex gap-2">
                       <textarea
                         value={editReplyText}
                         onChange={e => setEditReplyText(e.target.value)}
-                        placeholder="Chỉnh sửa nội dung phản hồi..."
+                        placeholder="Edit reply content..."
                         rows={2}
                         className="flex-1 rounded-xl border border-stroke bg-gray-50 p-3 text-xs font-semibold text-dark outline-none focus:border-primary dark:border-zinc-800 dark:bg-zinc-900 dark:text-white focus:dark:border-primary"
                       />
@@ -582,7 +582,7 @@ export default function ReviewsPage() {
                           onClick={() => handleSendReply(r.review_id, true)}
                           disabled={replyLoading || !editReplyText.trim()}
                           className="rounded-xl bg-primary p-3 text-white hover:bg-primary/95 disabled:opacity-50 transition-all flex items-center justify-center shrink-0 cursor-pointer shadow-sm"
-                          title="Lưu thay đổi"
+                          title="Save changes"
                         >
                           <Check size={14} />
                         </button>
@@ -592,7 +592,7 @@ export default function ReviewsPage() {
                             setEditReplyText("");
                           }}
                           className="rounded-xl bg-gray-150 dark:bg-zinc-800 p-3 text-gray-500 dark:text-zinc-300 hover:bg-gray-200 transition-all flex items-center justify-center shrink-0 cursor-pointer"
-                          title="Hủy bỏ"
+                          title="Cancel"
                         >
                           <X size={14} />
                         </button>
@@ -612,7 +612,7 @@ export default function ReviewsPage() {
                       className="text-xs font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer transition-all hover:translate-x-0.5"
                     >
                       <MessageSquare size={13} />
-                      Phản hồi đánh giá
+                      Reply to review
                     </button>
                   </div>
                 )}
@@ -669,22 +669,22 @@ const STATUS_COLORS: Record<string, "warning" | "info" | "primary" | "secondary"
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: "Chờ xử lý",
-  confirmed: "Đã xác nhận",
-  preparing: "Đang chuẩn bị",
-  shipped: "Đang giao",
-  completed: "Hoàn thành",
-  cancelled: "Đã hủy",
+  pending: "Pending",
+  confirmed: "Confirmed",
+  preparing: "Preparing",
+  shipped: "Shipped",
+  completed: "Completed",
+  cancelled: "Cancelled",
 };
 
 const PAYMENT_LABELS: Record<string, string> = {
-  cod: "Tiền mặt (COD)",
-  vietqr: "Chuyển khoản VietQR",
+  cod: "Cash on Delivery (COD)",
+  vietqr: "VietQR Bank Transfer",
 };
 
 const ORDER_TYPE_LABELS: Record<string, string> = {
-  delivery: "Giao tận nơi",
-  pickup: "Đến lấy tại quán",
+  delivery: "Delivery",
+  pickup: "Pickup",
 };
 
 function OrderDetailModal({
@@ -710,11 +710,11 @@ function OrderDetailModal({
         if (res.data.success && res.data.data) {
           setOrder(res.data.data);
         } else {
-          setError("Không thể lấy thông tin chi tiết đơn hàng");
+          setError("Failed to retrieve order details");
         }
       })
       .catch(() => {
-        setError("Lỗi kết nối máy chủ");
+        setError("Server connection error");
       })
       .finally(() => {
         setLoading(false);
@@ -730,7 +730,7 @@ function OrderDetailModal({
         <div className="flex items-center justify-between border-b border-stroke px-6 py-4 dark:border-dark-3">
           <div>
             <h2 className="text-lg font-bold text-dark dark:text-white">
-              CHI TIẾT ĐƠN HÀNG #{orderId}
+              ORDER DETAILS #{orderId}
             </h2>
             {order && (
               <p className="text-xs text-gray-400 mt-1">
@@ -749,28 +749,28 @@ function OrderDetailModal({
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mb-2" />
-            <span className="text-xs font-bold">Đang tải chi tiết đơn hàng...</span>
+            <span className="text-xs font-bold">Loading order details...</span>
           </div>
         ) : error || !order ? (
-          <div className="p-8 text-center text-red-500 font-bold">{error || "Không tìm thấy đơn hàng"}</div>
+          <div className="p-8 text-center text-red-500 font-bold">{error || "Order not found"}</div>
         ) : (
           <div className="p-6 space-y-5">
             {/* Info grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Thông tin khách hàng */}
+              {/* Customer Information */}
               <div className="rounded-xl border border-stroke p-4 dark:border-dark-3">
                 <h3 className="text-sm font-bold text-dark dark:text-white mb-3 uppercase tracking-wide">
-                  Thông tin khách hàng
+                  Customer Information
                 </h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Tên:</span>
+                    <span className="text-gray-400">Name:</span>
                     <span className="font-medium text-dark dark:text-white">
                       {order.customer_name || order.user?.username || "N/A"}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-400">SĐT:</span>
+                    <span className="text-gray-400">Phone:</span>
                     <span className="font-medium text-dark dark:text-white">
                       {order.customer_phone || order.user?.phone || "N/A"}
                     </span>
@@ -783,7 +783,7 @@ function OrderDetailModal({
                   </div>
                   {order.user_address?.address_line && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Địa chỉ:</span>
+                      <span className="text-gray-400">Address:</span>
                       <span className="font-medium text-dark dark:text-white text-right max-w-[60%]">
                         {(() => {
                           const line = order.user_address.address_line;
@@ -803,34 +803,34 @@ function OrderDetailModal({
                 </div>
               </div>
 
-              {/* Thông tin đơn hàng */}
+              {/* Order Information */}
               <div className="rounded-xl border border-stroke p-4 dark:border-dark-3">
                 <h3 className="text-sm font-bold text-dark dark:text-white mb-3 uppercase tracking-wide">
-                  Thông tin đơn hàng
+                  Order Information
                 </h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Trạng thái:</span>
+                    <span className="text-gray-400">Status:</span>
                     <Badge variant={STATUS_COLORS[order.order_status] || "warning"}>
                       {STATUS_LABELS[order.order_status] || order.order_status}
                     </Badge>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Hình thức:</span>
+                    <span className="text-gray-400">Order Type:</span>
                     <span className="font-medium text-dark dark:text-white">
                       {ORDER_TYPE_LABELS[order.order_type] || order.order_type}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Thanh toán:</span>
+                    <span className="text-gray-400">Payment Method:</span>
                     <span className="font-medium text-dark dark:text-white">
                       {PAYMENT_LABELS[order.payment_method] || order.payment_method}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-400">TT thanh toán:</span>
+                    <span className="text-gray-400">Payment Status:</span>
                     <Badge variant={order.payment_status === "paid" ? "success" : "warning"}>
-                      {order.payment_status === "paid" ? "Đã thanh toán" : "Chưa thanh toán"}
+                      {order.payment_status === "paid" ? "Paid" : "Unpaid"}
                     </Badge>
                   </div>
                 </div>
@@ -840,7 +840,7 @@ function OrderDetailModal({
             {/* Chi tiết món */}
             <div className="rounded-xl border border-stroke p-4 dark:border-dark-3">
               <h3 className="text-sm font-bold text-dark dark:text-white mb-3 uppercase tracking-wide">
-                Chi tiết món ({order.items?.length || 0} món)
+                Order Items ({order.items?.length || 0} items)
               </h3>
               <div className="space-y-2">
                 {(order.items || []).map((item: any, idx: number) => (
@@ -856,7 +856,7 @@ function OrderDetailModal({
                         {renderOrderItemDetails(item)}
                         {item.order_item_note && (
                           <p className="text-xs text-red-500 font-bold mt-1 bg-red-50 dark:bg-red-950/30 px-2 py-1 rounded inline-block">
-                            Ghi chú món: {item.order_item_note}
+                            Item Note: {item.order_item_note}
                           </p>
                         )}
                       </div>
@@ -873,27 +873,27 @@ function OrderDetailModal({
             <div className="rounded-xl border border-stroke p-4 dark:border-dark-3">
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Tạm tính:</span>
+                  <span className="text-gray-400">Subtotal:</span>
                   <span className="text-dark dark:text-white">
                     {(order.total_price_dish || 0).toLocaleString()} đ
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Phí vận chuyển:</span>
+                  <span className="text-gray-400">Delivery Fee:</span>
                   <span className="text-green-500 font-medium">
-                    {order.shipping_fee ? `${order.shipping_fee.toLocaleString()} đ` : "Miễn phí"}
+                    {order.shipping_fee ? `${order.shipping_fee.toLocaleString()} đ` : "Free"}
                   </span>
                 </div>
                 {(order.discount_amount || 0) > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Giảm giá:</span>
+                    <span className="text-gray-400">Discount:</span>
                     <span className="text-red-500">
                       -{(order.discount_amount || 0).toLocaleString()} đ
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between border-t border-stroke pt-2 mt-2 dark:border-dark-3">
-                  <span className="font-bold text-dark dark:text-white text-base">Tổng cộng:</span>
+                  <span className="font-bold text-dark dark:text-white text-base">Total:</span>
                   <span className="font-bold text-primary text-lg">
                     {(order.total_order || 0).toLocaleString()} đ
                   </span>
@@ -901,11 +901,11 @@ function OrderDetailModal({
               </div>
             </div>
 
-            {/* Ghi chú đơn hàng */}
+            {/* Order Note */}
             {order.order_note && (
               <div className="rounded-xl border border-stroke p-4 dark:border-dark-3">
                 <h3 className="text-sm font-bold text-dark dark:text-white mb-2 uppercase tracking-wide">
-                  Ghi chú đơn hàng
+                  Order Note
                 </h3>
                 <p className="text-sm text-gray-500 italic">&quot;{order.order_note}&quot;</p>
               </div>
@@ -914,12 +914,12 @@ function OrderDetailModal({
             {/* Cột mốc thời gian */}
             {(() => {
               const milestones = [
-                { label: "Khách đặt", time: order.created_at },
-                { label: "Xác nhận", time: order.confirmed_at },
-                { label: "Chuẩn bị", time: order.preparing_at },
-                { label: "Bắt đầu giao", time: order.shipped_at },
-                { label: "Hoàn thành", time: order.completed_at },
-                { label: "Đã hủy", time: order.cancelled_at },
+                { label: "Ordered", time: order.created_at },
+                { label: "Confirmed", time: order.confirmed_at },
+                { label: "Preparing", time: order.preparing_at },
+                { label: "Shipped", time: order.shipped_at },
+                { label: "Completed", time: order.completed_at },
+                { label: "Cancelled", time: order.cancelled_at },
               ].filter(m => m.time);
 
               if (milestones.length === 0) return null;
@@ -927,7 +927,7 @@ function OrderDetailModal({
               return (
                 <div className="rounded-xl border border-stroke p-4 dark:border-dark-3 bg-gray-50/50 dark:bg-dark-2/50">
                   <h3 className="text-sm font-bold text-dark dark:text-white mb-3 uppercase tracking-wide">
-                    Tiến trình đơn hàng (Cột mốc thời gian)
+                    Order Progress (Timeline)
                   </h3>
                   <div className="flex flex-wrap gap-4 items-center">
                     {milestones.map((m, idx) => (
@@ -966,7 +966,7 @@ function renderOrderItemDetails(item: any) {
         {item.combos && item.combos.length > 0 && (
           <div className="space-y-2 mt-1">
             {item.combos.map((sel: any, idx: number) => {
-              const dishName = sel.dish_price?.dish?.dish_name || sel.dish_price_id || "Món trong combo";
+              const dishName = sel.dish_price?.dish?.dish_name || sel.dish_price_id || "Combo Item";
               const sizeName = sel.dish_price?.size?.size_name;
               const crustName = sel.dish_price?.crust?.crust_name;
               const isPizza = dishName.toLowerCase().includes("pizza");
@@ -981,7 +981,7 @@ function renderOrderItemDetails(item: any) {
                     {(sizeName || crustName) && isPizza && (
                       <p>
                         {sizeName && <span>Size: <strong>{sizeName}</strong> </span>}
-                        {crustName && <span>Đế: <strong>{crustName}</strong></span>}
+                        {crustName && <span>Crust: <strong>{crustName}</strong></span>}
                       </p>
                     )}
                     {sel.toppings && sel.toppings.length > 0 && (
@@ -991,10 +991,10 @@ function renderOrderItemDetails(item: any) {
                     )}
                     {sel.is_half_half && sel.halves && sel.halves.length > 0 && (
                       <div className="mt-1 border-l border-blue-300 pl-2 text-xs">
-                        <p className="text-blue-500 font-semibold">Nửa-Nửa (Half-Half):</p>
+                        <p className="text-blue-500 font-semibold">Half-Half Pizza:</p>
                         {sel.halves.map((h: any, hIdx: number) => (
                           <div key={hIdx} className="ml-1 text-[11px]">
-                            <span>• Nửa {hIdx + 1}: <strong>{h.dish?.dish_name}</strong></span>
+                            <span>• Half {hIdx + 1}: <strong>{h.dish?.dish_name}</strong></span>
                             {h.order_item_toppings && h.order_item_toppings.length > 0 && (
                               <span className="text-gray-500 block ml-2">
                                 + Toppings: {h.order_item_toppings.map((t: any) => `${t.topping?.topping_name} (${(t.topping_price || t.topping?.price_topping || 0).toLocaleString()} đ)`).join(", ")}
@@ -1005,7 +1005,7 @@ function renderOrderItemDetails(item: any) {
                       </div>
                     )}
                     {sel.order_combo_note && (
-                      <p className="text-red-500 italic text-[11px]">Ghi chú: {sel.order_combo_note}</p>
+                      <p className="text-red-500 italic text-[11px]">Note: {sel.order_combo_note}</p>
                     )}
                   </div>
                 </div>
@@ -1025,23 +1025,23 @@ function renderOrderItemDetails(item: any) {
     return (
       <div className="text-xs space-y-1.5 mt-1 border-l-2 border-blue-500/20 pl-3">
         <p className="font-bold text-blue-500 text-[13px] uppercase">
-          Bánh Nửa-Nửa (Half-Half)
+          Half-Half Pizza
         </p>
         {(sizeName || crustName) && (
           <p className="text-gray-500">
             {sizeName && <span>Size: <strong>{sizeName}</strong> </span>}
-            {crustName && <span>Đế: <strong>{crustName}</strong></span>}
+            {crustName && <span>Crust: <strong>{crustName}</strong></span>}
           </p>
         )}
         {item.halves && item.halves.length > 0 && (
           <div className="space-y-1.5 mt-1 pl-2">
             {item.halves.map((h: any, idx: number) => (
               <div key={idx} className="text-xs text-gray-700 dark:text-gray-300">
-                <span className="font-semibold">• Nửa {idx + 1}: </span>
+                <span className="font-semibold">• Half {idx + 1}: </span>
                 <span className="font-bold text-dark dark:text-white">{h.dish?.dish_name}</span>
                 {h.order_item_toppings && h.order_item_toppings.length > 0 && (
                   <span className="text-gray-500 block ml-3 italic">
-                    + Toppings riêng: {h.order_item_toppings.map((t: any) => `${t.topping?.topping_name} (${(t.topping_price || t.topping?.price_topping || 0).toLocaleString()} đ)`).join(", ")}
+                    + Custom Toppings: {h.order_item_toppings.map((t: any) => `${t.topping?.topping_name} (${(t.topping_price || t.topping?.price_topping || 0).toLocaleString()} đ)`).join(", ")}
                   </span>
                 )}
               </div>
@@ -1050,7 +1050,7 @@ function renderOrderItemDetails(item: any) {
         )}
         {item.toppings && item.toppings.length > 0 && (
           <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 pl-2">
-            + Toppings chung: {item.toppings.map((t: any) => `${t.topping?.topping_name} (x${t.quantity || 1}) (${(t.topping_price || t.topping?.price_topping || 0).toLocaleString()} đ)`).join(", ")}
+            + Shared Toppings: {item.toppings.map((t: any) => `${t.topping?.topping_name} (x${t.quantity || 1}) (${(t.topping_price || t.topping?.price_topping || 0).toLocaleString()} đ)`).join(", ")}
           </p>
         )}
       </div>
@@ -1058,7 +1058,7 @@ function renderOrderItemDetails(item: any) {
   }
 
   // 3. Món thường (regular)
-  const dishName = item.dish_price?.dish?.dish_name || item.dish_price_id || "Món ăn";
+  const dishName = item.dish_price?.dish?.dish_name || item.dish_price_id || "Dish";
   const sizeName = item.dish_price?.size?.size_name;
   const crustName = item.dish_price?.crust?.crust_name;
   const isPizza = dishName.toLowerCase().includes("pizza");
@@ -1069,7 +1069,7 @@ function renderOrderItemDetails(item: any) {
       {(sizeName || crustName) && isPizza && (
         <p className="text-gray-500">
           {sizeName && <span>Size: <strong>{sizeName}</strong> </span>}
-          {crustName && <span>Đế: <strong>{crustName}</strong></span>}
+          {crustName && <span>Crust: <strong>{crustName}</strong></span>}
         </p>
       )}
       {item.toppings && item.toppings.length > 0 && (

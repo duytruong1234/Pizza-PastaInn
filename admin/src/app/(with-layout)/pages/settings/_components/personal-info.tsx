@@ -1,4 +1,4 @@
-// Form thông tin cá nhân — dùng auth context thay vì Better Auth
+// Personal info form — using auth context instead of Better Auth
 "use client";
 
 import {
@@ -19,12 +19,12 @@ export interface UserInfo {
 
 export function PersonalInfoForm(personalInfo: UserInfo) {
   return (
-    <ShowcaseSection title="Thông tin cá nhân" className="p-7!">
+    <ShowcaseSection title="Personal Information" className="p-7!">
       <div className="space-y-4">
         <InputGroup
           type="text"
           name="name"
-          label="Tên"
+          label="Name"
           value={personalInfo.name}
           icon={<UserIcon />}
           iconPosition="left"
@@ -47,7 +47,7 @@ export function PersonalInfoForm(personalInfo: UserInfo) {
           <InputGroup
             type="text"
             name="phoneNumber"
-            label="Số điện thoại"
+            label="Phone Number"
             value={personalInfo.phoneNumber}
             icon={<CallIcon />}
             iconPosition="left"

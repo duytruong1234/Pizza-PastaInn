@@ -1,4 +1,4 @@
-// Trang quản lý khách hàng
+// Customer management page
 "use client";
 
 import { api } from "@/lib/api";
@@ -51,7 +51,7 @@ function CustomerOrdersModal({ customer, onClose }: CustomerOrdersModalProps) {
       <div className="w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-2xl border border-stroke bg-white p-6 shadow-xl dark:border-dark-3 dark:bg-gray-dark mx-4">
         <div className="flex items-center justify-between border-b border-stroke pb-4 mb-4 dark:border-dark-3">
           <h2 className="text-lg font-bold text-dark dark:text-white">
-            Đơn hàng đã đặt — {customer.username} {customer.user_id ? "" : "(Khách vãng lai)"}
+            Orders Placed — {customer.username} {customer.user_id ? "" : "(Guest)"}
           </h2>
           <button onClick={onClose} className="rounded-lg border border-stroke p-2 text-gray-500 hover:bg-gray-100 dark:border-dark-3 dark:hover:bg-dark-2">
             ✕
@@ -63,17 +63,17 @@ function CustomerOrdersModal({ customer, onClose }: CustomerOrdersModalProps) {
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
           </div>
         ) : orders.length === 0 ? (
-          <p className="text-center py-12 text-gray-400">Không có đơn hàng nào.</p>
+          <p className="text-center py-12 text-gray-400">No orders found.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead className="bg-gray-100 dark:bg-dark-2">
                 <tr>
-                  <th className="px-4 py-2 text-xs font-semibold uppercase">Mã đơn</th>
-                  <th className="px-4 py-2 text-xs font-semibold uppercase">Ngày đặt</th>
-                  <th className="px-4 py-2 text-xs font-semibold uppercase">Tổng tiền</th>
-                  <th className="px-4 py-2 text-xs font-semibold uppercase">Hình thức</th>
-                  <th className="px-4 py-2 text-xs font-semibold uppercase">Trạng thái</th>
+                  <th className="px-4 py-2 text-xs font-semibold uppercase">Order Code</th>
+                  <th className="px-4 py-2 text-xs font-semibold uppercase">Order Date</th>
+                  <th className="px-4 py-2 text-xs font-semibold uppercase">Total Price</th>
+                  <th className="px-4 py-2 text-xs font-semibold uppercase">Order Type</th>
+                  <th className="px-4 py-2 text-xs font-semibold uppercase">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -87,14 +87,14 @@ function CustomerOrdersModal({ customer, onClose }: CustomerOrdersModalProps) {
                       {order.total_order?.toLocaleString()} đ
                     </td>
                     <td className="px-4 py-3 text-xs">
-                      {order.order_type === "delivery" ? "Giao tận nơi" : "Đến lấy"}
+                      {order.order_type === "delivery" ? "Delivery" : "Pickup"}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium 
                         ${order.order_status === "completed" ? "bg-green-100 text-green-700" : 
                           order.order_status === "cancelled" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}>
-                        {order.order_status === "completed" ? "Hoàn thành" : 
-                         order.order_status === "cancelled" ? "Đã hủy" : "Đang xử lý"}
+                        {order.order_status === "completed" ? "Completed" : 
+                         order.order_status === "cancelled" ? "Cancelled" : "Processing"}
                       </span>
                     </td>
                   </tr>
@@ -130,8 +130,8 @@ export default function CustomersPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-dark dark:text-white">QUẢN LÝ KHÁCH HÀNG</h1>
-        <span className="text-sm text-gray-500">Tổng: {total} khách</span>
+        <h1 className="text-2xl font-bold text-dark dark:text-white">CUSTOMERS MANAGEMENT</h1>
+        <span className="text-sm text-gray-500">Total: {total} customers</span>
       </div>
 
       <div className="rounded-2xl border border-stroke bg-white shadow-sm dark:border-dark-3 dark:bg-gray-dark">
@@ -140,14 +140,14 @@ export default function CustomersPage() {
             <thead className="bg-primary text-white">
               <tr className="border-b border-stroke dark:border-dark-3">
                 <th className="rounded-tl-lg px-6 py-4 text-sm font-semibold uppercase tracking-wide">ID</th>
-                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Tên</th>
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Name</th>
                 <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Email</th>
-                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Điện thoại</th>
-                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Loại khách</th>
-                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Số đơn</th>
-                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Trạng thái</th>
-                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Ngày tạo</th>
-                <th className="rounded-tr-lg px-6 py-4 text-center text-sm font-semibold uppercase tracking-wide">Xem đơn</th>
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Phone</th>
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Customer Type</th>
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Orders</th>
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Status</th>
+                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide">Created At</th>
+                <th className="rounded-tr-lg px-6 py-4 text-center text-sm font-semibold uppercase tracking-wide">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -163,13 +163,13 @@ export default function CustomersPage() {
                   <td className="px-6 py-4 text-sm">{c.phone || <span className="text-gray-400 italic">—</span>}</td>
                   <td className="px-6 py-4 text-sm">
                     <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${c.user_id ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"}`}>
-                      {c.user_id ? "Đã đăng ký" : "Khách vãng lai"}
+                      {c.user_id ? "Registered" : "Guest"}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm font-medium">{c._count.orders}</td>
                   <td className="px-6 py-4">
                     <Badge variant={c.user_id ? (c.user_status ? "outlineSuccess" : "outlineDanger") : "outlineSuccess"}>
-                      {c.user_id ? (c.user_status ? "Hoạt động" : "Bị khóa") : "Hoạt động"}
+                      {c.user_id ? (c.user_status ? "Active" : "Locked") : "Active"}
                     </Badge>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">
@@ -180,7 +180,7 @@ export default function CustomersPage() {
                       onClick={() => setActiveCustomer(c)}
                       className="rounded bg-indigo-500 hover:bg-indigo-600 transition text-white px-3 py-1.5 text-xs font-semibold shadow-sm"
                     >
-                      Xem đơn
+                      View Orders
                     </button>
                   </td>
                 </tr>
@@ -191,12 +191,12 @@ export default function CustomersPage() {
 
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-stroke px-6 py-4 dark:border-dark-3">
-            <span className="text-sm text-gray-500">Trang {page} / {totalPages}</span>
+            <span className="text-sm text-gray-500">Page {page} / {totalPages}</span>
             <div className="flex gap-2">
               <button disabled={page <= 1} onClick={() => setPage(page - 1)}
-                className="rounded-lg border px-4 py-2 text-sm disabled:opacity-50 dark:border-dark-3">Trước</button>
+                className="rounded-lg border px-4 py-2 text-sm disabled:opacity-50 dark:border-dark-3">Previous</button>
               <button disabled={page >= totalPages} onClick={() => setPage(page + 1)}
-                className="rounded-lg border px-4 py-2 text-sm disabled:opacity-50 dark:border-dark-3">Sau</button>
+                className="rounded-lg border px-4 py-2 text-sm disabled:opacity-50 dark:border-dark-3">Next</button>
             </div>
           </div>
         )}

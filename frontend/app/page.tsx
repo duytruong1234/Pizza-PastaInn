@@ -19,7 +19,7 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
       if (json.success) categories = json.data;
     }
   } catch (err) {
-    console.error('Lỗi khi lấy danh mục:', err);
+    console.error('Error fetching categories:', err);
   }
 
   // Truy vấn tìm kiếm
@@ -126,12 +126,12 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
             }
           }
         } catch (comboErr) {
-          console.error('Lỗi khi lấy combo cho tìm kiếm:', comboErr);
+          console.error('Error fetching combos for search:', comboErr);
         }
       }
     }
   } catch (err) {
-    console.error('Lỗi khi lấy sản phẩm:', err);
+    console.error('Error fetching products:', err);
   }
 
   // Lọc sản phẩm theo từ khóa tìm kiếm

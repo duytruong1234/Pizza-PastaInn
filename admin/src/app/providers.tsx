@@ -1,4 +1,4 @@
-// Providers — bọc AuthProvider + ThemeProvider + SidebarProvider
+// Providers — wraps AuthProvider + ThemeProvider + SidebarProvider
 "use client";
 
 import { AuthProvider } from "@/lib/auth-context";

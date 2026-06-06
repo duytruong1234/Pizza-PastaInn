@@ -1,4 +1,4 @@
-// Trang Profile — dùng auth context thay vì Better Auth
+// Profile Page — using auth context instead of Better Auth
 "use client";
 
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
@@ -10,7 +10,7 @@ export default function Page() {
 
   return (
     <div className="mx-auto w-full max-w-242.5">
-      <Breadcrumb pageName="Hồ sơ" />
+      <Breadcrumb pageName="Profile" />
 
       <div className="overflow-hidden rounded-[10px] bg-white shadow-1 dark:bg-gray-dark dark:shadow-card">
         <div className="relative z-20 h-35 md:h-65">
@@ -43,7 +43,7 @@ export default function Page() {
                 </span>
               </div>
               <div className="flex flex-col items-center justify-center gap-1 px-4">
-                <span className="text-body-sm">Vai trò</span>
+                <span className="text-body-sm">Role</span>
                 <span className="font-medium text-dark dark:text-white capitalize">
                   {user?.role || "N/A"}
                 </span>
