@@ -15,6 +15,17 @@ type PropsType<TItem> = {
 
 const PARAM_KEY = "selected_time_frame";
 
+const translateTimeframe = (term?: string) => {
+  if (!term) return "";
+  const map: Record<string, string> = {
+    monthly: "Hàng tháng",
+    yearly: "Hàng năm",
+    "this week": "Tuần này",
+    "last week": "Tuần trước",
+  };
+  return map[term.toLowerCase()] || term;
+};
+
 export function PeriodPicker<TItem extends string>({
   defaultValue,
   sectionKey,
@@ -36,7 +47,7 @@ export function PeriodPicker<TItem extends string>({
             "border-none bg-transparent p-0 text-dark dark:bg-transparent dark:text-white",
         )}
       >
-        <span className="capitalize">{defaultValue || "Time Period"}</span>
+        <span className="capitalize">{translateTimeframe(defaultValue) || "Chọn thời gian"}</span>
 
         <ChevronUpIcon className="size-4 rotate-180 transition-transform" />
       </DropdownTrigger>
@@ -64,7 +75,7 @@ export function PeriodPicker<TItem extends string>({
                   setIsOpen(false);
                 }}
               >
-                {item}
+                {translateTimeframe(item)}
               </button>
             </li>
           ))}

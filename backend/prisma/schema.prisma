@@ -42,7 +42,6 @@ model Topping {
   size_id          Int?
   is_for_pizza     Boolean? @default(true)
   is_for_spaghetti Boolean? @default(true)
-  stock            Int?     @default(100)
   sizes            Size?    @relation(fields: [size_id], references: [size_id], onDelete: NoAction, onUpdate: NoAction)
   order_item_toppings OrderItemTopping[]
 
@@ -56,7 +55,6 @@ model Dish {
   image       String?
   ingredient  String?
   dish_status Boolean?
-  stock       Int?     @default(100)
   prices      DishPrice[]
   category    Category?   @relation(fields: [category_id], references: [category_id], onDelete: NoAction, onUpdate: NoAction)
   order_item_halves OrderItemHalf[]
@@ -139,7 +137,7 @@ model User {
   password      String?       @db.VarChar(255)
   role          String?       @db.VarChar(50)
   user_status   Boolean?
-  created_at    DateTime?     @db.Timestamp(6)
+  created_at    DateTime?     @db.Timestamptz(6)
   is_guest      Boolean?      @default(false)
   google_id     String?       @unique @db.VarChar(255)
   auth_provider String?       @default("local") @db.VarChar(50)
@@ -168,7 +166,7 @@ model UserAddress {
 model Cart {
   cart_id          Int        @id @default(autoincrement())
   user_id          Int?
-  created_at       DateTime?  @db.Timestamp(6)
+  created_at       DateTime?  @db.Timestamptz(6)
   total_price_cart Int?
   items            CartItem[]
   user             User?      @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
@@ -245,17 +243,17 @@ model Order {
   discount_amount         Int?
   total_order             Int?
   order_note              String?
-  created_at              DateTime?    @db.Timestamp(6)
+  created_at              DateTime?    @db.Timestamptz(6)
   order_status            String?      @db.VarChar(50)
-  confirmed_at            DateTime?    @db.Timestamp(6)
-  preparing_at            DateTime?    @db.Timestamp(6)
-  shipped_at              DateTime?    @db.Timestamp(6)
-  estimated_delivery_time DateTime?    @db.Timestamp(6)
-  arrived_at              DateTime?    @db.Timestamp(6)
-  completed_at            DateTime?    @db.Timestamp(6)
-  cancelled_at            DateTime?    @db.Timestamp(6)
+  confirmed_at            DateTime?    @db.Timestamptz(6)
+  preparing_at            DateTime?    @db.Timestamptz(6)
+  shipped_at              DateTime?    @db.Timestamptz(6)
+  estimated_delivery_time DateTime?    @db.Timestamptz(6)
+  arrived_at              DateTime?    @db.Timestamptz(6)
+  completed_at            DateTime?    @db.Timestamptz(6)
+  cancelled_at            DateTime?    @db.Timestamptz(6)
   order_type              String?      @db.VarChar(50)
-  pickup_time             DateTime?    @db.Timestamp(6)
+  pickup_time             DateTime?    @db.Timestamptz(6)
   customer_name           String?      @db.VarChar(255)
   customer_phone          String?      @db.VarChar(20)
   customer_email          String?      @db.VarChar(255)
@@ -345,7 +343,7 @@ model ShopReview {
   comment     String?
   image_url   String?
   shop_reply  String?
-  created_at  DateTime? @db.Timestamp(6)
+  created_at  DateTime? @db.Timestamptz(6)
   is_visible  Boolean?
   order       Order?    @relation(fields: [order_id], references: [order_id], onDelete: NoAction, onUpdate: NoAction)
   user        User?     @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
@@ -361,8 +359,8 @@ model ChatRoom {
   guest_phone      String?        @db.VarChar(20)
   guest_address    String?
   room_status      String         @default("pending") @db.VarChar(20)
-  created_at       DateTime?      @default(now()) @db.Timestamp(6)
-  updated_at       DateTime?      @default(now()) @db.Timestamp(6)
+  created_at       DateTime?      @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?      @default(now()) @db.Timestamptz(6)
   customer         User?          @relation(fields: [customer_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
   messages         Message[]
 
@@ -376,7 +374,7 @@ model Message {
   sender_id    Int?
   message_text String
   is_read      Boolean        @default(false)
-  created_at   DateTime?      @default(now()) @db.Timestamp(6)
+  created_at   DateTime?      @default(now()) @db.Timestamptz(6)
   chat_room    ChatRoom       @relation(fields: [room_id], references: [room_id], onDelete: Cascade, onUpdate: NoAction)
   sender       User?          @relation(fields: [sender_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
   images       MessageImage[]
@@ -388,7 +386,7 @@ model MessageImage {
   image_id    Int       @id @default(autoincrement())
   message_id  Int
   image_url   String    @db.VarChar(255)
-  uploaded_at DateTime? @default(now()) @db.Timestamp(6)
+  uploaded_at DateTime? @default(now()) @db.Timestamptz(6)
   message     Message   @relation(fields: [message_id], references: [message_id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("message_images")
@@ -397,7 +395,7 @@ model MessageImage {
 model Transaction {
   id                  Int       @id @default(autoincrement())
   gateway             String    @db.VarChar(100)
-  transaction_date    DateTime? @db.Timestamp(6)
+  transaction_date    DateTime? @db.Timestamptz(6)
   account_number      String?   @db.VarChar(100)
   sub_account         String?   @db.VarChar(250)
   amount_in           Decimal   @default(0.00) @db.Decimal(20, 2)
@@ -407,9 +405,43 @@ model Transaction {
   transaction_content String?   @db.Text
   reference_number    String?   @db.VarChar(255)
   body                String?   @db.Text
-  created_at          DateTime  @default(now()) @db.Timestamp(6)
+  created_at          DateTime  @default(now()) @db.Timestamptz(6)
   order_id            Int?
   order               Order?    @relation(fields: [order_id], references: [order_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("tb_transactions")
 }
+
+model PolicyChapter {
+  id           String          @id @db.VarChar(100)
+  chapter_name String          @db.VarChar(255)
+  last_updated DateTime        @db.Date
+  created_at   DateTime?       @default(now()) @db.Timestamptz(6)
+  sections     PolicySection[]
+
+  @@map("policy_chapters")
+}
+
+model PolicySection {
+  id            Int             @id @default(autoincrement())
+  chapter_id    String?         @db.VarChar(100)
+  section_number String          @db.VarChar(50)
+  title_section String          @db.VarChar(255)
+  display_order Int?            @default(0)
+  chapter       PolicyChapter?  @relation(fields: [chapter_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sub_items     PolicySubItem[]
+
+  @@map("policy_sections")
+}
+
+model PolicySubItem {
+  id            Int            @id @default(autoincrement())
+  section_id    Int?
+  item_number   String?        @db.VarChar(50)
+  content       String         @db.Text
+  display_order Int?           @default(0)
+  section       PolicySection? @relation(fields: [section_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("policy_sub_item")
+}
+

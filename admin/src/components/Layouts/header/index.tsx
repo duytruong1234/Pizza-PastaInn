@@ -18,7 +18,7 @@ export function Header() {
         className="dark:border-stroke-dark rounded-lg border px-1.5 py-1 lg:hidden dark:bg-[#020D1A] hover:dark:bg-[#FFFFFF1A]"
       >
         <MenuIcon />
-        <span className="sr-only">Toggle Sidebar</span>
+        <span className="sr-only">Ẩn/Hiện Menu</span>
       </button>
 
       {isMobile && (
@@ -31,7 +31,7 @@ export function Header() {
         <h1 className="text-xl text-dark mb-0.5 font-bold dark:text-white">
           Quản trị
         </h1>
-        <p className="text-sm font-medium text-gray-500">Pizza&PastaInn Admin Dashboard</p>
+        <p className="text-sm font-medium text-gray-500">Hệ thống quản trị Pizza & Pasta Inn</p>
       </div>
 
       <div className="2xsm:gap-4 flex flex-1 items-center justify-end gap-2">

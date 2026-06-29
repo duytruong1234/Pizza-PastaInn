@@ -18,16 +18,19 @@ if (process.env.DATABASE_URL) {
       port: dbUrl.port ? parseInt(dbUrl.port, 10) : undefined,
       database: decodeURIComponent(dbUrl.pathname.substring(1)),
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      options: '-c timezone=UTC',
     });
   } catch (e) {
     pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      options: '-c timezone=UTC',
     });
   }
 } else {
   pool = new Pool({
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    options: '-c timezone=UTC',
   });
 }
 

@@ -47,12 +47,12 @@ export default function SigninWithPassword() {
 
       router.push(callbackURL);
       router.refresh();
-      toast.success("Logged in successfully");
+      toast.success("Đăng nhập thành công");
     } catch (err: unknown) {
       const message =
         err instanceof Error
           ? err.message
-          : "Login failed, please try again";
+          : "Đăng nhập thất bại, vui lòng thử lại";
       setError(message);
       toast.error(message);
     } finally {
@@ -66,7 +66,7 @@ export default function SigninWithPassword() {
         type="email"
         label="Email"
         className="mb-4 [&_input]:py-3.75"
-        placeholder="Enter admin email"
+        placeholder="Nhập email quản trị"
         name="email"
         handleChange={handleChange}
         value={data.email}
@@ -75,9 +75,9 @@ export default function SigninWithPassword() {
 
       <InputGroup
         type="password"
-        label="Password"
+        label="Mật khẩu"
         className="mb-5 [&_input]:py-3.75"
-        placeholder="Enter password"
+        placeholder="Nhập mật khẩu"
         name="password"
         handleChange={handleChange}
         value={data.password}
@@ -86,7 +86,7 @@ export default function SigninWithPassword() {
 
       <div className="mb-6 flex items-center justify-between gap-2 py-2 font-medium">
         <Checkbox
-          label="Remember me"
+          label="Ghi nhớ tài khoản"
           name="remember"
           withIcon="check"
           minimal
@@ -106,7 +106,7 @@ export default function SigninWithPassword() {
           disabled={loading}
           className="hover:bg-opacity-90 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary p-4 font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-70"
         >
-          Sign In
+          Đăng nhập
           {loading && (
             <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-t-transparent" />
           )}

@@ -407,6 +407,123 @@ export async function deleteAvatar(req: AuthRequest, res: Response): Promise<voi
   }
 }
 
+/**
+ * POST /api/auth/google-login
+ * Đăng nhập/Đăng ký qua Google (Simulated/Real)
+ */
+export async function googleLogin(req: Request, res: Response): Promise<void> {
+  try {
+    const { accessToken } = req.body;
+    if (!accessToken) {
+      sendError(res, 'Thiếu access token Google', 400);
+      return;
+    }
+
+    // Gọi API của Google để lấy thông tin user từ accessToken
+    const googleRes = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${accessToken}`);
+    if (!googleRes.ok) {
+      const errMsg = await googleRes.text();
+      logger.error('Google token verification failed:', errMsg);
+      sendError(res, 'Xác thực tài khoản Google thất bại', 401);
+      return;
+    }
+
+    const googleUser = await googleRes.json() as {
+      sub: string;
+      email: string;
+      email_verified?: boolean;
+      name?: string;
+      picture?: string;
+    };
+
+    const email = googleUser.email;
+    const username = googleUser.name || email.split('@')[0];
+    const google_id = googleUser.sub;
+    const avatar = googleUser.picture;
+
+    if (!email) {
+      sendError(res, 'Không lấy được thông tin email từ Google', 400);
+      return;
+    }
+
+    const conditions: any[] = [{ email: String(email) }];
+    if (google_id) {
+      conditions.push({ google_id: String(google_id) });
+    }
+
+    // Tìm user theo google_id hoặc email
+    let user = await prisma.user.findFirst({
+      where: {
+        OR: conditions,
+      },
+    });
+
+    if (!user) {
+      // Đăng ký user mới
+      user = await prisma.user.create({
+        data: {
+          email,
+          username: username || email.split('@')[0],
+          google_id: google_id ? String(google_id) : null,
+          avatar: avatar || null,
+          role: 'customer',
+          user_status: true,
+          created_at: new Date(),
+          auth_provider: 'google',
+        },
+      });
+    } else {
+      // Cập nhật thông tin nếu chưa có google_id hoặc auth_provider
+      const updateData: Record<string, any> = {};
+      if (!user.google_id && google_id) {
+        updateData.google_id = String(google_id);
+      }
+      if (user.auth_provider !== 'google') {
+        updateData.auth_provider = 'google';
+      }
+      if (!user.avatar && avatar) {
+        updateData.avatar = avatar;
+      }
+      
+      if (Object.keys(updateData).length > 0) {
+        user = await prisma.user.update({
+          where: { user_id: user.user_id },
+          data: updateData,
+        });
+      }
+    }
+
+    // Kiểm tra tài khoản bị khoá
+    if (user.user_status === false) {
+      sendError(res, 'Tài khoản đã bị khoá, vui lòng liên hệ admin', 403);
+      return;
+    }
+
+    // Tạo JWT token
+    const token = generateToken(user.user_id, user.email!, user.role!);
+
+    logger.info(`Đăng nhập Google thành công: ${email}`);
+
+    sendSuccess(res, {
+      data: {
+        user: {
+          user_id: user.user_id,
+          username: user.username,
+          email: user.email,
+          phone: user.phone,
+          avatar: user.avatar,
+          role: user.role,
+        },
+        token,
+      },
+      message: 'Đăng nhập Google thành công',
+    });
+  } catch (err) {
+    logger.error('Google login error:', err);
+    sendError(res, 'Lỗi hệ thống khi đăng nhập bằng Google', 500);
+  }
+}
+
 // Helper
 
 function generateToken(userId: number, email: string, role: string): string {

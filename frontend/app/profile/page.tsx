@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import HeaderClient from '@/components/HeaderClient';
 import Footer from '@/components/Footer';
 import Image from 'next/image';
+import { shouldBypassNextImageOptimization } from '@/lib/image';
 import {
   User,
   Phone,
@@ -34,6 +35,7 @@ import {
 import { useAuthStore } from '@/store/authStore';
 import { formatPrice } from '@/lib/utils';
 import api from '@/lib/api';
+import { getApiErrorMessage } from '@/lib/apiError';
 import { useUI } from '@/components/UIProvider';
 import { BACKEND_URL } from '@/lib/config';
 
@@ -449,10 +451,17 @@ interface Order {
   customer_phone: string;
   customer_email: string;
   pickup_time: string | null;
+  estimated_delivery_time?: string | null;
+  completed_at?: string | null;
   user_address?: {
     address_line: string;
   };
   items: OrderItem[];
+  store?: {
+    store_name: string;
+    address: string;
+    hotline?: string;
+  };
 }
 
 interface SavedAddress {
@@ -594,7 +603,7 @@ export default function ProfilePage() {
         setOrdersError(json.message || 'Failed to load order history');
       }
     } catch (err) {
-      console.error('Fetch orders error:', err);
+      console.warn('Fetch orders error:', getApiErrorMessage(err));
       setOrdersError('Network connection error, please try again later');
     } finally {
       setOrdersLoading(false);
@@ -609,7 +618,7 @@ export default function ProfilePage() {
         setAddresses(res.data.data);
       }
     } catch (err) {
-      console.error('Fetch addresses error:', err);
+      console.warn('Fetch addresses error:', getApiErrorMessage(err));
     } finally {
       setAddressesLoading(false);
     }
@@ -643,7 +652,7 @@ export default function ProfilePage() {
         setProfileMessage({ type: 'error', text: json.message || 'Error updating profile information' });
       }
     } catch (err) {
-      console.error('Update profile error:', err);
+      console.warn('Update profile error:', getApiErrorMessage(err));
       setProfileMessage({ type: 'error', text: 'Server connection error' });
     } finally {
       setProfileLoading(false);
@@ -675,7 +684,7 @@ export default function ProfilePage() {
         setPasswordMessage({ type: 'error', text: json.message || 'Error changing password' });
       }
     } catch (err) {
-      console.error('Change password error:', err);
+      console.warn('Change password error:', getApiErrorMessage(err));
       setPasswordMessage({ type: 'error', text: 'Server connection error' });
     } finally {
       setPasswordLoading(false);
@@ -721,7 +730,7 @@ export default function ProfilePage() {
         alert(json.message || 'Error uploading avatar');
       }
     } catch (err) {
-      console.error('Upload avatar error:', err);
+      console.warn('Upload avatar error:', getApiErrorMessage(err));
       alert('Server connection error');
     } finally {
       setAvatarUploading(false);
@@ -752,7 +761,7 @@ export default function ProfilePage() {
         alert(json.message || 'Error deleting avatar');
       }
     } catch (err) {
-      console.error('Delete avatar error:', err);
+      console.warn('Delete avatar error:', getApiErrorMessage(err));
       alert('Server connection error');
     } finally {
       setAvatarUploading(false);
@@ -801,7 +810,7 @@ export default function ProfilePage() {
         }
       }
     } catch (err) {
-      console.error('Submit address error:', err);
+      console.warn('Submit address error:', getApiErrorMessage(err));
       alert('Unable to save address. Please check your connection.');
     } finally {
       setAddressesLoading(false);
@@ -850,7 +859,7 @@ export default function ProfilePage() {
         fetchSavedAddresses();
       }
     } catch (err) {
-      console.error('Delete address error:', err);
+      console.warn('Delete address error:', getApiErrorMessage(err));
     } finally {
       setAddressesLoading(false);
     }
@@ -940,6 +949,17 @@ export default function ProfilePage() {
       month: '2-digit',
       day: '2-digit',
     });
+  };
+
+  const formatDateTime = (dateStr: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes} - ${day}/${month}/${year}`;
   };
 
   const getProductString = (order: Order) => {
@@ -1651,7 +1671,12 @@ export default function ProfilePage() {
                                         ) : (
                                           <>
                                             Hình thức:{' '}
-                                            <strong className={theme === 'dark' ? 'text-white' : 'text-gray-800'}>Pick up at store</strong>
+                                            <strong className={theme === 'dark' ? 'text-white font-bold' : 'text-gray-800 font-bold'}>Store Pickup</strong>
+                                            {order.store?.address && (
+                                              <span className={`block mt-1 text-xs ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}`}>
+                                                Store: {order.store.store_name} - {order.store.address}
+                                              </span>
+                                            )}
                                           </>
                                         )}
                                       </span>
@@ -1703,14 +1728,21 @@ export default function ProfilePage() {
                                         {order.pickup_time ? (
                                           <>
                                             Giờ hẹn nhận bánh:{' '}
-                                            <strong className={theme === 'dark' ? 'text-white' : 'text-gray-800'}>
-                                              {formatDate(order.pickup_time)}
+                                            <strong className={theme === 'dark' ? 'text-white font-bold' : 'text-gray-800 font-bold'}>
+                                              {formatDateTime(order.pickup_time)}
+                                            </strong>
+                                          </>
+                                        ) : order.estimated_delivery_time ? (
+                                          <>
+                                            Thời gian giao hàng dự kiến:{' '}
+                                            <strong className={theme === 'dark' ? 'text-white font-bold' : 'text-gray-800 font-bold'}>
+                                              {formatDateTime(order.estimated_delivery_time)}
                                             </strong>
                                           </>
                                         ) : (
                                           <>
                                             Thời gian giao:{' '}
-                                            <strong className={theme === 'dark' ? 'text-white' : 'text-gray-800'}>
+                                            <strong className={theme === 'dark' ? 'text-white font-bold' : 'text-gray-800 font-bold'}>
                                               Standard Delivery (30-45 mins)
                                             </strong>
                                           </>
@@ -1722,33 +1754,36 @@ export default function ProfilePage() {
                               </div>
 
                               {order.order_note && (
-                                <div className="bg-[#9f280a]/20 border border-[#9f280a]/30 p-4 rounded-2xl flex items-start gap-3">
-                                  <span className="text-zinc-500 mt-0.5">
-                                    <FileText size={16} />
-                                  </span>
-                                  <div className="text-xs font-semibold">
-                                    <span className="text-zinc-500 block uppercase tracking-wider font-extrabold mb-1">
-                                      Order Notes:
-                                    </span>
-                                    <p className="leading-relaxed italic">&ldquo;{order.order_note}&rdquo;</p>
+                                <div className={`p-4 rounded-2xl flex items-start gap-3 border ${
+                                  theme === 'dark' ? 'bg-[#121212]/40 border-white/[0.04]' : 'bg-gray-100/50 border-gray-200'
+                                }`}>
+                                  <span className="text-zinc-500 mt-0.5"><FileText size={16} /></span>
+                                  <div className="text-xs font-medium text-left">
+                                    <span className={`block uppercase tracking-wider font-extrabold mb-1 ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'}`}>ORDER NOTE:</span>
+                                    <p className={`leading-relaxed italic ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-705'}`}>&ldquo;{order.order_note}&rdquo;</p>
                                   </div>
                                 </div>
                               )}
 
-                              <div className={`grid grid-cols-1 lg:grid-cols-12 gap-6 pt-4 border-t ${theme === 'dark' ? 'border-white/5' : 'border-gray-200'
-                                }`}>
+                              {/* Order Items & Totals Section */}
+                              <div className={`grid grid-cols-1 lg:grid-cols-12 gap-6 pt-4 border-t ${theme === 'dark' ? 'border-white/5' : 'border-gray-150'}`}>
+                                
+                                {/* Left: Dishes List */}
                                 <div className="lg:col-span-7 space-y-4">
-                                  <h5 className={`text-[11px] font-black uppercase tracking-widest block border-b pb-2 ${theme === 'dark' ? 'text-pizza-gold border-white/5' : 'text-[#007a3f] border-gray-200'
-                                    }`}>
-                                    ORDERED ITEMS
+                                  <h5 className={`text-[11px] font-black uppercase tracking-widest block border-b pb-2 ${
+                                    theme === 'dark' ? 'text-pizza-gold border-white/5' : 'text-[#007a3f] border-gray-200'
+                                  }`}>
+                                    ORDERED DISHES
                                   </h5>
 
-                                  <div className={`divide-y p-5 rounded-2xl border ${theme === 'dark' ? 'divide-white/5 bg-[#121212]/50 border-white/[0.04]' : 'divide-gray-150 bg-white border-gray-200/80'
-                                    }`}>
+                                  <div className={`divide-y border p-5 rounded-2xl ${
+                                    theme === 'dark' 
+                                      ? 'divide-white/5 bg-[#121212]/30 border-white/[0.04]' 
+                                      : 'divide-gray-150 bg-white border-gray-200'
+                                  }`}>
                                     {order.items.map((item) => {
                                       let dishName = '';
-                                      let imageSrc =
-                                        'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=100&auto=format&fit=crop';
+                                      let imageSrc = 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=100&auto=format&fit=crop';
                                       let itemSpec = '';
 
                                       const isCombo = !!item.combo_id;
@@ -1756,61 +1791,78 @@ export default function ProfilePage() {
 
                                       if (isCombo) {
                                         dishName = item.combo?.combo_name || `Combo #${item.combo_id}`;
-                                        imageSrc =
-                                          item.combo?.image_combo ||
-                                          'https://images.unsplash.com/photo-1579751626657-72bc17010498?q=80&w=100&auto=format&fit=crop';
+                                        imageSrc = item.combo?.image_combo || 'https://images.unsplash.com/photo-1579751626657-72bc17010498?q=80&w=100&auto=format&fit=crop';
                                       } else if (isHalfHalf) {
                                         dishName = 'PIZZA HALF & HALF';
-                                        imageSrc =
-                                          'https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?q=80&w=100&auto=format&fit=crop';
+                                        imageSrc = 'https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?q=80&w=100&auto=format&fit=crop';
                                         const size = item.dish_price?.size?.size_name;
                                         const crust = item.dish_price?.crust?.crust_name;
-                                        itemSpec = `${size ? `Size: ${size}` : ''}${crust ? ` - Crust: ${crust}` : ''}`;
+                                        itemSpec = `${size ? `SIZE: ${size.toUpperCase()}` : ''}${crust && crust.toLowerCase() !== 'none' ? ` - CRUST: ${crust.toUpperCase()}` : ''}`;
                                       } else {
-                                        dishName = item.dish_price?.dish?.dish_name || 'Món ăn';
+                                        dishName = item.dish_price?.dish?.dish_name || 'Dish';
                                         imageSrc = item.dish_price?.dish?.image || imageSrc;
-                                        const size = item.dish_price?.size?.size_name;
-                                        const crust = item.dish_price?.crust?.crust_name;
-                                        itemSpec = `${size ? `Size: ${size}` : ''}${crust ? ` - Crust: ${crust}` : ''}`;
+                                        const isPizza = dishName.toLowerCase().includes('pizza');
+                                        if (isPizza) {
+                                          const size = item.dish_price?.size?.size_name;
+                                          const crust = item.dish_price?.crust?.crust_name;
+                                          itemSpec = `${size ? `SIZE: ${size.toUpperCase()}` : ''}${crust && crust.toLowerCase() !== 'none' ? ` - CRUST: ${crust.toUpperCase()}` : ''}`;
+                                        }
                                       }
 
                                       return (
                                         <div key={item.order_item_id} className="py-4 first:pt-0 last:pb-0 flex gap-4">
-                                          <div className={`relative w-16 h-16 rounded-2xl overflow-hidden border shrink-0 shadow-md ${theme === 'dark' ? 'border-white/[0.06]' : 'border-gray-200'
-                                            }`}>
-                                            <Image src={imageSrc} alt={dishName} fill className="object-cover" />
+                                          <div className={`relative w-16 h-16 rounded-full overflow-hidden border shrink-0 shadow-md ${
+                                            theme === 'dark' ? 'border-white/[0.06]' : 'border-gray-200'
+                                          }`}>
+                                            <Image
+                                              src={imageSrc}
+                                              alt={dishName}
+                                              fill
+                                              className="object-cover"
+                                              unoptimized={shouldBypassNextImageOptimization(imageSrc)}
+                                            />
                                           </div>
 
-                                          <div className="flex-1 flex flex-col justify-between text-left">
+                                          <div className="flex-1 flex flex-col justify-start text-left">
                                             <div className="space-y-0.5">
-                                              <h4 className={`font-extrabold text-sm md:text-base tracking-wide leading-snug ${theme === 'dark' ? 'text-white' : 'text-gray-800'
-                                                }`}>
+                                              <h4 className={`font-extrabold text-sm md:text-base tracking-wide leading-snug ${
+                                                theme === 'dark' ? 'text-white' : 'text-gray-800'
+                                              }`}>
                                                 {dishName}
                                               </h4>
-
+                                              <div className={`text-[11px] font-bold tracking-wider ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}`}>
+                                                Quantity: x{item.quantity}
+                                              </div>
+                                              
                                               {itemSpec && (
-                                                <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wide">
+                                                <p className={`text-[11px] font-bold uppercase tracking-wide ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'}`}>
                                                   {itemSpec}
                                                 </p>
                                               )}
 
+                                              {/* Render combo details */}
                                               {isCombo && item.combos && item.combos.length > 0 && (
-                                                <div className="mt-2 pl-3 border-l-2 border-pizza-gold/30 text-xs text-zinc-400 space-y-2">
+                                                <div className={`mt-2 pl-3 border-l-2 text-xs space-y-2 ${
+                                                  theme === 'dark' ? 'border-[#f5c043]/30 text-zinc-400' : 'border-[#007a3f]/30 text-gray-500'
+                                                }`}>
                                                   {item.combos.map((combItem, cIdx) => {
                                                     const cName = combItem.dish_price?.dish?.dish_name || 'Dish';
                                                     const cSize = combItem.dish_price?.size?.size_name;
                                                     const cCrust = combItem.dish_price?.crust?.crust_name;
+                                                    const cIsPizza = cName.toLowerCase().includes('pizza');
+                                                    const cSpec = cIsPizza && (cSize || cCrust)
+                                                      ? `${cSize ? `SIZE: ${cSize.toUpperCase()}` : ''}${cCrust && cCrust.toLowerCase() !== 'none' ? ` - CRUST: ${cCrust.toUpperCase()}` : ''}`
+                                                      : '';
                                                     return (
                                                       <div key={cIdx} className="space-y-0.5">
-                                                        <p className={`font-bold ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-600'}`}>
+                                                        <p className={`font-bold ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
                                                           {cIdx + 1}. {combItem.is_half_half ? 'Pizza Half & Half' : cName}
                                                         </p>
-
+                                                        
                                                         <div className="pl-3 text-[10px] text-zinc-500 space-y-0.5">
-                                                          {!combItem.is_half_half && (cSize || cCrust) && (
-                                                            <p className="font-bold uppercase tracking-wider">
-                                                              {cSize ? `Size: ${cSize}` : ''}
-                                                              {cCrust ? ` - Đế: ${cCrust}` : ''}
+                                                          {cSpec && (
+                                                            <p className="font-bold uppercase tracking-wider text-zinc-500">
+                                                              {cSpec}
                                                             </p>
                                                           )}
 
@@ -1818,25 +1870,13 @@ export default function ProfilePage() {
                                                             <div className="pl-2 border-l border-blue-400/30 py-0.5 space-y-1">
                                                               {combItem.halves.map((ch, chIdx) => (
                                                                 <div key={chIdx} className="text-[11px]">
-                                                                  <span className="text-zinc-500 font-medium">
-                                                                    Half {chIdx + 1}:{' '}
-                                                                  </span>
-                                                                  <span className={`font-bold ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
-                                                                    {ch.dish?.dish_name}
-                                                                  </span>
-                                                                  {ch.order_item_toppings &&
-                                                                    ch.order_item_toppings.length > 0 && (
-                                                                      <span className="block pl-3 text-[10px] text-zinc-500 italic">
-                                                                        + Toppings:{' '}
-                                                                        {ch.order_item_toppings
-                                                                          .map(
-                                                                            (t) =>
-                                                                              `${t.topping?.topping_name
-                                                                              } (+${formatPrice(t.topping_price)})`
-                                                                          )
-                                                                          .join(', ')}
-                                                                      </span>
-                                                                    )}
+                                                                  <span className="text-zinc-500 font-medium">Half {chIdx + 1}: </span>
+                                                                  <span className={`font-bold ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-700'}`}>{ch.dish?.dish_name}</span>
+                                                                  {ch.order_item_toppings && ch.order_item_toppings.length > 0 && (
+                                                                    <span className="block pl-3 text-[10px] text-zinc-500 italic">
+                                                                      + Toppings: {ch.order_item_toppings.map(t => `${t.topping?.topping_name} (+${formatPrice(t.topping_price)})`).join(', ')}
+                                                                    </span>
+                                                                  )}
                                                                 </div>
                                                               ))}
                                                             </div>
@@ -1844,15 +1884,7 @@ export default function ProfilePage() {
 
                                                           {combItem.toppings && combItem.toppings.length > 0 && (
                                                             <p className="text-zinc-500 italic">
-                                                              + Toppings:{' '}
-                                                              {combItem.toppings
-                                                                .map(
-                                                                  (t) =>
-                                                                    `${t.topping?.topping_name} (+${formatPrice(
-                                                                      t.topping_price
-                                                                    )})`
-                                                                )
-                                                                .join(', ')}
+                                                              - Toppings: {combItem.toppings.map(t => `${t.topping?.topping_name} (+${formatPrice(t.topping_price)})`).join(', ')}
                                                             </p>
                                                           )}
                                                         </div>
@@ -1862,63 +1894,44 @@ export default function ProfilePage() {
                                                 </div>
                                               )}
 
-                                              {isHalfHalf && item.halves && item.halves.length > 0 && (
-                                                <div className="mt-2 pl-3 border-l-2 border-blue-500/30 text-xs text-zinc-400 space-y-2">
+                                              {/* Render half-half details */}
+                                              {isCombo ? null : (isHalfHalf && item.halves && item.halves.length > 0 && (
+                                                <div className={`mt-2 pl-3 border-l-2 text-xs space-y-2 ${theme === 'dark' ? 'border-blue-500/30 text-zinc-400' : 'border-blue-400/30 text-gray-500'}`}>
                                                   {item.halves.map((half, hIdx) => (
-                                                    <div key={hIdx} className="text-xs text-zinc-350">
-                                                      <span className="font-semibold">• Half {hIdx + 1}: </span>
-                                                      <span className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
-                                                        {half.dish?.dish_name}
-                                                      </span>
+                                                    <div key={hIdx} className="text-xs">
+                                                      <span className={`font-semibold ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}`}>• Half {hIdx + 1}: </span>
+                                                      <span className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>{half.dish?.dish_name}</span>
                                                       {half.order_item_toppings && half.order_item_toppings.length > 0 && (
                                                         <span className="text-zinc-500 block ml-3 italic">
-                                                          + Custom Toppings:{' '}
-                                                          {half.order_item_toppings
-                                                            .map(
-                                                              (t) =>
-                                                                `${t.topping?.topping_name} (+${formatPrice(
-                                                                  t.topping_price
-                                                                )})`
-                                                            )
-                                                            .join(', ')}
+                                                          + Custom Toppings: {half.order_item_toppings.map(t => `${t.topping?.topping_name} (+${formatPrice(t.topping_price)})`).join(', ')}
                                                         </span>
                                                       )}
                                                     </div>
                                                   ))}
                                                 </div>
-                                              )}
+                                              ))}
 
+                                              {/* Render regular toppings */}
                                               {!isCombo && !isHalfHalf && item.toppings && item.toppings.length > 0 && (
                                                 <p className="text-[11px] text-zinc-500 font-medium pt-1">
-                                                  + Toppings:{' '}
-                                                  {item.toppings
-                                                    .map(
-                                                      (t) =>
-                                                        `${t.topping?.topping_name} (+${formatPrice(t.topping_price)})`
-                                                    )
-                                                    .join(', ')}
+                                                  + Toppings: {item.toppings.map((t) => `${t.topping?.topping_name} (+${formatPrice(t.topping_price)})`).join(', ')}
                                                 </p>
                                               )}
                                               {isHalfHalf && item.toppings && item.toppings.length > 0 && (
                                                 <p className="text-[11px] text-zinc-500 font-medium pt-1">
-                                                  + Shared Toppings:{' '}
-                                                  {item.toppings
-                                                    .map(
-                                                      (t) =>
-                                                        `${t.topping?.topping_name} (+${formatPrice(t.topping_price)})`
-                                                    )
-                                                    .join(', ')}
+                                                  + Toppings: {item.toppings.map((t) => `${t.topping?.topping_name} (+${formatPrice(t.topping_price)})`).join(', ')}
                                                 </p>
                                               )}
 
                                               {item.order_item_note && (
-                                                <p className="text-[10px] bg-[#9f280a]/20 text-[#ff8b70] border border-[#9f280a]/30 px-2 py-0.5 mt-2 rounded inline-block font-semibold">
-                                                  Special requests: {item.order_item_note}
+                                                <p className={`text-[10px] border px-2 py-0.5 mt-2 rounded inline-block font-medium ${
+                                                  theme === 'dark' 
+                                                    ? 'bg-[#9f280a]/20 text-[#ff8b70] border-[#9f280a]/30' 
+                                                    : 'bg-red-50 text-red-600 border-red-200'
+                                                }`}>
+                                                  Special Request: {item.order_item_note}
                                                 </p>
                                               )}
-                                            </div>
-                                            <div className="text-[11px] text-zinc-400 font-bold tracking-wider mt-1 block">
-                                              Quantity: x{item.quantity}
                                             </div>
                                           </div>
                                         </div>
@@ -1943,7 +1956,9 @@ export default function ProfilePage() {
                                     </div>
                                     <div className="flex justify-between items-center text-zinc-500 gap-4">
                                       <span className="whitespace-nowrap">Shipping Fee:</span>
-                                      {order.shipping_fee > 0 ? (
+                                      {order.order_status.toLowerCase() === 'pending' && order.order_type === 'delivery' ? (
+                                        <span className="text-amber-500 font-bold whitespace-nowrap">Pending</span>
+                                      ) : order.shipping_fee > 0 ? (
                                         <span className={`whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
                                           {formatPrice(order.shipping_fee)}
                                         </span>

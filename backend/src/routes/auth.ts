@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login, getMe, logout, updateProfile, changePassword, uploadAvatar, deleteAvatar } from '../controllers/authController';
+import { register, login, googleLogin, getMe, logout, updateProfile, changePassword, uploadAvatar, deleteAvatar } from '../controllers/authController';
 import { verifyToken } from '../middleware/auth';
 import { createOtp, verifyOtp } from '../services/otpService';
 import { sendOtpEmail } from '../services/emailService';
@@ -94,6 +94,9 @@ router.post('/register', register);
 
 // POST /api/auth/login — Đăng nhập → trả JWT
 router.post('/login', login);
+
+// POST /api/auth/google-login — Đăng nhập bằng Google
+router.post('/google-login', googleLogin);
 
 // GET /api/auth/me — Thông tin user hiện tại (cần login)
 router.get('/me', verifyToken, getMe);

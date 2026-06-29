@@ -44,7 +44,7 @@ export function UserInfo() {
   return (
     <Dropdown isOpen={isOpen} setIsOpen={setIsOpen}>
       <DropdownTrigger className="cursor-pointer rounded align-middle ring-primary ring-offset-2 outline-none focus-visible:ring-1 dark:ring-offset-gray-dark">
-        <span className="sr-only">Account</span>
+        <span className="sr-only">Tài khoản</span>
 
         <figure className="flex items-center gap-3">
           <UserAvatar />
@@ -69,7 +69,7 @@ export function UserInfo() {
         className="border border-stroke bg-white shadow-md min-[230px]:min-w-70 dark:border-dark-3 dark:bg-gray-dark"
         align="end"
       >
-        <h2 className="sr-only">User Info</h2>
+        <h2 className="sr-only">Thông tin người dùng</h2>
 
         <figure className="flex items-center gap-2.5 px-5 py-3.5">
           <UserAvatar />
@@ -83,7 +83,9 @@ export function UserInfo() {
               {user.email}
             </div>
 
-            <div className="text-xs capitalize text-primary">{user.role}</div>
+            <div className="text-xs capitalize text-primary">
+              {user.role === "admin" ? "Quản trị viên" : user.role}
+            </div>
           </figcaption>
         </figure>
 
@@ -97,7 +99,7 @@ export function UserInfo() {
           >
             <UserIcon />
             <span className="mr-auto text-base font-medium">
-              View Profile
+              Xem trang cá nhân
             </span>
           </Link>
 
@@ -107,7 +109,7 @@ export function UserInfo() {
             className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2.25 ring-primary outline-0 hover:bg-gray-2 hover:text-dark focus-visible:ring-1 dark:hover:bg-dark-3 dark:hover:text-white"
           >
             <SettingsIcon />
-            <span className="mr-auto text-base font-medium">Settings</span>
+            <span className="mr-auto text-base font-medium">Cài đặt</span>
           </Link>
         </div>
 
@@ -119,7 +121,7 @@ export function UserInfo() {
             onClick={handleLogout}
           >
             <LogOutIcon />
-            <span className="text-base font-medium">Log Out</span>
+            <span className="text-base font-medium">Đăng xuất</span>
           </button>
         </div>
       </DropdownContent>

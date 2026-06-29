@@ -43,7 +43,7 @@ export function OverviewCard({ label, data, Icon }: PropsType) {
           </dt>
 
           <dd className="sr-only">
-            {label} {isDecreasing ? "Decreased" : "Increased"} by{" "}
+            {label} {isDecreasing ? "giảm" : "tăng"}{" "}
             {data.growthRate}%
           </dd>
         </dl>

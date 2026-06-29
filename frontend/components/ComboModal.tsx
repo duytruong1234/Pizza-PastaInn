@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { formatPrice } from '@/lib/utils';
 import { X, Gift, ShoppingCart, Check, ChevronDown } from 'lucide-react';
-import { useCartStore } from '@/store/cartStore';
+import { useCartStore, CartItem } from '@/store/cartStore';
 import { useUI } from '@/components/UIProvider';
 import { API_BASE } from '@/lib/config';
 
@@ -56,10 +56,11 @@ interface ComboModalProps {
   comboPrice: number;
   comboDescription: string;
   imageUrl: string;
+  editCartItem?: CartItem | null;
 }
 
-export default function ComboModal({ isOpen, onClose, comboId, comboName, comboPrice, comboDescription, imageUrl }: ComboModalProps) {
-  const { addToCart } = useCartStore();
+export default function ComboModal({ isOpen, onClose, comboId, comboName, comboPrice, comboDescription, imageUrl, editCartItem }: ComboModalProps) {
+  const { addToCart, removeFromCart } = useCartStore();
   const { toggleCart, isCartOpen } = useUI();
 
   const [comboDetail, setComboDetail] = useState<any>(null);
@@ -86,7 +87,14 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
     if (isOpen) {
       fetchComboDetail();
       fetchToppings();
-      setQuantity(1);
+      if (editCartItem) {
+        setQuantity(editCartItem.quantity);
+        setNote(editCartItem.options?.notes || '');
+      } else {
+        setQuantity(1);
+        setNote('');
+        setSelectedToppings({});
+      }
       setSelections({});
       setPizzaDishSelections({});
       setPizzaDish2Selections({});
@@ -111,10 +119,38 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
       const spaData = await spaRes.json();
       const crustsData = await crustsRes.json();
       const hhData = await hhRes.json();
-      if (pizzaData.success) setPizzaToppingsList(pizzaData.data);
-      if (spaData.success) setSpaghettiToppingsList(spaData.data);
+
+      let pToppings: any[] = [];
+      let sToppings: any[] = [];
+
+      if (pizzaData.success) {
+        pToppings = pizzaData.data;
+        setPizzaToppingsList(pizzaData.data);
+      }
+      if (spaData.success) {
+        sToppings = spaData.data;
+        setSpaghettiToppingsList(spaData.data);
+      }
       if (crustsData.success) setCrustsList(crustsData.data);
       if (hhData.success) setHalfHalfPrices(hhData.data || []);
+
+      if (editCartItem && editCartItem.combo_selections) {
+        const resolvedToppings: Record<string, any[]> = {};
+        editCartItem.combo_selections.forEach((sel: any) => {
+          if (sel.toppings && sel.toppings.length > 0) {
+            resolvedToppings[sel.group_id] = sel.toppings.map((st: any) => {
+              const found = pToppings.find((t: any) => t.topping_id === st.topping_id)
+                || sToppings.find((t: any) => t.topping_id === st.topping_id);
+              return found || {
+                topping_id: st.topping_id,
+                topping_name: st.name || '',
+                price_topping: st.price || 0
+              };
+            });
+          }
+        });
+        setSelectedToppings(prev => ({ ...prev, ...resolvedToppings }));
+      }
     } catch (e) { }
   };
 
@@ -144,38 +180,90 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
         const initialPizzaHalf: Record<string, boolean> = {};
         const initialPizzaCrusts: Record<string, number> = {};
         const initialPastaCats: Record<string, string> = {};
+        const initialSelectedToppings: Record<string, any[]> = {};
 
-        json.data.groups?.forEach((group: any) => {
-          if (group.combo_items?.length > 0) {
+        if (editCartItem && editCartItem.combo_selections) {
+          editCartItem.combo_selections.forEach((sel: any) => {
+            const group = json.data.groups?.find((g: any) => g.group_id === sel.group_id);
+            if (!group) return;
+
             const groupNameLower = group.group_name.toLowerCase();
             const isPizzaGroup = groupNameLower.includes('pizza');
             const isPastaGroup = groupNameLower.includes('spaghetti') || groupNameLower.includes('grantin') || groupNameLower.includes('risotto') || groupNameLower.includes('gratin');
-            const isFixed = group.combo_items.length === 1 && group.min_select === group.max_select;
 
-            if (isFixed) {
-              initialSelections[group.group_id] = [String(group.combo_items[0].combo_item_id)];
-            } else if (isPizzaGroup) {
-              const firstItem = group.combo_items[0];
-              initialPizzaDishes[group.group_id] = firstItem.dish_price.dish_id;
+            let matchItem = group.combo_items?.find((item: any) => item.dish_price_id === sel.dish_price_id);
+            if (!matchItem && sel.is_half_half && sel.halves && sel.halves.length > 0) {
+              matchItem = group.combo_items?.find((item: any) => item.dish_price?.dish?.category_id);
+            }
 
-              const secondItem = group.combo_items.find((i: any) => i.dish_price.dish_id !== firstItem.dish_price.dish_id) || firstItem;
-              initialPizzaDishes2[group.group_id] = secondItem.dish_price.dish_id;
-              initialPizzaHalf[group.group_id] = false;
+            if (matchItem) {
+              initialSelections[sel.group_id] = [String(matchItem.combo_item_id)];
+            }
 
-              setPizzaSizeSelections(prev => ({ ...prev, [group.group_id]: firstItem.dish_price.size_id || 0 }));
-              initialPizzaCrusts[group.group_id] = firstItem.dish_price.crust_id || 0;
-              initialSelections[group.group_id] = [String(firstItem.combo_item_id)];
-            } else if (isPastaGroup) {
+            if (isPizzaGroup) {
+              if (sel.is_half_half && sel.halves && sel.halves.length >= 2) {
+                initialPizzaHalf[sel.group_id] = true;
+                initialPizzaDishes[sel.group_id] = sel.halves[0].dish_id;
+                initialPizzaDishes2[sel.group_id] = sel.halves[1].dish_id;
+              } else {
+                initialPizzaHalf[sel.group_id] = false;
+                if (matchItem?.dish_price?.dish_id) {
+                  initialPizzaDishes[sel.group_id] = matchItem.dish_price.dish_id;
+                }
+              }
+
+              if (matchItem?.dish_price) {
+                setPizzaSizeSelections(prev => ({ ...prev, [sel.group_id]: matchItem.dish_price.size_id || 0 }));
+                initialPizzaCrusts[sel.group_id] = matchItem.dish_price.crust_id || 0;
+              }
+            } else if (isPastaGroup && matchItem) {
               const catMap = getPastaCatMap(group.combo_items);
-              const firstCat = ['Risotto', 'Grantin', 'Spaghetti'].find(c => catMap[c] && catMap[c].length > 0) || 'Other';
-              initialPastaCats[group.group_id] = firstCat;
-              const firstItemInCat = catMap[firstCat]?.[0] || group.combo_items[0];
-              initialSelections[group.group_id] = [String(firstItemInCat.combo_item_id)];
-            } else {
+              const cat = ['Risotto', 'Grantin', 'Spaghetti'].find(c =>
+                catMap[c]?.some((i: any) => i.combo_item_id === matchItem.combo_item_id)
+              ) || 'Other';
+              initialPastaCats[sel.group_id] = cat;
+            }
+          });
+
+          // Fallback cho nhóm nào không có trong combo_selections của editCartItem
+          json.data.groups?.forEach((group: any) => {
+            if (!initialSelections[group.group_id] && group.combo_items?.length > 0) {
               initialSelections[group.group_id] = [String(group.combo_items[0].combo_item_id)];
             }
-          }
-        });
+          });
+        } else {
+          json.data.groups?.forEach((group: any) => {
+            if (group.combo_items?.length > 0) {
+              const groupNameLower = group.group_name.toLowerCase();
+              const isPizzaGroup = groupNameLower.includes('pizza');
+              const isPastaGroup = groupNameLower.includes('spaghetti') || groupNameLower.includes('grantin') || groupNameLower.includes('risotto') || groupNameLower.includes('gratin');
+              const isFixed = group.combo_items.length === 1 && group.min_select === group.max_select;
+
+              if (isFixed) {
+                initialSelections[group.group_id] = [String(group.combo_items[0].combo_item_id)];
+              } else if (isPizzaGroup) {
+                const firstItem = group.combo_items[0];
+                initialPizzaDishes[group.group_id] = firstItem.dish_price.dish_id;
+
+                const secondItem = group.combo_items.find((i: any) => i.dish_price.dish_id !== firstItem.dish_price.dish_id) || firstItem;
+                initialPizzaDishes2[group.group_id] = secondItem.dish_price.dish_id;
+                initialPizzaHalf[group.group_id] = false;
+
+                setPizzaSizeSelections(prev => ({ ...prev, [group.group_id]: firstItem.dish_price.size_id || 0 }));
+                initialPizzaCrusts[group.group_id] = firstItem.dish_price.crust_id || 0;
+                initialSelections[group.group_id] = [String(firstItem.combo_item_id)];
+              } else if (isPastaGroup) {
+                const catMap = getPastaCatMap(group.combo_items);
+                const firstCat = ['Risotto', 'Grantin', 'Spaghetti'].find(c => catMap[c] && catMap[c].length > 0) || 'Other';
+                initialPastaCats[group.group_id] = firstCat;
+                const firstItemInCat = catMap[firstCat]?.[0] || group.combo_items[0];
+                initialSelections[group.group_id] = [String(firstItemInCat.combo_item_id)];
+              } else {
+                initialSelections[group.group_id] = [String(group.combo_items[0].combo_item_id)];
+              }
+            }
+          });
+        }
 
         setSelections(initialSelections);
         setPizzaDishSelections(initialPizzaDishes);
@@ -241,7 +329,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
     });
   });
 
-  const totalPrice = (comboPrice + extraItemsPrice + extraToppingsPrice) * quantity;
+  const totalPrice = ((comboDetail?.combo_price ?? comboPrice) + extraItemsPrice + extraToppingsPrice) * quantity;
 
   const sortedGroups = [...(comboDetail?.groups || [])].sort((a: any, b: any) => {
     const desc = (comboDetail?.description || '').toLowerCase();
@@ -261,7 +349,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
     return getPos(a.group_name) - getPos(b.group_name);
   });
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     const selectedItemNames: string[] = [];
     const structuredItems: any[] = [];
     // Dữ liệu lựa chọn combo để lưu vào bảng cart_item_combos
@@ -352,12 +440,16 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
       });
     });
 
+    if (editCartItem) {
+      await removeFromCart(editCartItem.id);
+    }
+
     addToCart({
       type: 'combo',
       combo_id: comboId,
       dish_id: comboId,
       name: comboName,
-      price: comboPrice + extraItemsPrice + extraToppingsPrice,
+      price: (comboDetail?.combo_price ?? comboPrice) + extraItemsPrice + extraToppingsPrice,
       quantity,
       imageUrl,
       // Dữ liệu lựa chọn combo để lưu vào DB (bảng cart_item_combos + cart_item_half + cart_item_topping)
@@ -837,7 +929,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
             className="w-auto px-8 sm:px-12 bg-[#f0c14b] hover:bg-[#e2b036] text-black font-bold h-12 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2.5 text-base"
           >
             <ShoppingCart size={20} />
-            Add to Cart : {formatPrice(totalPrice)}
+            {editCartItem ? "Update Cart" : "Add to Cart"} : {formatPrice(totalPrice)}
           </button>
         </div>
 

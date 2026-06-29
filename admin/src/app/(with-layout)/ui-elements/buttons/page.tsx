@@ -5,60 +5,60 @@ import { Button } from "@/components/ui-elements/button";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Buttons",
+  title: "Nút bấm - Pizza & Pasta Inn Admin",
 };
 
 export default function Page() {
   return (
     <>
-      <Breadcrumb pageName="Buttons" />
+      <Breadcrumb pageName="Nút bấm" />
 
       <div className="space-y-10">
-        <ShowcaseSection title="Normal Button">
+        <ShowcaseSection title="Nút bấm thường">
           <div className="mb-7.5 flex flex-wrap gap-5 xl:gap-20">
-            <Button label="Button" variant="primary" />
-            <Button label="Button" variant="primary" shape="rounded" />
-            <Button label="Button" variant="primary" shape="full" />
-            <Button label="Button" variant="outlinePrimary" shape="rounded" />
+            <Button label="Nút bấm" variant="primary" />
+            <Button label="Nút bấm" variant="primary" shape="rounded" />
+            <Button label="Nút bấm" variant="primary" shape="full" />
+            <Button label="Nút bấm" variant="outlinePrimary" shape="rounded" />
           </div>
 
           <div className="mb-7.5 flex flex-wrap gap-5 xl:gap-20">
-            <Button label="Button" variant="success" />
-            <Button label="Button" variant="success" shape="rounded" />
-            <Button label="Button" variant="success" shape="full" />
-            <Button label="Button" variant="outlineSuccess" shape="rounded" />
+            <Button label="Nút bấm" variant="success" />
+            <Button label="Nút bấm" variant="success" shape="rounded" />
+            <Button label="Nút bấm" variant="success" shape="full" />
+            <Button label="Nút bấm" variant="outlineSuccess" shape="rounded" />
           </div>
 
           <div className="flex flex-wrap gap-5 xl:gap-20">
-            <Button label="Button" variant="dark" />
-            <Button label="Button" variant="dark" shape="rounded" />
-            <Button label="Button" variant="dark" shape="full" />
-            <Button label="Button" variant="outlineDark" shape="rounded" />
+            <Button label="Nút bấm" variant="dark" />
+            <Button label="Nút bấm" variant="dark" shape="rounded" />
+            <Button label="Nút bấm" variant="dark" shape="full" />
+            <Button label="Nút bấm" variant="outlineDark" shape="rounded" />
           </div>
         </ShowcaseSection>
 
-        <ShowcaseSection title="Button With Icon">
+        <ShowcaseSection title="Nút bấm có biểu tượng">
           <div className="mb-7.5 flex flex-wrap gap-5 xl:gap-7.5">
             <Button
-              label="Button With Icon"
+              label="Nút kèm Icon"
               variant="primary"
               size="small"
               icon={<MessageOutlineIcon />}
             />
             <Button
-              label="Button With Icon"
+              label="Nút kèm Icon"
               variant="success"
               size="small"
               icon={<MessageOutlineIcon />}
             />
             <Button
-              label="Button With Icon"
+              label="Nút kèm Icon"
               variant="dark"
               size="small"
               icon={<MessageOutlineIcon />}
             />
             <Button
-              label="Button With Icon"
+              label="Nút kèm Icon"
               variant="outlinePrimary"
               size="small"
               icon={<MessageOutlineIcon />}
@@ -67,28 +67,28 @@ export default function Page() {
 
           <div className="mb-7.5 flex flex-wrap gap-5 xl:gap-7.5">
             <Button
-              label="Button With Icon"
+              label="Nút kèm Icon"
               variant="primary"
               shape="rounded"
               size="small"
               icon={<MessageOutlineIcon />}
             />
             <Button
-              label="Button With Icon"
+              label="Nút kèm Icon"
               variant="success"
               shape="rounded"
               size="small"
               icon={<MessageOutlineIcon />}
             />
             <Button
-              label="Button With Icon"
+              label="Nút kèm Icon"
               variant="dark"
               shape="rounded"
               size="small"
               icon={<MessageOutlineIcon />}
             />
             <Button
-              label="Button With Icon"
+              label="Nút kèm Icon"
               variant="outlinePrimary"
               shape="rounded"
               size="small"
@@ -98,28 +98,28 @@ export default function Page() {
 
           <div className="flex flex-wrap gap-5 xl:gap-7.5">
             <Button
-              label="Button With Icon"
+              label="Nút kèm Icon"
               variant="primary"
               shape="full"
               size="small"
               icon={<MessageOutlineIcon />}
             />
             <Button
-              label="Button With Icon"
+              label="Nút kèm Icon"
               variant="success"
               shape="full"
               size="small"
               icon={<MessageOutlineIcon />}
             />
             <Button
-              label="Button With Icon"
+              label="Nút kèm Icon"
               variant="dark"
               shape="full"
               size="small"
               icon={<MessageOutlineIcon />}
             />
             <Button
-              label="Button With Icon"
+              label="Nút kèm Icon"
               variant="outlinePrimary"
               shape="full"
               size="small"

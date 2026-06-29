@@ -78,7 +78,7 @@ export function CampaignVisitorsChart({ data }: PropsType) {
         options={options}
         series={[
           {
-            name: "Visitors",
+            name: "Lượt truy cập",
             data,
           },
         ]}

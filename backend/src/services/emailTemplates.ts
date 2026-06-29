@@ -62,6 +62,22 @@ function escapeHtml(text: string): string {
     .replace(/"/g, '&quot;');
 }
 
+function buildVietQrImageUrl(data: OrderEmailData): string {
+  const bankCode = (data.bank_name || 'MB').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  const accountNumber = (data.bank_account || '0944368230').replace(/\D/g, '');
+  const amount = Math.max(0, Math.round(Number(data.total_order) || 0));
+  const transferContent = data.transfer_content || `Thanh toan PizzaPastaInn DH ${data.order_id}`;
+  const accountName = data.bank_holder_name || 'PIZZA&PASTA INN';
+
+  const params = [
+    `amount=${encodeURIComponent(String(amount))}`,
+    `addInfo=${encodeURIComponent(transferContent)}`,
+    `accountName=${encodeURIComponent(accountName)}`,
+  ].join('&');
+
+  return `https://img.vietqr.io/image/${bankCode}-${accountNumber}-compact2.png?${params}`;
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // Shared HTML layout wrapper
 // ────────────────────────────────────────────────────────────────────────────
@@ -215,7 +231,13 @@ export function orderConfirmedSubject(data: OrderEmailData): string {
 export function orderConfirmedBody(data: OrderEmailData): string {
   let vietqrBlock = '';
   if (data.payment_method === 'vietqr') {
-    const qrUrl = `https://qr.sepay.vn/img?acc=${data.bank_account || '0944368230'}&bank=${data.bank_name || 'MB'}&amount=${data.total_order}&des=${data.transfer_content || `Thanh toan PizzaPastaInn DH ${data.order_id}`}`;
+    const bankName = data.bank_name || 'MB';
+    const bankAccount = data.bank_account || '0944368230';
+    const bankHolderName = data.bank_holder_name || 'PIZZA&PASTA INN';
+    const transferContent = data.transfer_content || `Thanh toan PizzaPastaInn DH ${data.order_id}`;
+    const qrUrl = buildVietQrImageUrl(data);
+    const qrUrlHtml = escapeHtml(qrUrl);
+
     vietqrBlock = `
     <!-- VietQR Payment -->
     <div style="margin:24px 0;padding:20px;background-color:#f0f7ff;border:1px solid #c8ddf5;border-radius:8px;">
@@ -223,19 +245,19 @@ export function orderConfirmedBody(data: OrderEmailData): string {
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
         <tr>
           <td style="padding:4px 0;color:#666;font-size:13px;width:160px;">Bank:</td>
-          <td style="padding:4px 0;color:#333;font-size:13px;font-weight:600;">${data.bank_name || 'MB Bank'}</td>
+          <td style="padding:4px 0;color:#333;font-size:13px;font-weight:600;">${escapeHtml(bankName)}</td>
         </tr>
         <tr>
           <td style="padding:4px 0;color:#666;font-size:13px;">Account Number:</td>
-          <td style="padding:4px 0;color:#333;font-size:13px;font-weight:600;">${data.bank_account || '0944368230'}</td>
+          <td style="padding:4px 0;color:#333;font-size:13px;font-weight:600;">${escapeHtml(bankAccount)}</td>
         </tr>
         <tr>
           <td style="padding:4px 0;color:#666;font-size:13px;">Account Holder Name:</td>
-          <td style="padding:4px 0;color:#333;font-size:13px;font-weight:600;">${data.bank_holder_name || 'PIZZA&PASTA INN'}</td>
+          <td style="padding:4px 0;color:#333;font-size:13px;font-weight:600;">${escapeHtml(bankHolderName)}</td>
         </tr>
         <tr>
           <td style="padding:4px 0;color:#666;font-size:13px;">Payment Description:</td>
-          <td style="padding:4px 0;color:#c0392b;font-size:13px;font-weight:700;">${data.transfer_content || `Thanh toan PizzaPastaInn DH ${data.order_id}`}</td>
+          <td style="padding:4px 0;color:#c0392b;font-size:13px;font-weight:700;">${escapeHtml(transferContent)}</td>
         </tr>
         <tr>
           <td style="padding:4px 0;color:#666;font-size:13px;">Amount:</td>
@@ -244,7 +266,11 @@ export function orderConfirmedBody(data: OrderEmailData): string {
       </table>
       <div style="text-align:center;margin-top:16px;">
         <p style="margin:0 0 8px;color:#666;font-size:12px;">Scan QR Code to pay:</p>
-        <img src="${qrUrl}" alt="QR Code" style="width:200px;height:200px;border:3px solid #fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);" />
+        <img src="${qrUrlHtml}" alt="VietQR payment QR code" width="200" height="200" style="display:block;margin:0 auto;width:200px;height:200px;border:3px solid #fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);" />
+        <p style="margin:10px 0 0;color:#666;font-size:12px;">
+          If the QR image does not show, open it here:
+          <a href="${qrUrlHtml}" target="_blank" rel="noopener noreferrer" style="color:#1a56a0;font-weight:700;text-decoration:underline;">Open QR Code</a>
+        </p>
       </div>
       <p style="margin:12px 0 0;color:#c0392b;font-size:12px;font-weight:600;">Note: Please transfer the exact amount and description for the system to automatically confirm your payment.</p>
     </div>`;
@@ -447,4 +473,3 @@ export function otpEmailBody(otp: string, email: string): string {
 
   return wrapHtml(otpEmailSubject(), content, 'Pizza&PastaInn', '');
 }
-

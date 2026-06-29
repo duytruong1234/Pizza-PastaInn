@@ -2,14 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
+    dangerouslyAllowLocalIP: true,
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'flagcdn.com',
+        hostname: '**', // Cho phép tất cả domain (dev)
       },
       {
         protocol: 'http',
@@ -17,12 +14,9 @@ const nextConfig: NextConfig = {
         port: '4000',
       },
       {
-        protocol: 'https',
-        hostname: '*.onrender.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'res.cloudinary.com',
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: '4000',
       },
     ],
   },

@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
+import { shouldBypassNextImageOptimization } from '@/lib/image';
 import { X, ShoppingCart, Check } from 'lucide-react';
-import { useCartStore } from '@/store/cartStore';
+import { useCartStore, CartItem } from '@/store/cartStore';
 import { useUI } from '@/components/UIProvider';
 import { API_BASE } from '@/lib/config';
 
@@ -21,10 +22,11 @@ interface ProductModalProps {
     imageUrl: string;
   };
   categoryName?: string;
+  editCartItem?: CartItem | null;
 }
 
-export default function ProductModal({ isOpen, onClose, product, categoryName }: ProductModalProps) {
-  const { addToCart } = useCartStore();
+export default function ProductModal({ isOpen, onClose, product, categoryName, editCartItem }: ProductModalProps) {
+  const { addToCart, removeFromCart } = useCartStore();
   const { toggleCart, isCartOpen } = useUI();
 
   const [sizes, setSizes] = useState<any[]>([]);
@@ -37,15 +39,21 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
   const [note, setNote] = useState('');
   const [quantity, setQuantity] = useState(1);
 
+
   useEffect(() => {
     const mainContainer = document.getElementById('main-scroll-container');
     if (isOpen) {
       if (mainContainer) mainContainer.style.overflow = 'hidden';
       fetchData();
       // Đặt lại trạng thái
-      setQuantity(1);
-      setSelectedToppings([]);
-      setNote('');
+      if (editCartItem) {
+        setQuantity(editCartItem.quantity);
+        setNote(editCartItem.options?.notes || '');
+      } else {
+        setQuantity(1);
+        setSelectedToppings([]);
+        setNote('');
+      }
     } else {
       if (mainContainer) mainContainer.style.overflow = '';
     }
@@ -69,16 +77,28 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
         const availableSizeIds = new Set(product.prices?.map(p => p.size_id).filter(id => id !== null));
         const availableSizes = sizesData.data.filter((s: any) => availableSizeIds.has(s.size_id));
         setSizes(availableSizes);
-        if (availableSizes.length > 0) setSelectedSize(availableSizes[0]);
-        else setSelectedSize(null);
+        if (editCartItem && editCartItem.options?.size) {
+          const match = availableSizes.find((s: any) => s.size_name === editCartItem.options?.size);
+          setSelectedSize(match || availableSizes[0] || null);
+        } else if (availableSizes.length > 0) {
+          setSelectedSize(availableSizes[0]);
+        } else {
+          setSelectedSize(null);
+        }
       }
       if (crustsData.success) {
         // Lọc đế bánh thực tế có trong giá sản phẩm
         const availableCrustIds = new Set(product.prices?.map(p => p.crust_id).filter(id => id !== null));
         const availableCrusts = crustsData.data.filter((c: any) => availableCrustIds.has(c.crust_id));
         setCrusts(availableCrusts);
-        if (availableCrusts.length > 0) setSelectedCrust(availableCrusts[0]);
-        else setSelectedCrust(null);
+        if (editCartItem && editCartItem.options?.crust) {
+          const match = availableCrusts.find((c: any) => c.crust_name === editCartItem.options?.crust);
+          setSelectedCrust(match || availableCrusts[0] || null);
+        } else if (availableCrusts.length > 0) {
+          setSelectedCrust(availableCrusts[0]);
+        } else {
+          setSelectedCrust(null);
+        }
       }
     } catch (error) {
       console.error('Error fetching options:', error);
@@ -113,6 +133,12 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
       if (data.success) {
         const sortedToppings = data.data.sort((a: any, b: any) => a.topping_id - b.topping_id);
         setToppings(sortedToppings);
+        if (editCartItem && editCartItem.options?.toppings) {
+          const matchedToppings = sortedToppings.filter((t: any) =>
+            editCartItem.options?.toppings?.some((et: any) => et.topping_id === t.topping_id)
+          );
+          setSelectedToppings(matchedToppings);
+        }
       }
     } catch (error) {
       console.error('Error fetching toppings:', error);
@@ -120,6 +146,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
   };
 
   if (!isOpen) return null;
+  const productImageSrc = product.imageUrl || 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=600&auto=format&fit=crop';
 
   const handleToppingToggle = (topping: any) => {
     setSelectedToppings(prev =>
@@ -145,9 +172,13 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
   const extraToppingsPrice = selectedToppings.reduce((sum, t) => sum + (t.price_topping || 0), 0);
   const totalPrice = (currentBasePrice + extraToppingsPrice) * quantity;
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     const dish_price_id = exactDishPriceObj?.dish_price_id
       || `${product.id}_default`;
+
+    if (editCartItem) {
+      await removeFromCart(editCartItem.id);
+    }
 
     addToCart({
       type: 'regular',
@@ -188,9 +219,11 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
           {/* Bên trái: Hình ảnh */}
           <div className="w-full md:w-1/2 relative h-[30vh] min-h-[200px] md:h-auto md:min-h-full shrink-0">
             <Image
-              src={product.imageUrl || 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=600&auto=format&fit=crop'}
+              src={productImageSrc}
               alt={product.name}
               fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              unoptimized={shouldBypassNextImageOptimization(productImageSrc)}
               className="object-cover"
             />
           </div>
@@ -323,7 +356,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName }:
                 className="w-full sm:w-[90%] bg-[#f0c14b] hover:bg-[#e2b036] text-black font-bold py-3 px-6 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2.5 text-base"
               >
                 <ShoppingCart size={20} />
-                <span>{"Add to Cart"} : {formatPrice(totalPrice)}</span>
+                <span>{editCartItem ? "Update Cart" : "Add to Cart"} : {formatPrice(totalPrice)}</span>
               </button>
             </div>
 

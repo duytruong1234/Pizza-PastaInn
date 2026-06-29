@@ -3,6 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
+import { shouldBypassNextImageOptimization } from '@/lib/image';
 import { useAddToCart } from '@/hooks/useAddToCart';
 import ProductModal from './ProductModal';
 import ComboModal from './ComboModal';
@@ -41,6 +42,7 @@ export default function ProductCard({
   const isImageLeft = layout === 'image-left';
   const { handleAddToCart } = useAddToCart();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const productImageSrc = imageUrl || 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=300&auto=format&fit=crop';
 
   // Màu nền theo chủ đề
   const bgClass = theme === 'green' ? 'bg-[#294c29]/60' : 'bg-[#9f280a]/60';
@@ -63,9 +65,11 @@ export default function ProductCard({
           {/* Placeholder image using a generic pizza URL since we don't have real images yet */}
           <div className="w-full h-full bg-pizza-cream relative">
             <Image
-              src={imageUrl || 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=300&auto=format&fit=crop'}
+              src={productImageSrc}
               alt={name}
               fill
+              sizes="(max-width: 768px) 128px, (max-width: 1024px) 160px, 192px"
+              unoptimized={shouldBypassNextImageOptimization(productImageSrc)}
               className="object-cover"
             />
           </div>

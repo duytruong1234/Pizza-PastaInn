@@ -26,7 +26,12 @@ export const useAuthStore = create<AuthStore>()(
       user: null,
       token: null,
       setAuth: (user, token) => set({ user, token }),
-      clearAuth: () => set({ user: null, token: null }),
+      clearAuth: () => {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('lookup_phone_number');
+        }
+        set({ user: null, token: null });
+      },
       isAdmin: () => get().user?.role === 'admin',
       isCashier: () => get().user?.role === 'cashier',
       canManageOrders: () => ['admin', 'cashier'].includes(get().user?.role ?? ''),

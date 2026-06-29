@@ -10,6 +10,24 @@ interface RequestWithRawBody extends Request {
 
 const router = Router();
 
+function extractOrderIdFromContent(content: string): number | null {
+  const patterns = [
+    /PIZZA[^a-z0-9]*PASTA[^a-z0-9]*INN[^0-9]*(\d+)/i,
+    /PIZZA[^a-z0-9]*INN[^0-9]*(\d+)/i,
+    /(?:^|[^a-z0-9])(?:DH|DON\s*HANG|ORDER|ORD|MA\s*DON)[^0-9]*(\d+)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = content.match(pattern);
+    const orderId = match ? parseInt(match[1], 10) : NaN;
+    if (Number.isInteger(orderId) && orderId > 0) {
+      return orderId;
+    }
+  }
+
+  return null;
+}
+
 /**
  * POST /api/webhooks/sepay
  * Nhận thông báo giao dịch chuyển khoản từ SePay Webhook và cập nhật trạng thái đơn hàng trong PostgreSQL.
@@ -90,7 +108,8 @@ router.post(['/sepay', '/'], async (req: RequestWithRawBody, res: Response) => {
     console.log('[SePay Webhook] Xác thực chữ ký thành công.');
 
     // 3. Phân tích nội dung thanh toán từ SePay
-    const { transferAmount, content, transactionDate } = req.body;
+    const transferAmount = req.body.transferAmount ?? req.body.amount ?? req.body.amountIn;
+    const content = String(req.body.content ?? req.body.description ?? req.body.transferContent ?? req.body.transactionContent ?? '').trim();
 
     if (!content) {
       console.warn('[SePay Webhook] Giao dịch không chứa nội dung chuyển khoản.');
@@ -102,18 +121,17 @@ router.post(['/sepay', '/'], async (req: RequestWithRawBody, res: Response) => {
 
     console.log(`[SePay Webhook] Nội dung chuyển khoản nhận được: "${content}" | Số tiền: ${transferAmount} VND`);
 
-    // 4. Trích xuất order_id từ nội dung chuyển khoản bằng Regex
-    // Định dạng mong đợi: PIZZA_INN_<order_id> (chấp nhận cả các biến thể như PIZZAINN<id>, PIZZA INN <id> do một số ngân hàng tự động loại bỏ ký tự gạch dưới)
-    const match = content.match(/PIZZA[-_\s]*INN[-_\s]*(\d+)/i);
-    if (!match) {
-      console.log(`[SePay Webhook] Không tìm thấy mã đơn hàng dạng PIZZA_INN_<id> trong nội dung: "${content}"`);
+    // 4. Trích xuất order_id từ nội dung chuyển khoản bằng Regex.
+    // Hỗ trợ các dạng: "Thanh toan PizzaPastaInn DH 22", "PIZZA_INN_22", "PIZZAINN22", "DH22".
+    const orderId = extractOrderIdFromContent(content);
+    if (!orderId) {
+      console.log(`[SePay Webhook] Không tìm thấy mã đơn hàng trong nội dung: "${content}"`);
       return res.status(200).json({
         success: false,
         message: 'No matching order ID found in content'
       });
     }
 
-    const orderId = parseInt(match[1], 10);
     console.log(`[SePay Webhook] Trích xuất thành công mã đơn hàng ID: ${orderId}`);
 
     // 5. Đối chiếu đơn hàng trong cơ sở dữ liệu PostgreSQL qua Prisma

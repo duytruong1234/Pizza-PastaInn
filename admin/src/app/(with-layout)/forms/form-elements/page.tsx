@@ -14,40 +14,40 @@ import { Switch } from "@/components/FormElements/switch";
 import { ShowcaseSection } from "@/components/Layouts/showcase-section";
 
 export const metadata: Metadata = {
-  title: "Form Elements",
+  title: "Thành phần biểu mẫu - Pizza & Pasta Inn Admin",
 };
 
 export default function FormElementsPage() {
   return (
     <>
-      <Breadcrumb pageName="Form Elements" />
+      <Breadcrumb pageName="Thành phần biểu mẫu" />
 
       <div className="grid grid-cols-1 gap-9 sm:grid-cols-2">
         <div className="flex flex-col gap-9">
-          <ShowcaseSection title="Input Fields" className="space-y-5.5 p-6.5!">
+          <ShowcaseSection title="Trường nhập liệu" className="space-y-5.5 p-6.5!">
             <InputGroup
-              label="Default input"
-              placeholder="Default input text"
+              label="Trường nhập mặc định"
+              placeholder="Văn bản nhập mặc định"
               type="text"
             />
 
             <InputGroup
-              label="Active input"
-              placeholder="Active input text"
+              label="Trường nhập đang hoạt động"
+              placeholder="Văn bản nhập đang hoạt động"
               active
               type="text"
             />
 
             <InputGroup
-              label="Disabled input"
-              placeholder="Disabled input text"
+              label="Trường nhập bị vô hiệu hóa"
+              placeholder="Văn bản nhập bị vô hiệu hóa"
               type="text"
               disabled
             />
           </ShowcaseSection>
 
           <ShowcaseSection
-            title="Toggle switch input"
+            title="Công tắc bật/tắt"
             className="space-y-5.5 p-6.5!"
           >
             <Switch />
@@ -56,54 +56,54 @@ export default function FormElementsPage() {
             <Switch background="dark" />
           </ShowcaseSection>
 
-          <ShowcaseSection title="Time and date" className="space-y-5.5 p-6.5!">
+          <ShowcaseSection title="Thời gian và ngày tháng" className="space-y-5.5 p-6.5!">
             <DatePickerOne />
             <DatePickerTwo />
           </ShowcaseSection>
 
-          <ShowcaseSection title="File upload" className="space-y-5.5 p-6.5!">
+          <ShowcaseSection title="Tải tập tin lên" className="space-y-5.5 p-6.5!">
             <InputGroup
               type="file"
               fileStyleVariant="style1"
-              label="Attach file"
-              placeholder="Attach file"
+              label="Đính kèm tập tin"
+              placeholder="Đính kèm tập tin"
             />
 
             <InputGroup
               type="file"
               fileStyleVariant="style2"
-              label="Attach file"
-              placeholder="Attach file"
+              label="Đính kèm tập tin"
+              placeholder="Đính kèm tập tin"
             />
           </ShowcaseSection>
         </div>
 
         <div className="flex flex-col gap-9">
-          <ShowcaseSection title="Textarea Fields" className="space-y-6 p-6.5!">
+          <ShowcaseSection title="Trường văn bản lớn (Textarea)" className="space-y-6 p-6.5!">
             <TextAreaGroup
-              label="Default textarea"
-              placeholder="Default textarea"
+              label="Trường văn bản lớn mặc định"
+              placeholder="Nhập nội dung mặc định"
             />
 
             <TextAreaGroup
-              label="Active textarea"
-              placeholder="Active textarea"
+              label="Trường văn bản lớn đang hoạt động"
+              placeholder="Nhập nội dung đang hoạt động"
               active
             />
 
             <TextAreaGroup
-              label="Disabled textarea"
-              placeholder="Disabled textarea"
+              label="Trường văn bản lớn bị vô hiệu hóa"
+              placeholder="Nhập nội dung bị vô hiệu hóa"
               disabled
             />
           </ShowcaseSection>
 
-          <ShowcaseSection title="Select input" className="space-y-5.5 p-6.5!">
+          <ShowcaseSection title="Trường chọn (Select)" className="space-y-5.5 p-6.5!">
             <Select
-              label="Select Country"
+              label="Chọn quốc gia"
               items={[
-                { label: "United States", value: "USA" },
-                { label: "United Kingdom", value: "UK" },
+                { label: "Mỹ", value: "USA" },
+                { label: "Anh", value: "UK" },
                 { label: "Canada", value: "Canada" },
               ]}
               defaultValue="USA"
@@ -113,14 +113,14 @@ export default function FormElementsPage() {
           </ShowcaseSection>
 
           <ShowcaseSection
-            title="Checkbox and radio"
+            title="Hộp kiểm (Checkbox) và Nút chọn (Radio)"
             className="space-y-5.5 p-6.5!"
           >
-            <Checkbox label="Checkbox Text" />
-            <Checkbox label="Checkbox Text" withIcon="check" />
-            <Checkbox label="Checkbox Text" withIcon="x" />
-            <RadioInput label="Checkbox Text" />
-            <RadioInput label="Checkbox Text" variant="circle" />
+            <Checkbox label="Văn bản hộp kiểm" />
+            <Checkbox label="Văn bản hộp kiểm" withIcon="check" />
+            <Checkbox label="Văn bản hộp kiểm" withIcon="x" />
+            <RadioInput label="Văn bản nút chọn" />
+            <RadioInput label="Văn bản nút chọn" variant="circle" />
           </ShowcaseSection>
         </div>
       </div>

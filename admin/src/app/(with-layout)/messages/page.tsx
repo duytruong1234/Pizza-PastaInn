@@ -89,7 +89,7 @@ export default function MessagesPage() {
       }
     } catch (err) {
       console.error("Error loading chat room list:", err);
-      if (!silent) toast.error("Failed to load chat room list");
+      if (!silent) toast.error("Tải danh sách phòng chat thất bại");
     } finally {
       if (!silent) setLoadingRooms(false);
     }
@@ -105,7 +105,7 @@ export default function MessagesPage() {
       }
     } catch (err) {
       console.error("Error loading messages:", err);
-      if (!silent) toast.error("Failed to load message history");
+      if (!silent) toast.error("Tải lịch sử tin nhắn thất bại");
     } finally {
       if (!silent) setLoadingMessages(false);
     }
@@ -185,22 +185,22 @@ export default function MessagesPage() {
 
   // Action: Delete conversation
   const handleDeleteConversation = async (roomId: number) => {
-    if (!window.confirm("Warning: This action will permanently delete this conversation and all its messages. Are you sure you want to delete?")) return;
+    if (!window.confirm("Cảnh báo: Hành động này sẽ xóa vĩnh viễn cuộc hội thoại này và tất cả tin nhắn bên trong. Bạn có chắc chắn muốn xóa?")) return;
 
     try {
       const res = await api.delete(`/api/admin/chat/rooms/${roomId}`);
       if (res.data?.success) {
-        toast.success("Deleted conversation successfully");
+        toast.success("Xóa cuộc hội thoại thành công");
         setActiveRoomId(null);
         setMessages([]);
         setShowOptionsDropdown(false);
         fetchRooms(true);
       } else {
-        toast.error("Failed to delete conversation");
+        toast.error("Xóa cuộc hội thoại thất bại");
       }
     } catch (err) {
       console.error("Error deleting conversation:", err);
-      toast.error("Error connecting to the server");
+      toast.error("Lỗi kết nối đến máy chủ");
     }
   };
 
@@ -228,7 +228,7 @@ export default function MessagesPage() {
       }
     } catch (err) {
       console.error("Error sending response:", err);
-      toast.error("Failed to send message");
+      toast.error("Gửi tin nhắn thất bại");
     }
   };
 
@@ -253,7 +253,7 @@ export default function MessagesPage() {
       }
     } catch (err) {
       console.error("Error uploading image:", err);
-      toast.error("Failed to upload image");
+      toast.error("Tải ảnh lên thất bại");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -268,13 +268,13 @@ export default function MessagesPage() {
         room_status: status
       });
       if (res.data?.success) {
-        toast.success(`Room status changed successfully`);
+        toast.success(`Thay đổi trạng thái phòng chat thành công`);
         setShowOptionsDropdown(false);
         fetchRooms(true);
       }
     } catch (err) {
       console.error("Error updating room status:", err);
-      toast.error("Failed to update room status");
+      toast.error("Thay đổi trạng thái phòng chat thất bại");
     }
   };
 
@@ -294,7 +294,7 @@ export default function MessagesPage() {
       {/* ── BREADCRUMB & HEADER ROW ──────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-5 select-none shrink-0">
         <h1 className="text-[26px] font-extrabold text-[#1c2434] dark:text-white tracking-tight">
-          Messages
+          Tin nhắn hỗ trợ
         </h1>
       </div>
 
@@ -308,7 +308,7 @@ export default function MessagesPage() {
           <div className="p-5 pb-3 flex items-center justify-between select-none">
             <div className="flex items-center gap-2">
               <h2 className="text-[17px] font-extrabold text-[#1c2434] dark:text-white tracking-wide">
-                Active Conversations
+                Hội thoại đang hoạt động
               </h2>
               {rooms.filter(r => r.room_status !== 'closed').length > 0 && (
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#5c54e5] text-[10px] font-black text-white shadow-sm">
@@ -319,7 +319,7 @@ export default function MessagesPage() {
             <button
               onClick={() => fetchRooms()}
               className="text-gray-400 hover:text-[#5c54e5] transition-colors duration-200"
-              title="Refresh list"
+              title="Làm mới danh sách"
             >
               <RefreshCw size={15} className={loadingRooms ? "animate-spin text-[#5c54e5]" : ""} />
             </button>
@@ -330,7 +330,7 @@ export default function MessagesPage() {
             <div className="relative flex items-center">
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Tìm kiếm..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full rounded-md border border-[#e2e8f0] bg-[#f8fafc] py-2.5 pl-4 pr-10 text-xs font-semibold outline-none focus:bg-white focus:border-[#5c54e5] dark:border-dark-3 placeholder-gray-400 text-[#1c2434] dark:text-white dark:bg-transparent"
@@ -344,11 +344,11 @@ export default function MessagesPage() {
             {loadingRooms ? (
               <div className="flex flex-col items-center justify-center py-20 text-gray-400">
                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#5c54e5] border-t-transparent mb-2" />
-                <span className="text-xs font-bold">Loading chats...</span>
+                <span className="text-xs font-bold">Đang tải hội thoại...</span>
               </div>
             ) : filteredRooms.length === 0 ? (
               <div className="text-center py-16 text-gray-400 font-bold text-xs">
-                No conversations found
+                Không tìm thấy cuộc hội thoại nào
               </div>
             ) : (
               filteredRooms.map((room) => {
@@ -356,12 +356,12 @@ export default function MessagesPage() {
                 const isGuest = !room.customer_id;
                 const displayName = isGuest ? room.guest_name : room.customer?.username;
                 const displayPhone = isGuest ? room.guest_phone : room.customer?.phone;
-                const initials = displayName ? displayName.substring(0, 2).toUpperCase() : "G";
+                const initials = displayName ? displayName.substring(0, 2).toUpperCase() : "K";
 
                 const lastMsg = room.messages?.[0];
                 const lastMsgText = lastMsg
-                  ? lastMsg.message_text || "[Image]"
-                  : "No conversation yet";
+                  ? lastMsg.message_text || "[Hình ảnh]"
+                  : "Chưa có tin nhắn";
 
                 const statusColor = room.room_status === 'pending'
                   ? 'bg-amber-400'
@@ -390,7 +390,7 @@ export default function MessagesPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <h4 className="truncate text-sm font-extrabold text-[#1c2434] dark:text-white leading-snug">
-                          {displayName || "Guest Customer"}
+                          {displayName || "Khách vãng lai"}
                         </h4>
 
                         {/* Last message time + Unread badge */}
@@ -426,20 +426,20 @@ export default function MessagesPage() {
               <div className="bg-white border-b border-[#cbd5e1] px-6 py-4 flex items-center justify-between dark:bg-gray-dark dark:border-dark-3 shrink-0 select-none">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-[#f1f5f9] text-[#1c2434] font-black text-[12px] flex items-center justify-center border border-[#e2e8f0]">
-                    {(activeRoom.guest_name || activeRoom.customer?.username || "G").substring(0, 2).toUpperCase()}
+                    {(activeRoom.guest_name || activeRoom.customer?.username || "K").substring(0, 2).toUpperCase()}
                   </div>
                   <div>
                     <h3 className="text-sm font-extrabold text-[#1c2434] dark:text-white leading-snug">
-                      {activeRoom.guest_name || activeRoom.customer?.username || "Guest Customer"}
+                      {activeRoom.guest_name || activeRoom.customer?.username || "Khách vãng lai"}
                     </h3>
                     {isOnline ? (
                       <span className="text-[11px] font-bold text-emerald-500 leading-none mt-1.5 flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        Online
+                        Trực tuyến
                       </span>
                     ) : (
                       <span className="text-[11px] font-semibold text-gray-400 leading-none mt-1.5 block">
-                        Offline
+                        Ngoại tuyến
                       </span>
                     )}
                   </div>
@@ -457,21 +457,21 @@ export default function MessagesPage() {
                   {showOptionsDropdown && (
                     <div className="absolute right-0 mt-1.5 w-48 rounded-xl bg-white p-2 shadow-[0_10px_25px_rgba(0,0,0,0.06)] border border-[#e2e8f0] dark:bg-gray-dark dark:border-dark-3 z-50">
                       <div className="px-3 py-1.5 text-[9px] font-black text-gray-400 tracking-wider uppercase border-b border-[#f1f5f9] dark:border-dark-3 mb-1">
-                        Update Status
+                        Cập nhật trạng thái
                       </div>
                       <button
                         onClick={() => handleUpdateRoomStatus("active")}
                         className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all cursor-pointer"
                       >
                         <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-                        <span>Active</span>
+                        <span>Hoạt động</span>
                       </button>
                       <button
                         onClick={() => handleUpdateRoomStatus("closed")}
                         className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all cursor-pointer"
                       >
                         <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
-                        <span>Close Conversation</span>
+                        <span>Đóng cuộc hội thoại</span>
                       </button>
                       <div className="border-t border-[#f1f5f9] dark:border-dark-3 my-1"></div>
                       <button
@@ -479,7 +479,7 @@ export default function MessagesPage() {
                         className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all cursor-pointer"
                       >
                         <Trash2 size={13} className="text-rose-500 shrink-0" />
-                        <span>Delete Conversation</span>
+                        <span>Xóa cuộc hội thoại</span>
                       </button>
                     </div>
                   )}
@@ -494,14 +494,14 @@ export default function MessagesPage() {
                       {activeRoom.customer?.phone && (
                         <div className="flex items-center gap-1.5">
                           <Phone size={12} className="text-[#5c54e5] dark:text-indigo-400" />
-                          <span>Phone: <span className="font-extrabold text-[#1c2434] dark:text-zinc-100">{activeRoom.customer.phone}</span></span>
+                          <span>SĐT: <span className="font-extrabold text-[#1c2434] dark:text-zinc-100">{activeRoom.customer.phone}</span></span>
                         </div>
                       )}
                       {(activeRoom.customer?.addresses && activeRoom.customer.addresses.length > 0) && (
                         <div className="flex items-center gap-1.5 flex-1 min-w-0">
                           <MapPin size={12} className="text-[#5c54e5] dark:text-indigo-400 shrink-0" />
                           <span className="truncate">
-                            Address: <span className="font-extrabold text-[#1c2434] dark:text-zinc-100">
+                            Địa chỉ: <span className="font-extrabold text-[#1c2434] dark:text-zinc-100">
                               {(() => {
                                 const addr = activeRoom.customer.addresses.find(addr => addr.is_default)?.address_line 
                                              || activeRoom.customer.addresses[0]?.address_line;
@@ -526,13 +526,13 @@ export default function MessagesPage() {
                       {activeRoom.guest_phone && (
                         <div className="flex items-center gap-1.5">
                           <Phone size={12} className="text-amber-600" />
-                          <span>Phone: <span className="font-extrabold">{activeRoom.guest_phone}</span></span>
+                          <span>SĐT: <span className="font-extrabold">{activeRoom.guest_phone}</span></span>
                         </div>
                       )}
                       {activeRoom.guest_address && (
                         <div className="flex items-center gap-1.5 flex-1 min-w-0">
                           <MapPin size={12} className="text-amber-600 shrink-0" />
-                          <span className="truncate">Address: <span className="font-extrabold">{activeRoom.guest_address}</span></span>
+                          <span className="truncate">Địa chỉ: <span className="font-extrabold">{activeRoom.guest_address}</span></span>
                         </div>
                       )}
                     </>
@@ -545,18 +545,18 @@ export default function MessagesPage() {
                 {loadingMessages ? (
                   <div className="flex flex-col items-center justify-center py-20 text-gray-400">
                     <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#5c54e5] border-t-transparent mb-2" />
-                    <span className="text-xs font-bold">Loading messages...</span>
+                    <span className="text-xs font-bold">Đang tải tin nhắn...</span>
                   </div>
                 ) : messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 text-gray-400 select-none">
                     <MessageSquare className="w-12 h-12 mb-3 opacity-30 text-indigo-500 animate-pulse" />
-                    <p className="text-sm font-bold">No messages yet</p>
-                    <p className="text-xs text-gray-400 mt-1">Start chatting with the customer.</p>
+                    <p className="text-sm font-bold">Chưa có tin nhắn nào</p>
+                    <p className="text-xs text-gray-400 mt-1">Bắt đầu trò chuyện với khách hàng.</p>
                   </div>
                 ) : (
                   messages.map((msg) => {
                     const isAdmin = msg.sender_type === "admin";
-                    const senderName = activeRoom.guest_name || activeRoom.customer?.username || "Customer";
+                    const senderName = activeRoom.guest_name || activeRoom.customer?.username || "Khách hàng";
 
                     return (
                       <div
@@ -590,7 +590,7 @@ export default function MessagesPage() {
                                 >
                                   <img
                                     src={img.image_url}
-                                    alt="attachment"
+                                    alt="Hình đính kèm"
                                     className="max-h-[160px] w-full object-cover"
                                   />
                                 </a>
@@ -614,7 +614,7 @@ export default function MessagesPage() {
               {activeRoom.room_status === 'closed' && (
                 <div className="bg-zinc-50 border-t border-b border-[#cbd5e1] p-3 flex items-center justify-center gap-2 text-xs font-bold text-zinc-500 shrink-0 select-none">
                   <AlertTriangle size={14} className="text-amber-500 shrink-0" />
-                  <span>The conversation is closed. The next response message will reactivate the chat room.</span>
+                  <span>Cuộc hội thoại đã đóng. Tin nhắn phản hồi tiếp theo sẽ kích hoạt lại phòng chat.</span>
                 </div>
               )}
 
@@ -628,7 +628,7 @@ export default function MessagesPage() {
                   <div className="flex gap-2.5 pb-4 pt-1 px-1 shrink-0 select-none">
                     {previewImages.map((url, idx) => (
                       <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-stroke shrink-0 shadow-sm">
-                        <img src={url} alt="upload preview" className="w-full h-full object-cover" />
+                        <img src={url} alt="Xem trước ảnh" className="w-full h-full object-cover" />
                         <button
                           type="button"
                           onClick={() => setPreviewImages(prev => prev.filter((_, i) => i !== idx))}
@@ -649,7 +649,7 @@ export default function MessagesPage() {
                       type="text"
                       value={inputText}
                       onChange={(e) => setInputText(e.target.value)}
-                      placeholder={isUploading ? "Uploading image..." : "Enter message text..."}
+                      placeholder={isUploading ? "Đang tải ảnh lên..." : "Nhập nội dung tin nhắn..."}
                       disabled={isUploading}
                       className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-xl py-3.5 pl-5 pr-20 text-xs font-semibold outline-none focus:bg-white focus:border-[#5c54e5] dark:bg-dark-2 dark:border-dark-3 dark:focus:bg-transparent dark:text-zinc-100 placeholder-gray-400"
                     />
@@ -660,7 +660,7 @@ export default function MessagesPage() {
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         className="hover:text-[#5c54e5] transition-colors cursor-pointer"
-                        title="Attach image"
+                        title="Đính kèm ảnh"
                       >
                         <Paperclip size={19} />
                       </button>
@@ -680,7 +680,7 @@ export default function MessagesPage() {
                     type="submit"
                     disabled={isUploading || (!inputText.trim() && previewImages.length === 0)}
                     className="bg-[#5c54e5] text-white rounded-xl h-12 w-12 flex items-center justify-center shadow-[0_4px_10px_rgba(92,84,229,0.25)] hover:bg-[#4f46e5] active:scale-95 transition-all cursor-pointer disabled:opacity-50 shrink-0"
-                    title="Send"
+                    title="Gửi"
                   >
                     <Send size={18} className="transform rotate-45 -translate-x-[2px] -translate-y-[1px]" />
                   </button>
@@ -692,10 +692,10 @@ export default function MessagesPage() {
             <div className="flex-1 flex flex-col items-center justify-center text-gray-400 select-none">
               <MessageSquare className="w-16 h-16 mb-3 text-gray-300 dark:text-zinc-700 animate-bounce" />
               <h3 className="text-sm font-extrabold text-dark dark:text-white leading-snug">
-                Admin Support Chat
+                Hỗ trợ trực tuyến
               </h3>
               <p className="text-[12px] text-gray-400 mt-1 max-w-[280px] text-center font-semibold leading-relaxed">
-                Please select a conversation from the list on the left to start chatting with the customer.
+                Vui lòng chọn một cuộc trò chuyện từ danh sách bên trái để bắt đầu nhắn tin với khách hàng.
               </p>
             </div>
           )}

@@ -84,35 +84,14 @@ export class OrderService {
         userAddressId = addr.user_address_id;
       }
 
-      // 2. Nếu chưa có user, tạo guest user
-      let userId = input.user_id;
-      if (!userId && input.customer_phone) {
-        // Tìm user guest cũ theo phone
-        const existingUser = await tx.user.findFirst({
-          where: { phone: input.customer_phone, is_guest: true },
-        });
-        if (existingUser) {
-          userId = existingUser.user_id;
-        } else {
-          const guestUser = await tx.user.create({
-            data: {
-              username: input.customer_name || 'Khách',
-              phone: input.customer_phone,
-              email: input.customer_email || null,
-              role: 'customer',
-              is_guest: true,
-              user_status: true,
-              created_at: new Date(),
-            },
-          });
-          userId = guestUser.user_id;
-        }
-
+      // 2. Nếu chưa có user, không tạo guest user nữa, chỉ tạo address với user_id = null
+      let userId = input.user_id || null;
+      if (!userId) {
         // Tạo address cho guest nếu là delivery
         if (input.customer_address && !userAddressId) {
           const addr = await tx.userAddress.create({
             data: {
-              user_id: userId,
+              user_id: null,
               address_line: input.customer_address,
               is_default: true,
             },
@@ -121,73 +100,7 @@ export class OrderService {
         }
       }
 
-      // 3. Kiểm tra & trừ tồn kho (trong cùng transaction)
-      const dishReq: Record<number, number> = {};       // dish_id → tổng qty cần
-      const toppingReq: Record<number, number> = {};    // topping_id → tổng qty cần
-
-      // Helper: tra dish_id từ dish_price_id
-      const resolveDish = async (dpId: string, qty: number) => {
-        const dp = await tx.dishPrice.findUnique({ where: { dish_price_id: dpId } });
-        if (dp?.dish_id) dishReq[dp.dish_id] = (dishReq[dp.dish_id] || 0) + qty;
-      };
-      const addTopping = (tid: number, qty: number) => {
-        toppingReq[tid] = (toppingReq[tid] || 0) + qty;
-      };
-
-      for (const item of input.items) {
-        // Regular
-        if (item.type === 'regular' && item.dish_price_id) {
-          await resolveDish(item.dish_price_id, item.quantity);
-        }
-        // Toppings trực tiếp
-        if (item.toppings) {
-          for (const t of item.toppings) addTopping(t.topping_id, (t.quantity || 1) * item.quantity);
-        }
-        // Half-half
-        if (item.type === 'half_half' && item.halves) {
-          for (const h of item.halves) {
-            dishReq[h.dish_id] = (dishReq[h.dish_id] || 0) + item.quantity;
-            if (h.toppings) for (const t of h.toppings) addTopping(t.topping_id, (t.quantity || 1) * item.quantity);
-          }
-        }
-        // Combo
-        if (item.type === 'combo' && item.combo_selections) {
-          for (const sel of item.combo_selections) {
-            if (!sel.is_half_half && sel.dish_price_id) await resolveDish(sel.dish_price_id, item.quantity);
-            if (sel.is_half_half && sel.halves) {
-              for (const h of sel.halves) {
-                dishReq[h.dish_id] = (dishReq[h.dish_id] || 0) + item.quantity;
-                if (h.toppings) for (const t of h.toppings) addTopping(t.topping_id, (t.quantity || 1) * item.quantity);
-              }
-            }
-            if (sel.toppings) for (const t of sel.toppings) addTopping(t.topping_id, (t.quantity || 1) * item.quantity);
-          }
-        }
-      }
-
-      // Validate & trừ stock món ăn
-      for (const [idStr, qty] of Object.entries(dishReq)) {
-        const id = Number(idStr);
-        const dish = await tx.dish.findUnique({ where: { dish_id: id } });
-        if (dish?.stock !== null && dish?.stock !== undefined && dish.stock < qty) {
-          throw new Error(`Món "${dish.dish_name}" đã hết hàng (còn ${dish.stock}, cần ${qty}).`);
-        }
-        if (dish?.stock !== null && dish?.stock !== undefined) {
-          await tx.dish.update({ where: { dish_id: id }, data: { stock: dish.stock - qty } });
-        }
-      }
-
-      // Validate & trừ stock topping
-      for (const [idStr, qty] of Object.entries(toppingReq)) {
-        const id = Number(idStr);
-        const tp = await tx.topping.findUnique({ where: { topping_id: id } });
-        if (tp?.stock !== null && tp?.stock !== undefined && tp.stock < qty) {
-          throw new Error(`Topping "${tp.topping_name}" đã hết hàng (còn ${tp.stock}, cần ${qty}).`);
-        }
-        if (tp?.stock !== null && tp?.stock !== undefined) {
-          await tx.topping.update({ where: { topping_id: id }, data: { stock: tp.stock - qty } });
-        }
-      }
+      // 3. (Bỏ tính năng kiểm tra & trừ tồn kho món ăn/topping)
 
       // Resolve customer details for orders table columns
       let customerName = input.customer_name;
@@ -365,28 +278,6 @@ export class OrderService {
       // 1. Lấy chi tiết đơn hàng
       const order = await tx.order.findUnique({
         where: { order_id },
-        include: {
-          items: {
-            include: {
-              toppings: true,
-              combos: {
-                include: {
-                  toppings: true,
-                  halves: {
-                    include: {
-                      order_item_toppings: true
-                    }
-                  }
-                }
-              },
-              halves: {
-                include: {
-                  order_item_toppings: true
-                }
-              }
-            }
-          }
-        }
       });
 
       if (!order) {
@@ -396,107 +287,6 @@ export class OrderService {
       // Nếu đơn hàng đã bị hủy rồi, không làm gì thêm
       if (order.order_status === 'cancelled') {
         return order;
-      }
-
-      // 2. Thu thập số lượng khôi phục tồn kho cho Món ăn và Topping
-      const dishUpdates: Record<number, number> = {};
-      const toppingUpdates: Record<number, number> = {};
-
-      const addDishRestore = (dishId: number, qty: number) => {
-        dishUpdates[dishId] = (dishUpdates[dishId] || 0) + qty;
-      };
-
-      const addToppingRestore = (toppingId: number, qty: number) => {
-        toppingUpdates[toppingId] = (toppingUpdates[toppingId] || 0) + qty;
-      };
-
-      for (const item of order.items) {
-        const itemQty = item.quantity || 1;
-
-        // A. Món thường (Regular)
-        if (!item.is_half_half && item.dish_price_id && !item.combo_id) {
-          const dp = await tx.dishPrice.findUnique({ where: { dish_price_id: item.dish_price_id } });
-          if (dp?.dish_id) addDishRestore(dp.dish_id, itemQty);
-        }
-
-        // B. Toppings trực tiếp
-        if (item.toppings && item.toppings.length > 0) {
-          for (const t of item.toppings) {
-            if (t.topping_id !== null) {
-              addToppingRestore(t.topping_id, t.quantity || itemQty);
-            }
-          }
-        }
-
-        // C. Nửa nửa (Half-half)
-        if (item.is_half_half && item.halves && item.halves.length > 0) {
-          for (const h of item.halves) {
-            if (h.dish_id) addDishRestore(h.dish_id, itemQty);
-            if (h.order_item_toppings && h.order_item_toppings.length > 0) {
-              for (const t of h.order_item_toppings) {
-                if (t.topping_id !== null) {
-                  addToppingRestore(t.topping_id, t.quantity || itemQty);
-                }
-              }
-            }
-          }
-        }
-
-        // D. Combo selections
-        if (item.combo_id && item.combos && item.combos.length > 0) {
-          for (const sel of item.combos) {
-            // Món thường trong combo
-            if (!sel.is_half_half && sel.dish_price_id) {
-              const dp = await tx.dishPrice.findUnique({ where: { dish_price_id: sel.dish_price_id } });
-              if (dp?.dish_id) addDishRestore(dp.dish_id, itemQty);
-            }
-            // Half-half trong combo
-            if (sel.is_half_half && sel.halves && sel.halves.length > 0) {
-              for (const h of sel.halves) {
-                if (h.dish_id) addDishRestore(h.dish_id, itemQty);
-                if (h.order_item_toppings && h.order_item_toppings.length > 0) {
-                  for (const t of h.order_item_toppings) {
-                    if (t.topping_id !== null) {
-                      addToppingRestore(t.topping_id, t.quantity || itemQty);
-                    }
-                  }
-                }
-              }
-            }
-            // Toppings của combo selection
-            if (sel.toppings && sel.toppings.length > 0) {
-              for (const t of sel.toppings) {
-                if (t.topping_id !== null) {
-                  addToppingRestore(t.topping_id, t.quantity || itemQty);
-                }
-              }
-            }
-          }
-        }
-      }
-
-      // 3. Khôi phục kho cho Dish
-      for (const [dishIdStr, qty] of Object.entries(dishUpdates)) {
-        const dishId = Number(dishIdStr);
-        const dish = await tx.dish.findUnique({ where: { dish_id: dishId } });
-        if (dish && dish.stock !== null && dish.stock !== undefined) {
-          await tx.dish.update({
-            where: { dish_id: dishId },
-            data: { stock: dish.stock + qty }
-          });
-        }
-      }
-
-      // 4. Khôi phục kho cho Topping
-      for (const [toppingIdStr, qty] of Object.entries(toppingUpdates)) {
-        const toppingId = Number(toppingIdStr);
-        const topping = await tx.topping.findUnique({ where: { topping_id: toppingId } });
-        if (topping && topping.stock !== null && topping.stock !== undefined) {
-          await tx.topping.update({
-            where: { topping_id: toppingId },
-            data: { stock: topping.stock + qty }
-          });
-        }
       }
 
       // 5. Cập nhật trạng thái hủy đơn

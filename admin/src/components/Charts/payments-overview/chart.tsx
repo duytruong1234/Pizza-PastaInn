@@ -91,11 +91,11 @@ export function PaymentsOverviewChart({ data }: PropsType) {
         options={options}
         series={[
           {
-            name: "Received",
+            name: "Đã nhận",
             data: data.received,
           },
           {
-            name: "Due",
+            name: "Chưa thanh toán",
             data: data.due,
           },
         ]}

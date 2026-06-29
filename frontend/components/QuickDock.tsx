@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Bot, ArrowUp, X, Send, Sparkles, MessageSquare, Paperclip, MoreVertical, Trash2, ImageIcon } from 'lucide-react';
+import { User, ArrowUp, X, Send, MessageSquare, Paperclip, MoreVertical, Trash2, ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import api from '../lib/api';
 import { useAuthStore } from '../store/authStore';
@@ -38,26 +38,25 @@ interface Message {
   images?: string[];
 }
 
+const getApiErrorMessage = (err: unknown) => {
+  const error = err as { response?: { status?: number; data?: { message?: string } }; message?: string };
+  const status = error.response?.status;
+  const message = error.response?.data?.message || error.message || 'Unknown error';
+  return status ? `${status}: ${message}` : message;
+};
+
+const getApiErrorStatus = (err: unknown) => {
+  return (err as { response?: { status?: number } }).response?.status;
+};
+
 export default function QuickDock() {
   const [contactOpen, setContactOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [inputText, setInputText] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-
-  // AI ChefBot Messages
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      sender: 'bot',
-      text: "Hi! Welcome to Pizza & Pasta Inn. I am ChefBot, your AI culinary assistant! How can I help you today? Ask me about pizzas, pasta, or look up your order! To speak with our staff directly, please click 'Talk to Staff' or send '1'. Thank you!",
-      timestamp: new Date(),
-    },
-  ]);
 
   // Live Chat with Admin states
-  const { user } = useAuthStore();
-  const [liveChatActive, setLiveChatActive] = useState(false);
+  const { user, clearAuth } = useAuthStore();
   const [showGuestForm, setShowGuestForm] = useState(false);
   const [activeRoomId, setActiveRoomId] = useState<number | null>(null);
   const [roomStatus, setRoomStatus] = useState<string>('pending');
@@ -94,11 +93,11 @@ export default function QuickDock() {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, dbMessages, isTyping, liveChatActive, showGuestForm]);
+  }, [dbMessages, showGuestForm]);
 
   // High-frequency Polling for new messages in Live Chat (every 2 seconds)
   useEffect(() => {
-    if (!liveChatActive || !activeRoomId || !chatOpen) return;
+    if (!activeRoomId || !chatOpen) return;
 
     const fetchLiveMessages = async () => {
       try {
@@ -107,7 +106,7 @@ export default function QuickDock() {
           setDbMessages(response.data.data);
         }
       } catch (err) {
-        console.error('Error updating live chat messages:', err);
+        console.warn('Error updating live chat messages:', getApiErrorMessage(err));
       }
     };
 
@@ -117,69 +116,7 @@ export default function QuickDock() {
     // Thiết lập vòng lặp polling 2 giây
     const interval = setInterval(fetchLiveMessages, 2000);
     return () => clearInterval(interval);
-  }, [liveChatActive, activeRoomId, chatOpen]);
-
-  // AI ChefBot Smart Responses
-  const handleSendChefBotMessage = (textToSend = inputText) => {
-    const trimmed = textToSend.trim();
-    if (!trimmed) return;
-
-    if (trimmed === '1') {
-      const userMsg: Message = {
-        id: Date.now(),
-        sender: 'user',
-        text: trimmed,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, userMsg]);
-      setInputText('');
-      startLiveChat();
-      return;
-    }
-
-    // Add user message
-    const userMsg: Message = {
-      id: Date.now(),
-      sender: 'user',
-      text: trimmed,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
-    setInputText('');
-    setIsTyping(true);
-
-    setTimeout(() => {
-      let botResponse = '';
-      const lower = trimmed.toLowerCase();
-
-      if (lower.includes('pizza') || lower.includes('bánh')) {
-        botResponse = 'Oh, you definitely have to try our signature Seafood Pizza (with fresh shrimp, squid, and creamy mozzarella cheese) or our legendary Double Cheese pizza! Would you like me to guide you to the menu?';
-      } else if (lower.includes('pasta') || lower.includes('mì')) {
-        botResponse = 'Mamma Mia! Our Carbonara Pasta with Cream Sauce is extremely famous, made with rich egg yolk sauce, crispy bacon, and parmesan cheese. We also have traditional Spaghetti Bolognese!';
-      } else if (lower.includes('track') || lower.includes('đơn hàng') || lower.includes('tra cứu') || lower.includes('lookup')) {
-        botResponse = 'Tracking your order is extremely simple! Just click on "Order Lookup" in the navigation menu and enter your phone number to check your real-time order status!';
-      } else if (lower.includes('hour') || lower.includes('giờ') || lower.includes('mở cửa') || lower.includes('open')) {
-        botResponse = 'We are pleased to serve you every day of the week from 9:00 AM to 10:00 PM! Order online to enjoy hot pizzas delivered within 45 minutes!';
-      } else if (lower.includes('promotion') || lower.includes('khuyến mãi') || lower.includes('giảm giá')) {
-        botResponse = 'Good news! We offer FREE SHIPPING on all orders over 200,000 đ! You can also find other attractive discount codes right at the Checkout page.';
-      } else if (lower.includes('nhân viên') || lower.includes('quản trị') || lower.includes('gặp admin') || lower.includes('live chat') || lower.includes('tư vấn')) {
-        botResponse = 'To speak directly with our support staff, please click the "Talk to Staff" button below or in the Support menu!';
-      } else {
-        botResponse = "That's a great question! I am ChefBot and I can recommend delicious dishes, share opening hours, or guide you on order lookups. Would you like to connect with our support staff?";
-      }
-
-      const botMsg: Message = {
-        id: Date.now() + 1,
-        sender: 'bot',
-        text: botResponse,
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, botMsg]);
-      setIsTyping(false);
-    }, 900);
-  };
+  }, [activeRoomId, chatOpen]);
 
   // Start Live Chat Mode
   const startLiveChat = async () => {
@@ -195,11 +132,16 @@ export default function QuickDock() {
         if (response.data?.success) {
           setActiveRoomId(response.data.data.room_id);
           setRoomStatus(response.data.data.room_status);
-          setLiveChatActive(true);
           setShowGuestForm(false);
         }
       } catch (err) {
-        console.error('Failed to initialize chat room for member:', err);
+        console.warn('Failed to initialize chat room for member:', getApiErrorMessage(err));
+        if (getApiErrorStatus(err) === 404) {
+          clearAuth();
+          setActiveRoomId(null);
+          setShowGuestForm(true);
+          return;
+        }
       }
       return;
     }
@@ -215,12 +157,11 @@ export default function QuickDock() {
           // Khách đã có phòng chat hoạt động trước đó
           setActiveRoomId(response.data.data.room_id);
           setRoomStatus(response.data.data.room_status);
-          setLiveChatActive(true);
           setShowGuestForm(false);
           return;
         }
       } catch (err) {
-        console.error('Error loading old guest chat room:', err);
+        console.warn('Error loading old guest chat room:', getApiErrorMessage(err));
       }
     }
 
@@ -270,11 +211,10 @@ export default function QuickDock() {
       if (response.data?.success) {
         setActiveRoomId(response.data.data.room_id);
         setRoomStatus(response.data.data.room_status);
-        setLiveChatActive(true);
         setShowGuestForm(false);
       }
     } catch (err) {
-      console.error('Error registering guest chat room:', err);
+      console.warn('Error registering guest chat room:', getApiErrorMessage(err));
     }
   };
 
@@ -294,14 +234,12 @@ export default function QuickDock() {
     formData.append('image', file);
 
     try {
-      // Gọi tới API upload dùng chung của backend
       const res = await api.post('/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
       if (res.data?.success) {
-        // Địa chỉ URL đầy đủ
         const fullUrl = res.data.data.url.startsWith('http') 
           ? res.data.data.url 
           : `${BACKEND_URL}${res.data.data.url}`;
@@ -309,7 +247,7 @@ export default function QuickDock() {
         setPreviewImages((prev) => [...prev, fullUrl]);
       }
     } catch (err) {
-      console.error('Error uploading image:', err);
+      console.warn('Error uploading image:', getApiErrorMessage(err));
       alert('Unable to upload image, please try again');
     } finally {
       setIsUploading(false);
@@ -322,18 +260,12 @@ export default function QuickDock() {
     setPreviewImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Send Message (Text & Images) in Live Chat or Bot
+  // Send Message (Text & Images) in Live Chat
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const trimmed = inputText.trim();
 
     if (!trimmed && previewImages.length === 0) return;
-
-    if (!liveChatActive) {
-      handleSendChefBotMessage();
-      return;
-    }
-
     if (!activeRoomId) return;
 
     try {
@@ -350,30 +282,11 @@ export default function QuickDock() {
       if (response.data?.success) {
         const newMsg = response.data.data;
         setDbMessages((prev) => [...prev, newMsg]);
-        setRoomStatus('pending'); // Reset room status back to pending/active when customer sends a message
+        setRoomStatus('pending');
       }
     } catch (err) {
-      console.error('Failed to send live chat message:', err);
+      console.warn('Failed to send live chat message:', getApiErrorMessage(err));
     }
-  };
-
-  const handleSuggestionClick = (suggestionText: string) => {
-    if (suggestionText === 'Talk to Staff') {
-      startLiveChat();
-    } else {
-      if (liveChatActive) {
-        setInputText(suggestionText);
-      } else {
-        handleSendChefBotMessage(suggestionText);
-      }
-    }
-  };
-
-  const openChefBot = () => {
-    setContactOpen(false);
-    setLiveChatActive(false);
-    setShowGuestForm(false);
-    setChatOpen(true);
   };
 
   return (
@@ -467,23 +380,18 @@ export default function QuickDock() {
               <span className="font-extrabold text-sm text-white">Facebook</span>
             </a>
 
-            {/* ChefBot AI Assistant & Live Chat Unified Card */}
+            {/* Live Chat with Staff Card */}
             <div 
-              onClick={openChefBot}
-              className="bg-[#110a04] border border-white/[0.04] p-3.5 rounded-2xl flex items-center gap-3 cursor-pointer hover:bg-[#1c1208]/90 active:scale-[0.97] transition-all shadow col-span-2"
+              onClick={() => {
+                setContactOpen(false);
+                startLiveChat();
+              }}
+              className="bg-[#110a04] border border-white/[0.04] p-3.5 rounded-2xl flex items-center gap-3 cursor-pointer hover:bg-[#1c1208]/90 active:scale-[0.97] transition-all shadow col-span-2 text-left"
             >
-              <svg className="w-10 h-10 shrink-0 text-[#ee2828]" viewBox="0 0 100 100" fill="currentColor">
-                <path d="M 12,40 C 7,40 7,64 12,64 Z" />
-                <rect x="9" y="24" width="3" height="20" rx="1.5" />
-                <path d="M 88,40 C 93,40 93,64 88,64 Z" />
-                <rect x="88" y="24" width="3" height="20" rx="1.5" />
-                <path d="M 50,15 C 24,15 10,29 10,50 C 10,60 14,70 20,76 L 16,87 C 15.7,87.8 16.5,88.5 17.2,88.2 L 29,82 C 35,84.5 42,85 50,85 C 76,85 90,71 90,50 C 90,29 76,15 50,15 Z" />
-                <rect x="22" y="32" width="56" height="36" rx="15" fill="white" />
-                <path d="M 32,50 Q 38,42 44,50" stroke="#ee2828" strokeWidth="4.5" strokeLinecap="round" fill="none" />
-                <path d="M 55,50 Q 62,42 68,50" stroke="#ee2828" strokeWidth="4.5" strokeLinecap="round" fill="none" />
-                <path d="M 46,58 Q 50,64 55,58" stroke="#ee2828" strokeWidth="4" strokeLinecap="round" fill="none" />
-              </svg>
-              <span className="font-extrabold text-sm text-white">ChefBot AI Assistant & Live Chat</span>
+              <div className="w-10 h-10 rounded-full bg-[#ee2828]/10 flex items-center justify-center text-[#ee2828] shrink-0">
+                <MessageSquare size={20} />
+              </div>
+              <span className="font-extrabold text-sm text-white">Chat với nhân viên hỗ trợ</span>
             </div>
           </div>
 
@@ -504,28 +412,14 @@ export default function QuickDock() {
               <div className="flex items-center gap-3">
                 {/* Profile Avatar */}
                 <div className="relative w-11 h-11 rounded-full bg-white flex items-center justify-center shrink-0 shadow-sm border border-white/20">
-                  {liveChatActive ? (
-                    <Bot className="w-6 h-6 text-[#ee2828]" />
-                  ) : (
-                    <svg className="w-8 h-8 text-[#ee2828]" viewBox="0 0 100 100" fill="currentColor">
-                      <path d="M 12,40 C 7,40 7,64 12,64 Z" />
-                      <rect x="9" y="24" width="3" height="20" rx="1.5" />
-                      <path d="M 88,40 C 93,40 93,64 88,64 Z" />
-                      <rect x="88" y="24" width="3" height="20" rx="1.5" />
-                      <path d="M 50,15 C 24,15 10,29 10,50 C 10,60 14,70 20,76 L 16,87 C 15.7,87.8 16.5,88.5 17.2,88.2 L 29,82 C 35,84.5 42,85 50,85 C 76,85 90,71 90,50 C 90,29 76,15 50,15 Z" />
-                      <rect x="22" y="32" width="56" height="36" rx="15" fill="white" />
-                      <path d="M 32,50 Q 38,42 44,50" stroke="#ee2828" strokeWidth="4.5" strokeLinecap="round" fill="none" />
-                      <path d="M 55,50 Q 62,42 68,50" stroke="#ee2828" strokeWidth="4.5" strokeLinecap="round" fill="none" />
-                      <path d="M 46,58 Q 50,64 55,58" stroke="#ee2828" strokeWidth="4" strokeLinecap="round" fill="none" />
-                    </svg>
-                  )}
+                  <User className="w-6 h-6 text-[#ee2828]" />
                 </div>
-                <div>
+                <div className="text-left">
                   <span className="text-zinc-300 text-[10px] font-semibold tracking-wide block uppercase leading-none">
-                    {liveChatActive ? 'Live Support' : 'Chat with'}
+                    Live Support
                   </span>
                   <h4 className="font-extrabold text-[15px] text-white tracking-wide leading-snug mt-0.5">
-                    {liveChatActive ? 'Support Staff' : 'ChefBot AI'}
+                    Support Staff
                   </h4>
                   <div className="flex items-center gap-1.5 mt-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -535,35 +429,6 @@ export default function QuickDock() {
               </div>
               
               <div className="flex items-center gap-2.5">
-                <button 
-                  onClick={() => {
-                    if (liveChatActive) {
-                      setLiveChatActive(false);
-                      setDbMessages([]);
-                      setShowGuestForm(false);
-                    } else {
-                      startLiveChat();
-                    }
-                  }}
-                  className={`text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full transition-all border ${
-                    liveChatActive
-                      ? "bg-white text-[#ee2828] border-white shadow"
-                      : "bg-transparent text-white border-white/30 hover:border-white"
-                  }`}
-                  title={liveChatActive ? "Switch to Auto Bot" : "Connect with Support Staff"}
-                >
-                  {liveChatActive ? (
-                    <span className="flex items-center gap-1">
-                      <Bot size={13} className="shrink-0" />
-                      <span>Ask Bot AI</span>
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1">
-                      <MessageSquare size={13} className="shrink-0" />
-                      <span>Talk to Staff</span>
-                    </span>
-                  )}
-                </button>
                 <button 
                   onClick={() => setChatOpen(false)}
                   className="text-white/80 hover:text-white transition-colors cursor-pointer"
@@ -584,7 +449,7 @@ export default function QuickDock() {
             </div>
           </div>
 
-          {/* ── Guest Details Form (Mockup Exactly) ────────────────────────────────── */}
+          {/* ── Guest Details Form ────────────────────────────────── */}
           {showGuestForm ? (
             <div className="flex-1 bg-[#1a1513] text-white p-6 flex flex-col justify-between overflow-y-auto custom-scrollbar">
               <div className="text-center pt-2">
@@ -596,7 +461,7 @@ export default function QuickDock() {
                 </p>
               </div>
 
-              <form onSubmit={handleGuestFormSubmit} className="space-y-4 my-5 flex-1 flex flex-col justify-center">
+              <form onSubmit={handleGuestFormSubmit} className="space-y-4 my-5 flex-1 flex flex-col justify-center text-left">
                 {/* Full name input */}
                 <div>
                   <label className="block text-[10px] font-black text-zinc-400 tracking-widest uppercase mb-1.5">
@@ -655,152 +520,77 @@ export default function QuickDock() {
                   Start Chatting
                 </button>
               </form>
-
-              <button 
-                type="button"
-                onClick={() => setShowGuestForm(false)}
-                className="text-zinc-500 hover:text-zinc-400 text-xs font-bold text-center underline cursor-pointer"
-              >
-                Back to ChefBot AI
-              </button>
             </div>
           ) : (
             <>
               {/* Messages List Area */}
               <div className="flex-1 overflow-y-auto overscroll-contain p-4.5 space-y-4 bg-[#f4f7f9] custom-scrollbar">
                 
-                {/* 1. Màn hình Live Chat với Admin */}
-                {liveChatActive ? (
-                  <>
-                    <div className="text-center py-1 select-none">
-                      <span className="px-3 py-1 bg-zinc-200/60 rounded-full text-zinc-500 text-[10px] font-extrabold uppercase tracking-wide">
-                        Live Support Channel
-                      </span>
-                      {roomStatus === 'closed' && (
-                        <div className="mt-2.5 bg-rose-50 border border-rose-100/50 rounded-xl p-2.5 text-rose-600 text-xs font-semibold leading-relaxed mx-2">
-                          Conversation has ended. Send a new message to reopen the chat.
-                        </div>
-                      )}
+                <div className="text-center py-1 select-none">
+                  <span className="px-3 py-1 bg-zinc-200/60 rounded-full text-zinc-500 text-[10px] font-extrabold uppercase tracking-wide">
+                    Live Support Channel
+                  </span>
+                  {roomStatus === 'closed' && (
+                    <div className="mt-2.5 bg-rose-50 border border-rose-100/50 rounded-xl p-2.5 text-rose-600 text-xs font-semibold leading-relaxed mx-2">
+                      Conversation has ended. Send a new message to reopen the chat.
                     </div>
+                  )}
+                </div>
 
-                    {dbMessages.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-12 text-zinc-400 select-none">
-                        <MessageSquare className="w-10 h-10 mb-2 opacity-30 animate-pulse text-[#ee2828]" />
-                        <p className="text-xs font-bold">No messages yet</p>
-                        <p className="text-[10px] text-zinc-400/80 mt-1">Say hello to start chatting with our staff!</p>
-                      </div>
-                    ) : (
-                      dbMessages.map((msg) => {
-                        const isAdmin = msg.sender_type === 'admin';
-                        return (
-                          <div 
-                            key={msg.message_id} 
-                            className={`flex gap-2.5 max-w-[85%] ${!isAdmin ? 'ml-auto flex-row-reverse' : ''}`}
-                          >
-                            <div 
-                              className={`px-4 py-2.5 text-[13px] font-medium leading-relaxed shadow-sm ${
-                                !isAdmin 
-                                  ? 'bg-[#007a3f] text-white rounded-[20px] rounded-tr-none' 
-                                  : 'bg-white border border-zinc-100/50 text-[#202c3d] rounded-[20px] rounded-tl-none'
-                              }`}
-                            >
-                              {msg.message_text && <p className="whitespace-pre-wrap">{msg.message_text}</p>}
-                              
-                              {/* Bong bóng hiển thị hình ảnh đính kèm */}
-                              {msg.images && msg.images.length > 0 && (
-                                <div className={`grid gap-1.5 mt-1.5 ${msg.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                                  {msg.images.map((img) => (
-                                    <a 
-                                      key={img.image_id} 
-                                      href={img.image_url} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="block rounded-lg overflow-hidden border border-black/5 hover:opacity-90 active:scale-95 transition-all shadow-inner"
-                                    >
-                                      <img 
-                                        src={img.image_url} 
-                                        alt="attachment" 
-                                        className="max-h-[140px] w-full object-cover" 
-                                      />
-                                    </a>
-                                  ))}
-                                </div>
-                              )}
-                              
-                              <span className={`block text-[9px] mt-1 select-none font-bold text-right ${!isAdmin ? 'text-white/60' : 'text-zinc-400'}`}>
-                                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </>
+                {dbMessages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-zinc-400 select-none">
+                    <MessageSquare className="w-10 h-10 mb-2 opacity-30 animate-pulse text-[#ee2828]" />
+                    <p className="text-xs font-bold">No messages yet</p>
+                    <p className="text-[10px] text-zinc-400/80 mt-1">Say hello to start chatting with our staff!</p>
+                  </div>
                 ) : (
-                  
-                  // 2. Màn hình AI ChefBot mặc định
-                  <>
-                    {messages.map((msg) => (
+                  dbMessages.map((msg) => {
+                    const isAdmin = msg.sender_type === 'admin';
+                    return (
                       <div 
-                        key={msg.id} 
-                        className={`flex gap-2.5 max-w-[85%] ${msg.sender === 'user' ? 'ml-auto flex-row-reverse' : ''}`}
+                        key={msg.message_id} 
+                        className={`flex gap-2.5 max-w-[85%] ${!isAdmin ? 'ml-auto flex-row-reverse' : ''}`}
                       >
                         <div 
-                          className={`px-4 py-2.5 text-[13px] font-medium leading-relaxed shadow-sm ${
-                            msg.sender === 'user' 
+                          className={`px-4 py-2.5 text-[13px] font-medium leading-relaxed shadow-sm text-left ${
+                            !isAdmin 
                               ? 'bg-[#007a3f] text-white rounded-[20px] rounded-tr-none' 
                               : 'bg-white border border-zinc-100/50 text-[#202c3d] rounded-[20px] rounded-tl-none'
                           }`}
                         >
-                          <p>{msg.text}</p>
+                          {msg.message_text && <p className="whitespace-pre-wrap">{msg.message_text}</p>}
+                          
+                          {/* Attached image previews */}
+                          {msg.images && msg.images.length > 0 && (
+                            <div className={`grid gap-1.5 mt-1.5 ${msg.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                              {msg.images.map((img) => (
+                                <a 
+                                  key={img.image_id} 
+                                  href={img.image_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="block rounded-lg overflow-hidden border border-black/5 hover:opacity-90 active:scale-95 transition-all shadow-inner"
+                                >
+                                  <img 
+                                    src={img.image_url} 
+                                    alt="attachment" 
+                                    className="max-h-[140px] w-full object-cover" 
+                                  />
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                          
+                          <span className={`block text-[9px] mt-1 select-none font-bold text-right ${!isAdmin ? 'text-white/60' : 'text-zinc-400'}`}>
+                            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
                         </div>
                       </div>
-                    ))}
-
-                    {isTyping && (
-                      <div className="flex gap-2.5 max-w-[85%]">
-                        <div className="bg-white border border-zinc-100/50 rounded-[20px] rounded-tl-none px-4 py-3.5 flex gap-1.5 items-center shadow-sm">
-                          <span className="w-1.5 h-1.5 bg-[#007a3f] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                          <span className="w-1.5 h-1.5 bg-[#007a3f] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                          <span className="w-1.5 h-1.5 bg-[#007a3f] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                        </div>
-                      </div>
-                    )}
-                  </>
+                    );
+                  })
                 )}
 
                 <div ref={messagesEndRef} />
-              </div>
-
-              {/* Suggestion Chips */}
-              <div className="px-4.5 py-2.5 bg-[#f4f7f9] border-t border-zinc-100/50 flex gap-2 overflow-x-auto whitespace-nowrap scrollbar-none shrink-0 select-none">
-                {!liveChatActive && (
-                  <button 
-                    onClick={() => handleSuggestionClick('Talk to Staff')}
-                    className="px-3.5 py-2 rounded-full bg-white border border-zinc-200 text-[#ee2828] border-[#ee2828]/20 text-[11px] font-black hover:bg-[#ee2828] hover:text-white transition-all shadow-sm cursor-pointer inline-flex items-center gap-1.5"
-                  >
-                    <span>Talk to Staff</span>
-                    <MessageSquare size={12} className="shrink-0" />
-                  </button>
-                )}
-                <button 
-                  onClick={() => handleSuggestionClick('Recommend a Pizza')}
-                  className="px-3.5 py-2 rounded-full bg-white border border-zinc-200/80 text-zinc-600 text-[11px] font-bold hover:border-[#ee2828] hover:text-[#ee2828] transition-all shadow-sm cursor-pointer"
-                >
-                  Recommend Pizza
-                </button>
-                <button 
-                  onClick={() => handleSuggestionClick('Recommend a Pasta')}
-                  className="px-3.5 py-2 rounded-full bg-white border border-zinc-200/80 text-zinc-600 text-[11px] font-bold hover:border-[#ee2828] hover:text-[#ee2828] transition-all shadow-sm cursor-pointer"
-                >
-                  Recommend Pasta
-                </button>
-                <button 
-                  onClick={() => handleSuggestionClick('lookup')}
-                  className="px-3.5 py-2 rounded-full bg-white border border-zinc-200/80 text-zinc-600 text-[11px] font-bold hover:border-[#ee2828] hover:text-[#ee2828] transition-all shadow-sm cursor-pointer"
-                >
-                  Order Lookup
-                </button>
               </div>
 
               {/* Form Input Area */}
@@ -849,16 +639,14 @@ export default function QuickDock() {
                 {/* Bottom Row: Actions & Send Button */}
                 <div className="flex items-center justify-between px-3.5 pt-1 pb-1">
                   <div className="flex items-center gap-3.5 text-zinc-400">
-                    {liveChatActive && (
-                      <button 
-                        type="button" 
-                        onClick={() => fileInputRef.current?.click()}
-                        className="hover:text-[#007a3f] transition-colors cursor-pointer" 
-                        title="Attach image"
-                      >
-                        <Paperclip size={20} />
-                      </button>
-                    )}
+                    <button 
+                      type="button" 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="hover:text-[#007a3f] transition-colors cursor-pointer" 
+                      title="Attach image"
+                    >
+                      <Paperclip size={20} />
+                    </button>
                   </div>
                   
                   {/* Send Button */}

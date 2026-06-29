@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 
 export const metadata: Metadata = {
-  title: "Sign In - Pizza & Pasta Inn Admin",
+  title: "Đăng nhập - Pizza & Pasta Inn Admin",
 };
 
 export default function SignIn() {
@@ -24,16 +24,15 @@ export default function SignIn() {
             </h2>
           </div>
           <p className="mb-3 text-xl font-medium text-dark dark:text-white">
-            Admin Sign In
+            Đăng nhập Quản trị viên
           </p>
 
           <h1 className="mb-4 text-2xl font-bold text-dark dark:text-white sm:text-heading-3">
-            Welcome Back!
+            Chào mừng quay trở lại!
           </h1>
 
           <p className="w-full max-w-[375px] font-medium text-dark-4 dark:text-dark-6">
-            Please log in with your admin account to manage the Pizza & Pasta Inn
-            system
+            Vui lòng đăng nhập bằng tài khoản quản trị để quản lý hệ thống Pizza & Pasta Inn
           </p>
 
           <div className="mt-31">

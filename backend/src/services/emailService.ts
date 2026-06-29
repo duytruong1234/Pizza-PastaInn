@@ -28,17 +28,17 @@ let _transporter: nodemailer.Transporter | null = null;
 
 function getTransporter(): nodemailer.Transporter {
   if (!_transporter) {
-    const emailUser = process.env.EMAIL_USER || process.env.GMAIL_USER;
-    const emailPass = process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD;
     _transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 465,
       secure: true,
-      family: 4, // ép dùng IPv4
       auth: {
-        user: emailUser,
-        pass: emailPass,
-      }
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD,
+      },
+      // Ép buộc kết nối bằng IPv4 do các môi trường host như Render thường không hỗ trợ định tuyến IPv6,
+      // dẫn đến lỗi ENETUNREACH khi tự động phân giải và kết nối tới địa chỉ IPv6 của Gmail.
+      family: 4,
     } as any);
   }
   return _transporter;
@@ -269,11 +269,8 @@ export async function buildOrderEmailData(orderId: number): Promise<OrderEmailDa
 // ────────────────────────────────────────────────────────────────────────────
 
 async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
-  const emailUser = process.env.EMAIL_USER || process.env.GMAIL_USER;
-  const emailPass = process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD;
-
-  if (!emailUser || !emailPass) {
-    console.warn('[Email] Chua cau hinh EMAIL_USER/EMAIL_PASS hoac GMAIL_USER/GMAIL_APP_PASSWORD. Bo qua gui email.');
+  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+    console.warn('[Email] Chua cau hinh GMAIL_USER/GMAIL_APP_PASSWORD. Bo qua gui email.');
     return false;
   }
 
@@ -284,7 +281,7 @@ async function sendEmail(to: string, subject: string, html: string): Promise<boo
 
   try {
     const info = await getTransporter().sendMail({
-      from: `"Pizza&PastaInn" <${emailUser}>`,
+      from: `"Pizza&PastaInn" <${process.env.GMAIL_USER}>`,
       to,
       subject,
       html,

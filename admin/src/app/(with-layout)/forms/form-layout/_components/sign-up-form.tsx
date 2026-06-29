@@ -3,38 +3,38 @@ import { ShowcaseSection } from "@/components/Layouts/showcase-section";
 
 export function SignUpForm() {
   return (
-    <ShowcaseSection title="Sign Up Form" className="p-6.5!">
+    <ShowcaseSection title="Biểu mẫu đăng ký" className="p-6.5!">
       <form action="#">
         <InputGroup
-          label="Name"
+          label="Họ tên"
           type="text"
-          placeholder="Enter full name"
+          placeholder="Nhập họ và tên"
           className="mb-4.5"
         />
 
         <InputGroup
           label="Email"
           type="email"
-          placeholder="Enter email address"
+          placeholder="Nhập địa chỉ email"
           className="mb-4.5"
         />
 
         <InputGroup
-          label="Password"
+          label="Mật khẩu"
           type="password"
-          placeholder="Enter password"
+          placeholder="Nhập mật khẩu"
           className="mb-4.5"
         />
 
         <InputGroup
-          label="Re-type Password"
+          label="Nhập lại mật khẩu"
           type="password"
-          placeholder="Re-type password"
+          placeholder="Nhập lại mật khẩu"
           className="mb-5.5"
         />
 
         <button className="flex w-full justify-center rounded-lg bg-primary p-[13px] font-medium text-white hover:bg-opacity-90">
-          Sign Up
+          Đăng ký
         </button>
       </form>
     </ShowcaseSection>

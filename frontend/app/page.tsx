@@ -5,6 +5,48 @@ import CategoryNav from '@/components/CategoryNav';
 import CartSidebar from '@/components/CartSidebar';
 import ProductCard from '@/components/ProductCard';
 import { SearchResultsBanner, EmptyState } from '@/components/PageComponents';
+import { BACKEND_URL } from '@/lib/config';
+
+const FALLBACK_PRODUCT_IMAGE = 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=300&auto=format&fit=crop';
+
+const getImageUrl = (imagePath: string | null) => {
+  if (!imagePath) return '';
+  if (imagePath.startsWith('http')) return imagePath;
+  return `${BACKEND_URL}${imagePath}`;
+};
+
+const hasRealProductImage = (imagePath: string | null) => {
+  if (!imagePath?.trim()) return false;
+  return !imagePath.includes('images.unsplash.com/photo-1513104890138-7c749659a591');
+};
+
+const getComboImagePath = (combo: { image?: string | null; image_combo?: string | null }) => {
+  return combo.image_combo || combo.image || null;
+};
+
+const sortProductsByRealImage = <T extends { hasRealImage?: boolean; originalIndex?: number }>(items: T[]) => {
+  return [...items].sort((a, b) => {
+    const imagePriority = Number(Boolean(b.hasRealImage)) - Number(Boolean(a.hasRealImage));
+    if (imagePriority !== 0) return imagePriority;
+    return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
+  });
+};
+
+const formatIngredientsText = (text: string) => {
+  if (!text) return '';
+  // Clean up spacing around parentheses: ( 10 pieces ) -> (10 pieces)
+  let cleaned = text.replace(/\(\s+/g, '(').replace(/\s+\)/g, ')');
+  // Make spaces inside parentheses non-breaking: (10 pieces) -> (10\u00a0pieces)
+  cleaned = cleaned.replace(/\(([^)]+)\)/g, (match, content) => {
+    return `(${content.replace(/\s+/g, '\u00a0')})`;
+  });
+  // Correct common typos dynamically
+  cleaned = cleaned
+    .replace(/Garilc/gi, 'Garlic')
+    .replace(/Gralic/gi, 'Garlic')
+    .replace(/Grantin/gi, 'Gratin');
+  return cleaned;
+};
 
 export default async function Home(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const searchParams = await props.searchParams;
@@ -42,18 +84,26 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
       if (res.ok) {
         const json = await res.json();
         if (json.success) {
-          products = json.data.map((combo: any, index: number) => ({
-            id: combo.combo_id,
-            name: combo.combo_name,
-            ingredients: (combo.description || '').split(',').map((s: string) => s.trim()).filter(Boolean).join('\n') || (combo.groups || []).map((g: any) => g.group_name).join('\n') || '',
-            price: combo.combo_price || 0,
-            dish_price_id: null,
-            prices: [],
-            theme: index % 2 === 0 ? 'green' : 'red',
-            layout: index % 2 === 0 ? 'image-left' : 'image-right',
-            imageUrl: combo.image || 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=300&auto=format&fit=crop',
-            isCombo: true
-          }));
+          products = json.data.map((combo: any, index: number) => {
+            const comboImagePath = getComboImagePath(combo);
+            return {
+              id: combo.combo_id,
+              name: combo.combo_name,
+              ingredients: formatIngredientsText(
+                (combo.description || '').split(',').map((s: string) => s.trim()).filter(Boolean).join('\n') ||
+                (combo.groups || []).map((g: any) => g.group_name).join('\n') || ''
+              ),
+              price: combo.combo_price || 0,
+              dish_price_id: null,
+              prices: [],
+              hasRealImage: hasRealProductImage(comboImagePath),
+              originalIndex: index,
+              theme: index % 2 === 0 ? 'green' : 'red',
+              layout: index % 2 === 0 ? 'image-left' : 'image-right',
+              imageUrl: getImageUrl(comboImagePath) || FALLBACK_PRODUCT_IMAGE,
+              isCombo: true
+            };
+          });
         }
       }
     } else {
@@ -91,13 +141,15 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
             products = dishData.map((dish: any, index: number) => ({
               id: dish.dish_id,
               name: dish.dish_name,
-              ingredients: dish.ingredient || '',
+              ingredients: formatIngredientsText(dish.ingredient || ''),
               price: dish.prices?.[0]?.dish_price || 0,
               dish_price_id: dish.prices?.[0]?.dish_price_id || null,
               prices: dish.prices || [],
+              hasRealImage: hasRealProductImage(dish.image),
+              originalIndex: index,
               theme: index % 2 === 0 ? 'green' : 'red',
               layout: index % 2 === 0 ? 'image-left' : 'image-right',
-              imageUrl: dish.image || 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=300&auto=format&fit=crop'
+              imageUrl: getImageUrl(dish.image) || FALLBACK_PRODUCT_IMAGE
             }));
           }
         }
@@ -110,18 +162,26 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
           if (comboRes.ok) {
             const comboJson = await comboRes.json();
             if (comboJson.success) {
-              const comboProducts = comboJson.data.map((combo: any, index: number) => ({
-                id: combo.combo_id,
-                name: combo.combo_name,
-                ingredients: (combo.description || '').split(',').map((s: string) => s.trim()).filter(Boolean).join('\n') || (combo.groups || []).map((g: any) => g.group_name).join('\n') || '',
-                price: combo.combo_price || 0,
-                dish_price_id: null,
-                prices: [],
-                theme: index % 2 === 0 ? 'green' : 'red',
-                layout: index % 2 === 0 ? 'image-left' : 'image-right',
-                imageUrl: combo.image || 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=300&auto=format&fit=crop',
-                isCombo: true
-              }));
+              const comboProducts = comboJson.data.map((combo: any, index: number) => {
+                const comboImagePath = getComboImagePath(combo);
+                return {
+                  id: combo.combo_id,
+                  name: combo.combo_name,
+                  ingredients: formatIngredientsText(
+                    (combo.description || '').split(',').map((s: string) => s.trim()).filter(Boolean).join('\n') ||
+                    (combo.groups || []).map((g: any) => g.group_name).join('\n') || ''
+                  ),
+                  price: combo.combo_price || 0,
+                  dish_price_id: null,
+                  prices: [],
+                  hasRealImage: hasRealProductImage(comboImagePath),
+                  originalIndex: products.length + index,
+                  theme: index % 2 === 0 ? 'green' : 'red',
+                  layout: index % 2 === 0 ? 'image-left' : 'image-right',
+                  imageUrl: getImageUrl(comboImagePath) || FALLBACK_PRODUCT_IMAGE,
+                  isCombo: true
+                };
+              });
               products = [...products, ...comboProducts];
             }
           }
@@ -142,6 +202,8 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
       p.ingredients.toLowerCase().includes(lowerQuery)
     );
   }
+
+  products = sortProductsByRealImage(products);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-[#0a0a0a] font-sans">

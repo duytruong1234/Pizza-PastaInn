@@ -98,6 +98,7 @@ router.get('/orders', async (req: AuthRequest, res: Response): Promise<void> => 
     const status = req.query.status as string | undefined;
     const userId = req.query.userId as string | undefined;
     const phone = req.query.phone as string | undefined;
+    const date = req.query.date as string | undefined;
 
     const where: Record<string, any> = {};
     if (status) where.order_status = status;
@@ -110,11 +111,21 @@ router.get('/orders', async (req: AuthRequest, res: Response): Promise<void> => 
       ];
     }
 
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      const start = new Date(`${date}T00:00:00`);
+      const end = new Date(`${date}T23:59:59.999`);
+      where.created_at = {
+        gte: start,
+        lte: end,
+      };
+    }
+
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
         where,
         include: {
           user: { select: { user_id: true, username: true, email: true, phone: true } },
+          store: true,
           items: {
             include: {
               order: false,
@@ -236,6 +247,7 @@ router.get('/orders/:id', async (req: AuthRequest, res: Response): Promise<void>
       include: {
         user: { select: { user_id: true, username: true, email: true, phone: true } },
         user_address: true,
+        store: true,
         items: {
           include: {
             dish_price: {

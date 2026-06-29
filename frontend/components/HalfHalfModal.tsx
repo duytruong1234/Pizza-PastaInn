@@ -4,10 +4,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronDown, ShoppingCart } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
-import { useCartStore } from '@/store/cartStore';
-import { API_BASE } from '@/lib/config';
+import { useCartStore, CartItem } from '@/store/cartStore';
+import { API_BASE, BACKEND_URL } from '@/lib/config';
 
-export default function HalfHalfModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+export default function HalfHalfModal({ isOpen, onClose, editCartItem = null }: { isOpen: boolean; onClose: () => void; editCartItem?: CartItem | null }) {
   const CustomSelect = ({ value, options, onChange }: { value: any, options: { value: any, label: string }[], onChange: (val: any) => void }) => {
     const [isSelectOpen, setIsSelectOpen] = useState(false);
     const [openUpwards, setOpenUpwards] = useState(false);
@@ -62,7 +62,7 @@ export default function HalfHalfModal({ isOpen, onClose }: { isOpen: boolean; on
       </div>
     );
   };
-  const { addToCart } = useCartStore();
+  const { addToCart, removeFromCart } = useCartStore();
 
   const [allDishes, setAllDishes] = useState<any[]>([]);
   const [pizzas, setPizzas] = useState<any[]>([]);
@@ -84,9 +84,14 @@ export default function HalfHalfModal({ isOpen, onClose }: { isOpen: boolean; on
     if (isOpen) {
       if (mainContainer) mainContainer.style.overflow = 'hidden';
       fetchData();
-      setQuantity(1);
-      setNote('');
-      setSelectedToppingIds([]);
+      if (editCartItem) {
+        setQuantity(editCartItem.quantity);
+        setNote(editCartItem.options?.notes || '');
+      } else {
+        setQuantity(1);
+        setNote('');
+        setSelectedToppingIds([]);
+      }
     } else {
       if (mainContainer) mainContainer.style.overflow = '';
     }
@@ -119,20 +124,42 @@ export default function HalfHalfModal({ isOpen, onClose }: { isOpen: boolean; on
         setAllDishes(dishes.data);
         const validPizzas = dishes.data.filter((p: any) => !p.dish_name.toLowerCase().includes('half-half') && !p.dish_name.toLowerCase().includes('half half'));
         setPizzas(validPizzas);
-        if (validPizzas.length > 0) {
+        if (editCartItem && editCartItem.halves && editCartItem.halves.length >= 2) {
+          setFirstHalfId(editCartItem.halves[0].dish_id);
+          setSecondHalfId(editCartItem.halves[1].dish_id);
+        } else if (validPizzas.length > 0) {
           setFirstHalfId(validPizzas[0].dish_id);
           setSecondHalfId(validPizzas[Math.min(1, validPizzas.length - 1)].dish_id);
         }
       }
       if (sz.success) {
         setSizes(sz.data);
-        if (sz.data.length > 0) setSelectedSizeId(sz.data[0].size_id);
+        if (editCartItem && editCartItem.options?.size) {
+          const match = sz.data.find((s: any) => s.size_name === editCartItem.options?.size);
+          setSelectedSizeId(match ? match.size_id : sz.data[0]?.size_id || null);
+        } else if (sz.data.length > 0) {
+          setSelectedSizeId(sz.data[0].size_id);
+        }
       }
       if (cr.success) {
-        setCrusts(cr.data.filter((c: any) => c.is_visible !== false && c.crust_name !== 'None'));
-        if (cr.data.length > 0) setSelectedCrustId(cr.data[0].crust_id);
+        const filteredCrusts = cr.data.filter((c: any) => c.is_visible !== false && c.crust_name !== 'None');
+        setCrusts(filteredCrusts);
+        if (editCartItem && editCartItem.options?.crust) {
+          const match = filteredCrusts.find((c: any) => c.crust_name === editCartItem.options?.crust);
+          setSelectedCrustId(match ? match.crust_id : filteredCrusts[0]?.crust_id || null);
+        } else if (filteredCrusts.length > 0) {
+          setSelectedCrustId(filteredCrusts[0].crust_id);
+        }
       }
-      if (tp.success) setToppings(tp.data);
+      if (tp.success) {
+        setToppings(tp.data);
+        if (editCartItem && editCartItem.options?.toppings) {
+          const matchedIds = tp.data
+            .filter((t: any) => editCartItem.options?.toppings?.some((et: any) => et.topping_id === t.topping_id))
+            .map((t: any) => t.topping_id);
+          setSelectedToppingIds(matchedIds);
+        }
+      }
     } catch (e) {
       console.error(e);
     }
@@ -169,7 +196,7 @@ export default function HalfHalfModal({ isOpen, onClose }: { isOpen: boolean; on
     );
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     const dish1 = pizzas.find(p => p.dish_id === firstHalfId);
     const dish2 = pizzas.find(p => p.dish_id === secondHalfId);
     const sizeObj = sizes.find(s => s.size_id === selectedSizeId);
@@ -187,6 +214,10 @@ export default function HalfHalfModal({ isOpen, onClose }: { isOpen: boolean; on
       if (dp) dishPriceId = dp.dish_price_id;
     }
 
+    if (editCartItem) {
+      await removeFromCart(editCartItem.id);
+    }
+
     addToCart({
       type: 'half_half',
       dish_id: dish1?.dish_id || 0,
@@ -194,7 +225,7 @@ export default function HalfHalfModal({ isOpen, onClose }: { isOpen: boolean; on
       name: label,
       price: basePrice + toppingsPrice,
       quantity,
-      imageUrl: dish1?.image || '',
+      imageUrl: dish1?.image ? (dish1.image.startsWith('http') ? dish1.image : `${BACKEND_URL}${dish1.image}`) : '',
       // Dữ liệu 2 nửa pizza để lưu vào bảng cart_item_half
       halves: [
         { dish_id: dish1?.dish_id || 0, name: dish1?.dish_name || '' },
@@ -393,7 +424,7 @@ export default function HalfHalfModal({ isOpen, onClose }: { isOpen: boolean; on
               className="w-full sm:w-[90%] bg-[#f0c14b] hover:bg-[#e2b036] text-black font-bold py-3 px-6 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2.5 text-base"
             >
               <ShoppingCart size={20} />
-              <span>{"Add to Cart"} : {formatPrice(subtotal)}</span>
+              <span>{editCartItem ? "Update Cart" : "Add to Cart"} : {formatPrice(subtotal)}</span>
             </button>
           </div>
         </div>

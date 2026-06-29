@@ -5,7 +5,7 @@ import { createTimeFrameExtractor } from "@/utils/timeframe-extractor";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Basic Chart",
+  title: "Biểu đồ",
 };
 
 type PropsType = {
@@ -20,7 +20,7 @@ export default async function Page(props: PropsType) {
 
   return (
     <>
-      <Breadcrumb pageName="Basic Chart" />
+      <Breadcrumb pageName="Biểu đồ" />
 
       <div className="grid grid-cols-12 gap-4 md:gap-6 2xl:gap-7.5">
         <UsedDevices

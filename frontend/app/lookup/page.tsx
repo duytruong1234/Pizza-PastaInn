@@ -6,6 +6,7 @@ import Footer from '@/components/Footer';
 import Image from 'next/image';
 import { Search, Phone, Calendar, Clock, CreditCard, Truck, Package, AlertCircle, ChevronDown, ChevronUp, MapPin, User, Mail, FileText } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
+import { shouldBypassNextImageOptimization } from '@/lib/image';
 import { useUI } from '@/components/UIProvider';
 import { useRouter } from 'next/navigation';
 import { API_BASE } from '@/lib/config';
@@ -88,6 +89,8 @@ interface Order {
   customer_phone: string;
   customer_email: string;
   pickup_time: string | null;
+  estimated_delivery_time?: string | null;
+  completed_at?: string | null;
   user_address?: {
     address_line: string;
   };
@@ -218,6 +221,17 @@ export default function OrderLookupPage() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const formatDateTime = (dateStr: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes} - ${day}/${month}/${year}`;
   };
 
   return (
@@ -351,7 +365,11 @@ export default function OrderLookupPage() {
                         {getStatusBadge(order.order_status)}
                       </div>
                       <p className={`text-xs font-medium mt-1 ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
-                        Placed on: {formatDate(order.created_at)}
+                        {order.order_status.toLowerCase() === 'completed' && order.completed_at ? (
+                          <>Completed on: {formatDateTime(order.completed_at)}</>
+                        ) : (
+                          <>Placed on: {formatDate(order.created_at)}</>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -452,7 +470,9 @@ export default function OrderLookupPage() {
                             <span className="text-zinc-500 mt-0.5"><Calendar size={15} /></span>
                             <span>
                               {order.pickup_time ? (
-                                <>Scheduled Pickup Time: <strong className={theme === 'dark' ? 'text-white font-bold' : 'text-gray-800 font-bold'}>{formatDate(order.pickup_time)}</strong></>
+                                <>Scheduled Pickup Time: <strong className={theme === 'dark' ? 'text-white font-bold' : 'text-gray-800 font-bold'}>{formatDateTime(order.pickup_time)}</strong></>
+                              ) : order.estimated_delivery_time ? (
+                                <>Estimated Delivery Time: <strong className={theme === 'dark' ? 'text-white font-bold' : 'text-gray-800 font-bold'}>{formatDateTime(order.estimated_delivery_time)}</strong></>
                               ) : (
                                 <>Delivery Time: <strong className={theme === 'dark' ? 'text-white font-bold' : 'text-gray-800 font-bold'}>Immediate delivery (30-45 mins)</strong></>
                               )}
@@ -507,7 +527,7 @@ export default function OrderLookupPage() {
                               imageSrc = 'https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?q=80&w=100&auto=format&fit=crop';
                               const size = item.dish_price?.size?.size_name;
                               const crust = item.dish_price?.crust?.crust_name;
-                              itemSpec = `${size ? `Size: ${size}` : ''}${crust && crust.toLowerCase() !== 'none' ? ` - Crust: ${crust}` : ''}`;
+                              itemSpec = `${size ? `SIZE: ${size.toUpperCase()}` : ''}${crust && crust.toLowerCase() !== 'none' ? ` - CRUST: ${crust.toUpperCase()}` : ''}`;
                             } else {
                               dishName = item.dish_price?.dish?.dish_name || 'Dish';
                               imageSrc = item.dish_price?.dish?.image || imageSrc;
@@ -515,13 +535,13 @@ export default function OrderLookupPage() {
                               if (isPizza) {
                                 const size = item.dish_price?.size?.size_name;
                                 const crust = item.dish_price?.crust?.crust_name;
-                                itemSpec = `${size ? `Size: ${size}` : ''}${crust && crust.toLowerCase() !== 'none' ? ` - Crust: ${crust}` : ''}`;
+                                itemSpec = `${size ? `SIZE: ${size.toUpperCase()}` : ''}${crust && crust.toLowerCase() !== 'none' ? ` - CRUST: ${crust.toUpperCase()}` : ''}`;
                               }
                             }
 
                             return (
                               <div key={item.order_item_id} className="py-4 first:pt-0 last:pb-0 flex gap-4">
-                                <div className={`relative w-16 h-16 rounded-2xl overflow-hidden border shrink-0 shadow-md ${
+                                <div className={`relative w-16 h-16 rounded-full overflow-hidden border shrink-0 shadow-md ${
                                   theme === 'dark' ? 'border-white/[0.06]' : 'border-gray-200'
                                 }`}>
                                   <Image
@@ -529,18 +549,17 @@ export default function OrderLookupPage() {
                                     alt={dishName}
                                     fill
                                     className="object-cover"
+                                    unoptimized={shouldBypassNextImageOptimization(imageSrc)}
                                   />
                                 </div>
 
-                                <div className="flex-1 flex flex-col justify-between text-left">
+                                <div className="flex-1 flex flex-col justify-start text-left">
                                   <div className="space-y-0.5">
-                                    <div className="flex items-start justify-between gap-4">
-                                      <h4 className={`font-extrabold text-sm md:text-base tracking-wide leading-snug ${
-                                        theme === 'dark' ? 'text-white' : 'text-gray-800'
-                                      }`}>
-                                        {dishName}
-                                      </h4>
-                                    </div>
+                                    <h4 className={`font-extrabold text-sm md:text-base tracking-wide leading-snug ${
+                                      theme === 'dark' ? 'text-white' : 'text-gray-800'
+                                    }`}>
+                                      {dishName}
+                                    </h4>
                                     <div className={`text-[11px] font-bold tracking-wider ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}`}>
                                       Quantity: x{item.quantity}
                                     </div>
@@ -560,6 +579,10 @@ export default function OrderLookupPage() {
                                           const cName = combItem.dish_price?.dish?.dish_name || 'Dish';
                                           const cSize = combItem.dish_price?.size?.size_name;
                                           const cCrust = combItem.dish_price?.crust?.crust_name;
+                                          const cIsPizza = cName.toLowerCase().includes('pizza');
+                                          const cSpec = cIsPizza && (cSize || cCrust)
+                                            ? `${cSize ? `SIZE: ${cSize.toUpperCase()}` : ''}${cCrust && cCrust.toLowerCase() !== 'none' ? ` - CRUST: ${cCrust.toUpperCase()}` : ''}`
+                                            : '';
                                           return (
                                             <div key={cIdx} className="space-y-0.5">
                                               <p className={`font-bold ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
@@ -567,15 +590,11 @@ export default function OrderLookupPage() {
                                               </p>
                                               
                                               <div className="pl-3 text-[10px] text-zinc-500 space-y-0.5">
-                                                {!combItem.is_half_half && (() => {
-                                      const cIsPizza = cName.toLowerCase().includes('pizza');
-                                      return cIsPizza ? (
-                                        <p className="font-bold uppercase tracking-wider">
-                                          {cSize ? `Size: ${cSize}` : ''}
-                                          {cCrust && cCrust.toLowerCase() !== 'none' ? ` - Crust: ${cCrust}` : ''}
-                                        </p>
-                                      ) : null;
-                                    })()}
+                                                {cSpec && (
+                                                  <p className="font-bold uppercase tracking-wider text-zinc-500">
+                                                    {cSpec}
+                                                  </p>
+                                                )}
 
                                                 {combItem.is_half_half && combItem.halves && (
                                                   <div className="pl-2 border-l border-blue-400/30 py-0.5 space-y-1">
@@ -606,7 +625,7 @@ export default function OrderLookupPage() {
                                     )}
 
                                     {/* Render half-half details */}
-                                    {isHalfHalf && item.halves && item.halves.length > 0 && (
+                                    {isCombo ? null : (isHalfHalf && item.halves && item.halves.length > 0 && (
                                       <div className={`mt-2 pl-3 border-l-2 text-xs space-y-2 ${theme === 'dark' ? 'border-blue-500/30 text-zinc-400' : 'border-blue-400/30 text-gray-500'}`}>
                                         {item.halves.map((half, hIdx) => (
                                           <div key={hIdx} className="text-xs">
@@ -620,7 +639,7 @@ export default function OrderLookupPage() {
                                           </div>
                                         ))}
                                       </div>
-                                    )}
+                                    ))}
 
                                     {/* Render regular toppings */}
                                     {!isCombo && !isHalfHalf && item.toppings && item.toppings.length > 0 && (
@@ -670,7 +689,9 @@ export default function OrderLookupPage() {
                           </div>
                           <div className={`flex justify-between items-center gap-4 ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}`}>
                             <span className="whitespace-nowrap">Shipping Fee:</span>
-                            {order.shipping_fee > 0 ? (
+                            {order.order_status.toLowerCase() === 'pending' && order.order_type === 'delivery' ? (
+                              <span className="text-amber-500 font-bold whitespace-nowrap">Pending</span>
+                            ) : order.shipping_fee > 0 ? (
                               <span className={`whitespace-nowrap ${theme === 'dark' ? 'text-zinc-200' : 'text-gray-700'}`}>{formatPrice(order.shipping_fee)}</span>
                             ) : (
                               <span className="text-emerald-500 font-bold whitespace-nowrap">Free</span>

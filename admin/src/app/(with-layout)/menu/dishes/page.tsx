@@ -163,9 +163,9 @@ export default function DishesPage() {
       });
       const imageUrl = res.data.data.url;
       setEditForm((f) => ({ ...f, image: imageUrl }));
-      toast.success("Image uploaded successfully");
+      toast.success("Tải ảnh lên thành công");
     } catch {
-      toast.error("Error uploading image");
+      toast.error("Lỗi khi tải ảnh lên");
     } finally {
       setUploading(false);
     }
@@ -174,11 +174,11 @@ export default function DishesPage() {
   const handleSave = async () => {
     if (!editDish) return;
     const errors: Record<string, string> = {};
-    if (!editForm.dish_name.trim()) errors.dish_name = "Please enter dish name";
-    if (!editForm.category_id) errors.category_id = "Please select category";
-    if (!editForm.dish_price || editForm.dish_price <= 0) errors.dish_price = "Please enter dish price";
-    if (!editForm.size_id) errors.size_id = "Please select size";
-    if (!editForm.crust_id) errors.crust_id = "Please select crust";
+    if (!editForm.dish_name.trim()) errors.dish_name = "Vui lòng nhập tên món ăn";
+    if (!editForm.category_id) errors.category_id = "Vui lòng chọn danh mục";
+    if (!editForm.dish_price || editForm.dish_price <= 0) errors.dish_price = "Vui lòng nhập giá món ăn";
+    if (!editForm.size_id) errors.size_id = "Vui lòng chọn kích thước";
+    if (!editForm.crust_id) errors.crust_id = "Vui lòng chọn đế bánh";
     setEditErrors(errors);
     if (Object.keys(errors).length > 0) return;
     setSaving(true);
@@ -199,11 +199,11 @@ export default function DishesPage() {
           dish_price: editForm.dish_price,
         });
       }
-      toast.success("Dish updated successfully");
+      toast.success("Cập nhật món ăn thành công");
       setEditDish(null);
       fetchDishes();
     } catch {
-      toast.error("Error updating dish");
+      toast.error("Lỗi khi cập nhật món ăn");
     } finally {
       setSaving(false);
     }
@@ -218,10 +218,10 @@ export default function DishesPage() {
     setDeleting(dishToDelete.dish_price_id);
     try {
       await api.delete(`/api/admin/dishes/${dishToDelete.dish_id}`);
-      toast.success("Dish deleted successfully");
+      toast.success("Xóa món ăn thành công");
       fetchDishes();
     } catch {
-      toast.error("Error deleting — dish may be in use in active orders");
+      toast.error("Lỗi khi xóa — món ăn có thể đang được sử dụng trong các đơn hàng hoạt động");
     } finally {
       setDeleting(null);
       setDishToDelete(null);
@@ -237,9 +237,9 @@ export default function DishesPage() {
       formData.append("image", file);
       const res = await api.post("/api/upload", formData, { headers: { "Content-Type": "multipart/form-data" } });
       setAddForm((f) => ({ ...f, image: res.data.data.url }));
-      toast.success("Image uploaded successfully");
+      toast.success("Tải ảnh lên thành công");
     } catch {
-      toast.error("Error uploading image");
+      toast.error("Lỗi khi tải ảnh lên");
     } finally {
       setAddUploading(false);
     }
@@ -247,12 +247,12 @@ export default function DishesPage() {
 
   const handleAddDish = async () => {
     const errors: Record<string, string> = {};
-    if (!addForm.dish_price_id.trim()) errors.dish_price_id = "Please enter dish code";
-    if (!addForm.dish_name.trim()) errors.dish_name = "Please enter dish name";
-    if (!addForm.category_id) errors.category_id = "Please select category";
-    if (!addForm.dish_price || addForm.dish_price <= 0) errors.dish_price = "Please enter dish price";
-    if (!addForm.size_id) errors.size_id = "Please select size";
-    if (!addForm.crust_id) errors.crust_id = "Please select crust";
+    if (!addForm.dish_price_id.trim()) errors.dish_price_id = "Vui lòng nhập mã món ăn";
+    if (!addForm.dish_name.trim()) errors.dish_name = "Vui lòng nhập tên món ăn";
+    if (!addForm.category_id) errors.category_id = "Vui lòng chọn danh mục";
+    if (!addForm.dish_price || addForm.dish_price <= 0) errors.dish_price = "Vui lòng nhập giá món ăn";
+    if (!addForm.size_id) errors.size_id = "Vui lòng chọn kích thước";
+    if (!addForm.crust_id) errors.crust_id = "Vui lòng chọn đế bánh";
     setAddErrors(errors);
     if (Object.keys(errors).length > 0) return;
     setAddSaving(true);
@@ -276,13 +276,13 @@ export default function DishesPage() {
           dish_price: addForm.dish_price,
         });
       }
-      toast.success("Dish added successfully");
+      toast.success("Thêm món ăn thành công");
       setShowAddModal(false);
       setAddForm({ dish_name: "", image: null, ingredient: "", dish_status: true, category_id: null, size_id: null, crust_id: null, dish_price: 0, dish_price_id: "" });
       setAddErrors({});
       fetchDishes();
     } catch {
-      toast.error("Error adding dish");
+      toast.error("Lỗi khi thêm món ăn");
     } finally {
       setAddSaving(false);
     }
@@ -367,15 +367,15 @@ export default function DishesPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-dark dark:text-white">DISHES MANAGEMENT</h1>
+        <h1 className="text-2xl font-bold text-dark dark:text-white">QUẢN LÝ MÓN ĂN</h1>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500">Total: {flattenedDishes.length} dishes</span>
+          <span className="text-sm text-gray-500">Tổng cộng: {flattenedDishes.length} món ăn</span>
           <Button
             onClick={() => setShowAddModal(true)}
             variant="outlinePrimary"
             size="small"
             shape="full"
-            label="Add Dish"
+            label="Thêm món ăn"
             icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5"><path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" /></svg>}
           />
         </div>
@@ -385,13 +385,13 @@ export default function DishesPage() {
         {/* Top Controls */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex w-full max-w-sm items-center">
-            <input type="text" placeholder="Search..." value={globalSearch} onChange={(e) => { setGlobalSearch(e.target.value); setCurrentPage(1); }} className="w-full rounded-l-lg border border-r-0 border-stroke bg-transparent py-2.5 pl-4 pr-3 outline-none focus:border-primary dark:border-dark-3" />
+            <input type="text" placeholder="Tìm kiếm..." value={globalSearch} onChange={(e) => { setGlobalSearch(e.target.value); setCurrentPage(1); }} className="w-full rounded-l-lg border border-r-0 border-stroke bg-transparent py-2.5 pl-4 pr-3 outline-none focus:border-primary dark:border-dark-3" />
             <button className="flex items-center justify-center rounded-r-lg bg-indigo-500 px-4 py-3 text-white transition hover:bg-indigo-600">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5"><path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clipRule="evenodd" /></svg>
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-dark dark:text-white">Show:</span>
+            <span className="text-sm font-medium text-dark dark:text-white">Hiển thị:</span>
             <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setCurrentPage(1); }} className="rounded-lg border border-stroke bg-transparent py-2 pl-3 pr-8 outline-none focus:border-primary dark:border-dark-3">
               <option value={5}>5</option>
               <option value={10}>10</option>
@@ -406,7 +406,7 @@ export default function DishesPage() {
           {/* Category */}
           <Dropdown isOpen={isCategoryOpen} setIsOpen={setIsCategoryOpen}>
             <DropdownTrigger className="flex items-center gap-2 rounded-lg border border-stroke bg-transparent px-4 py-2.5 text-sm font-medium text-dark transition hover:bg-gray-100 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2">
-              Category {selectedCategories.length > 0 && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-white">{selectedCategories.length}</span>}
+              Danh mục {selectedCategories.length > 0 && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-white">{selectedCategories.length}</span>}
               <svg className={`h-4 w-4 transition-transform ${isCategoryOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </DropdownTrigger>
             <DropdownContent align="start" className="max-h-60 w-56 overflow-y-auto border border-stroke bg-white p-3 shadow-md dark:border-dark-3 dark:bg-dark-2">
@@ -427,7 +427,7 @@ export default function DishesPage() {
           {/* Size */}
           <Dropdown isOpen={isSizeOpen} setIsOpen={setIsSizeOpen}>
             <DropdownTrigger className="flex items-center gap-2 rounded-lg border border-stroke bg-transparent px-4 py-2.5 text-sm font-medium text-dark transition hover:bg-gray-100 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2">
-              Size {selectedSizes.length > 0 && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-white">{selectedSizes.length}</span>}
+              Kích thước {selectedSizes.length > 0 && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-white">{selectedSizes.length}</span>}
               <svg className={`h-4 w-4 transition-transform ${isSizeOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </DropdownTrigger>
             <DropdownContent align="start" className="max-h-60 w-56 overflow-y-auto border border-stroke bg-white p-3 shadow-md dark:border-dark-3 dark:bg-dark-2">
@@ -448,7 +448,7 @@ export default function DishesPage() {
           {/* Crust */}
           <Dropdown isOpen={isCrustOpen} setIsOpen={setIsCrustOpen}>
             <DropdownTrigger className="flex items-center gap-2 rounded-lg border border-stroke bg-transparent px-4 py-2.5 text-sm font-medium text-dark transition hover:bg-gray-100 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2">
-              Crust {selectedCrusts.length > 0 && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-white">{selectedCrusts.length}</span>}
+              Đế bánh {selectedCrusts.length > 0 && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-white">{selectedCrusts.length}</span>}
               <svg className={`h-4 w-4 transition-transform ${isCrustOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </DropdownTrigger>
             <DropdownContent align="start" className="max-h-60 w-56 overflow-y-auto border border-stroke bg-white p-3 shadow-md dark:border-dark-3 dark:bg-dark-2">
@@ -472,22 +472,22 @@ export default function DishesPage() {
             <table className="w-full text-left">
               <thead className="bg-primary text-white">
                 <tr>
-                <th className="rounded-tl-lg py-4 pl-4 pr-3 text-sm font-semibold uppercase tracking-wide">Dish Code</th>
-                <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Dish Name</th>
-                <th className="px-4 py-4 text-center text-sm font-semibold uppercase tracking-wide">Image</th>
-                <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Category</th>
-                <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Size</th>
-                <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Crust</th>
-                <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Price (VND)</th>
-                <th className="px-4 py-4 text-center text-sm font-semibold uppercase tracking-wide">Status</th>
-                <th className="rounded-tr-lg py-4 pl-3 pr-4 text-center text-sm font-semibold uppercase tracking-wide">Actions</th>
+                <th className="rounded-tl-lg py-4 pl-4 pr-3 text-sm font-semibold uppercase tracking-wide">Mã món ăn</th>
+                <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Tên món ăn</th>
+                <th className="px-4 py-4 text-center text-sm font-semibold uppercase tracking-wide">Hình ảnh</th>
+                <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Danh mục</th>
+                <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Kích thước</th>
+                <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Đế bánh</th>
+                <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Giá (đ)</th>
+                <th className="px-4 py-4 text-center text-sm font-semibold uppercase tracking-wide">Trạng thái</th>
+                <th className="rounded-tr-lg py-4 pl-3 pr-4 text-center text-sm font-semibold uppercase tracking-wide">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr><td colSpan={9} className="px-4 py-12 text-center"><div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></td></tr>
               ) : paginatedData.length === 0 ? (
-                <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400">No dishes available</td></tr>
+                <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400">Không có món ăn nào</td></tr>
               ) : (
                 paginatedData.map((dish, idx) => (
                   <tr key={`${dish.dish_price_id}-${idx}`} className="border-b border-stroke last:border-0 dark:border-dark-3">
@@ -498,7 +498,7 @@ export default function DishesPage() {
                         {dish.image ? (
                           <img src={getImageUrl(dish.image)!} alt={dish.dish_name} className="h-10 w-10 rounded-lg object-cover" />
                         ) : (
-                          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 text-xs font-medium dark:bg-dark-2">Empty</span>
+                          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 text-xs font-medium dark:bg-dark-2">Trống</span>
                         )}
                       </div>
                     </td>
@@ -508,18 +508,18 @@ export default function DishesPage() {
                     <td className="px-4 py-4 text-sm font-medium text-primary">{formatPrice(dish.dish_price)}</td>
                     <td className="px-4 py-4 text-center">
                       <Badge variant={dish.dish_status ? "outlineSuccess" : "outlineDanger"}>
-                        {dish.dish_status ? 'Selling' : 'Suspended'}
+                        {dish.dish_status ? 'Đang bán' : 'Ngưng bán'}
                       </Badge>
                     </td>
                     <td className="py-4 pl-3 pr-4">
                       <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => handleView(dish)} title="View details" className="rounded p-1.5 text-blue-600 transition hover:bg-blue-50 dark:hover:bg-blue-900/20">
+                        <button onClick={() => handleView(dish)} title="Xem chi tiết" className="rounded p-1.5 text-blue-600 transition hover:bg-blue-50 dark:hover:bg-blue-900/20">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4.5"><path d="M10 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" /><path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 0 1 0-1.186A10.004 10.004 0 0 1 10 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0 1 10 17c-4.257 0-7.893-2.66-9.336-6.41ZM14 10a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z" clipRule="evenodd" /></svg>
                         </button>
-                        <button onClick={() => handleEdit(dish)} title="Edit" className="rounded p-1.5 text-amber-600 transition hover:bg-amber-50 dark:hover:bg-amber-900/20">
+                        <button onClick={() => handleEdit(dish)} title="Sửa" className="rounded p-1.5 text-amber-600 transition hover:bg-amber-50 dark:hover:bg-amber-900/20">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4.5"><path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" /><path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" /></svg>
                         </button>
-                        <button onClick={() => handleDelete(dish)} disabled={deleting === dish.dish_price_id} title="Delete" className="rounded p-1.5 text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:hover:bg-red-900/20">
+                        <button onClick={() => handleDelete(dish)} disabled={deleting === dish.dish_price_id} title="Xóa" className="rounded p-1.5 text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:hover:bg-red-900/20">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4.5"><path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clipRule="evenodd" /></svg>
                         </button>
                       </div>
@@ -536,13 +536,13 @@ export default function DishesPage() {
         {!loading && (
           <div className="mt-6 flex flex-col items-center justify-between gap-4 sm:flex-row">
             <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
-            <div className="text-sm text-gray-500">Page {currentPage} / {totalPages}</div>
+            <div className="text-sm text-gray-500">Trang {currentPage} / {totalPages}</div>
           </div>
         )}
       </div>
 
       {/* ── MODAL XEM CHI TIẾT ── */}
-      <Modal isOpen={!!viewDish} setIsOpen={(val) => !val && setViewDish(null)} title="DISH DETAILS" className="max-w-xl">
+      <Modal isOpen={!!viewDish} setIsOpen={(val) => !val && setViewDish(null)} title="CHI TIẾT MÓN ĂN" className="max-w-xl">
         {viewDish && (
           <div className="space-y-5 text-sm text-dark dark:text-gray-300">
             {/* Ảnh + info chính */}
@@ -551,17 +551,17 @@ export default function DishesPage() {
                 {viewDish.image ? (
                   <img src={getImageUrl(viewDish.image)!} alt={viewDish.dish_name} className="h-28 w-28 rounded-2xl border border-stroke object-cover shadow-sm dark:border-dark-3" />
                 ) : (
-                  <div className="flex h-28 w-28 items-center justify-center rounded-2xl border border-stroke bg-gray-50 text-gray-400 dark:border-dark-3 dark:bg-dark-2">No image</div>
+                  <div className="flex h-28 w-28 items-center justify-center rounded-2xl border border-stroke bg-gray-50 text-gray-400 dark:border-dark-3 dark:bg-dark-2">Không có hình ảnh</div>
                 )}
               </div>
               <div className="flex-1 space-y-2">
-                <p><span className="font-semibold text-gray-500">Dish Code:</span> <span className="ml-1 font-mono text-xs">{viewDish.dish_price_id}</span></p>
-                <p><span className="font-semibold text-gray-500">Dish Name:</span> <span className="ml-1 font-medium text-base">{viewDish.dish_name}</span></p>
-                <p><span className="font-semibold text-gray-500">Category:</span> <span className="ml-1">{viewDish.category_name}</span></p>
+                <p><span className="font-semibold text-gray-500">Mã món ăn:</span> <span className="ml-1 font-mono text-xs">{viewDish.dish_price_id}</span></p>
+                <p><span className="font-semibold text-gray-500">Tên món ăn:</span> <span className="ml-1 font-medium text-base">{viewDish.dish_name}</span></p>
+                <p><span className="font-semibold text-gray-500">Danh mục:</span> <span className="ml-1">{viewDish.category_name}</span></p>
                 <p>
-                  <span className="font-semibold text-gray-500">Status:</span>
+                  <span className="font-semibold text-gray-500">Trạng thái:</span>
                   <Badge variant={viewDish.dish_status ? "success" : "danger"} className="ml-2">
-                    {viewDish.dish_status ? "Selling" : "Suspended"}
+                    {viewDish.dish_status ? "Đang bán" : "Ngưng bán"}
                   </Badge>
                 </p>
               </div>
@@ -569,21 +569,21 @@ export default function DishesPage() {
 
             {/* Thông tin món ăn */}
             <div className="rounded-xl border border-stroke bg-gray-50 p-4 dark:border-dark-3 dark:bg-dark-2">
-              <h4 className="mb-2 font-semibold text-dark dark:text-white">Current Information</h4>
+              <h4 className="mb-2 font-semibold text-dark dark:text-white">Thông tin hiện tại</h4>
               <div className="grid grid-cols-3 gap-3 text-sm">
-                <div><span className="text-gray-500">Size:</span> <span className="ml-1 font-medium">{viewDish.size_name}</span></div>
-                <div><span className="text-gray-500">Crust:</span> <span className="ml-1 font-medium">{viewDish.crust_name}</span></div>
-                <div><span className="text-gray-500">Price:</span> <span className="ml-1 font-semibold text-primary">{formatPrice(viewDish.dish_price)}</span></div>
+                <div><span className="text-gray-500">Kích thước:</span> <span className="ml-1 font-medium">{viewDish.size_name}</span></div>
+                <div><span className="text-gray-500">Đế bánh:</span> <span className="ml-1 font-medium">{viewDish.crust_name}</span></div>
+                <div><span className="text-gray-500">Giá:</span> <span className="ml-1 font-semibold text-primary">{formatPrice(viewDish.dish_price)}</span></div>
               </div>
             </div>
 
             {/* Ingredients */}
             <div className="rounded-xl border border-stroke bg-gray-50 p-4 dark:border-dark-3 dark:bg-dark-2">
-              <h4 className="mb-2 font-semibold text-dark dark:text-white">Ingredients</h4>
+              <h4 className="mb-2 font-semibold text-dark dark:text-white">Thành phần</h4>
               {viewDish.ingredient ? (
                 <p className="whitespace-pre-wrap leading-relaxed text-gray-600 dark:text-gray-400">{viewDish.ingredient}</p>
               ) : (
-                <p className="italic text-gray-400">No ingredients updated for this dish.</p>
+                <p className="italic text-gray-400">Món ăn này chưa được cập nhật thành phần.</p>
               )}
             </div>
           </div>
@@ -591,15 +591,15 @@ export default function DishesPage() {
       </Modal>
 
       {/* ── MODAL SỬA ── */}
-      <Modal isOpen={!!editDish} setIsOpen={(val) => !val && setEditDish(null)} title="EDIT DISH DETAILS" className="max-w-2xl">
+      <Modal isOpen={!!editDish} setIsOpen={(val) => !val && setEditDish(null)} title="SỬA CHI TIẾT MÓN ĂN" className="max-w-2xl">
         {editDish && (
           <>
             <div className="mb-6 space-y-5">
               {/* Row 1: Dish Name */}
               <InputGroup
-                label="DISH NAME (*)"
+                label="TÊN MÓN ĂN (*)"
                 type="text"
-                placeholder="Enter dish name..."
+                placeholder="Nhập tên món ăn..."
                 value={editForm.dish_name}
                 handleChange={(e) => { setEditForm((f) => ({ ...f, dish_name: e.target.value })); setEditErrors((p) => ({ ...p, dish_name: "" })); }}
                 error={editErrors.dish_name}
@@ -607,19 +607,19 @@ export default function DishesPage() {
 
               {/* Row 2: Image (File Drop Zone) */}
               <div>
-                <label className="mb-2 block text-sm font-medium text-dark dark:text-white">IMAGE</label>
+                <label className="mb-2 block text-sm font-medium text-dark dark:text-white">HÌNH ẢNH</label>
                 <div className={`relative rounded-xl border border-dashed border-stroke bg-[#f8fafd] text-center transition-colors hover:border-primary dark:border-dark-3 dark:bg-dark-2/50 ${editForm.image ? "py-4" : "py-8"}`}>
                   {editForm.image ? (
                     <div className="flex flex-col items-center gap-3">
                       <img src={getImageUrl(editForm.image)!} alt="Preview" className="h-32 w-32 rounded-xl object-cover shadow-sm border border-stroke" />
                       <div className="flex items-center gap-2">
                         <label className={`cursor-pointer text-sm font-medium text-primary hover:underline ${uploading ? "pointer-events-none opacity-50" : ""}`}>
-                          {uploading ? "Loading..." : "Change image"}
+                          {uploading ? "Đang tải..." : "Thay đổi hình ảnh"}
                           <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
                         </label>
                         <span className="text-gray-300">|</span>
                         <button onClick={() => setEditForm((f) => ({ ...f, image: null }))} className="text-sm font-medium text-red-500 hover:underline">
-                          Delete image
+                          Xóa hình ảnh
                         </button>
                       </div>
                     </div>
@@ -635,66 +635,56 @@ export default function DishesPage() {
                         )}
                       </div>
                       <span className="text-sm font-medium text-dark dark:text-white">
-                        {uploading ? "Uploading image..." : "Click to upload image from computer"}
+                        {uploading ? "Đang tải ảnh lên..." : "Nhấp để tải ảnh lên từ máy tính"}
                       </span>
                       <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
                     </label>
                   )}
                 </div>
-                {!editForm.image && (
-                  <div className="mt-3">
-                    <InputGroup
-                      label=""
-                      type="text"
-                      value={editForm.image || ""}
-                      handleChange={(e) => setEditForm((f) => ({ ...f, image: e.target.value }))}
-                      placeholder="Or paste image URL here..."
-                    />
-                  </div>
-                )}
+
               </div>
 
               {/* Row 3: Category + Status */}
               <div className="grid grid-cols-2 gap-4">
                 <Select
-                  label="CATEGORY (*)"
+                  label="DANH MỤC (*)"
                   value={editForm.category_id ?? ""}
                   onChange={(e) => { setEditForm((f) => ({ ...f, category_id: e.target.value ? Number(e.target.value) : null })); setEditErrors((p) => ({ ...p, category_id: "" })); }}
                   items={categories.map((c) => ({ value: c.category_id, label: c.category_name }))}
-                  placeholder="-- Select category --"
+                  placeholder="-- Chọn danh mục --"
                   error={editErrors.category_id}
                 />
                 <Select
-                  label="STATUS (*)"
+                  label="TRẠNG THÁI (*)"
                   value={editForm.dish_status ? "1" : "0"}
                   onChange={(e) => setEditForm((f) => ({ ...f, dish_status: e.target.value === "1" }))}
                   items={[
-                    { value: "1", label: "Selling" },
-                    { value: "0", label: "Suspended" },
+                    { value: "1", label: "Đang bán" },
+                    { value: "0", label: "Ngưng bán" },
                   ]}
                 />
               </div>
 
               {/* Row 4: Size + Crust + Giá */}
               <div className="rounded-xl border border-stroke bg-gray-50/50 p-4 dark:border-dark-3 dark:bg-dark-2/50">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Dish Information (*)</p>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Thông tin món ăn (*)</p>
                 <div className="grid grid-cols-3 gap-4">
                   <Select
-                    label="SIZE (*)"
+                    label="KÍCH THƯỚC (*)"
                     value={editForm.size_id ?? ""}
                     onChange={(e) => { setEditForm((f) => ({ ...f, size_id: e.target.value ? Number(e.target.value) : null })); setEditErrors((p) => ({ ...p, size_id: "" })); }}
                     items={sizes.map((s) => ({ value: s.size_id, label: s.size_name }))}
                     error={editErrors.size_id}
                   />
                   <Select
-                    label="CRUST (*)"
+                    label="ĐẾ BÁNH (*)"
                     value={editForm.crust_id ?? ""}
                     onChange={(e) => { setEditForm((f) => ({ ...f, crust_id: e.target.value ? Number(e.target.value) : null })); setEditErrors((p) => ({ ...p, crust_id: "" })); }}
                     items={crusts.map((c) => ({ value: c.crust_id, label: c.crust_name }))}
                     error={editErrors.crust_id}
                   />
                   <InputGroup
-                    label="PRICE (VND) (*)"
+                    label="GIÁ (đ) (*)"
                     type="number"
                     value={editForm.dish_price}
                     handleChange={(e) => { setEditForm((f) => ({ ...f, dish_price: Number(e.target.value) })); setEditErrors((p) => ({ ...p, dish_price: "" })); }}
@@ -706,20 +696,20 @@ export default function DishesPage() {
 
               {/* Row 5: Ingredients */}
               <TextAreaGroup
-                label="INGREDIENTS"
-                placeholder="Enter ingredients..."
+                label="THÀNH PHẦN"
+                placeholder="Nhập thành phần..."
                 value={editForm.ingredient}
                 onChange={(e) => setEditForm((f) => ({ ...f, ingredient: e.target.value }))}
               />
             </div>
             <div className="flex gap-3">
-              <Button onClick={() => setEditDish(null)} variant="outlineDark" size="default" shape="rounded" label="Cancel" className="flex-1" />
+              <Button onClick={() => setEditDish(null)} variant="outlineDark" size="default" shape="rounded" label="Hủy" className="flex-1" />
               <Button
                 onClick={handleSave}
                 variant="primary"
                 size="default"
                 shape="rounded"
-                label={saving ? "Saving..." : "Save Changes"}
+                label={saving ? "Đang lưu..." : "Lưu thay đổi"}
                 className="flex-1"
                 icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" /></svg>}
               />
@@ -749,9 +739,9 @@ export default function DishesPage() {
               </svg>
             </div>
 
-            <h3 className="mb-2 text-xl font-bold text-dark dark:text-white">Delete Dish</h3>
+            <h3 className="mb-2 text-xl font-bold text-dark dark:text-white">Xóa món ăn</h3>
             <p className="mb-8 text-sm text-gray-500 dark:text-gray-400">
-              Are you sure you want to delete <span className="font-semibold text-dark dark:text-white">"{dishToDelete.dish_name}"</span>? This action cannot be undone.
+              Bạn có chắc chắn muốn xóa <span className="font-semibold text-dark dark:text-white">"{dishToDelete.dish_name}"</span>? Hành động này không thể hoàn tác.
             </p>
 
             <div className="flex w-full gap-4">
@@ -759,13 +749,13 @@ export default function DishesPage() {
                 onClick={() => setDishToDelete(null)}
                 className="flex-1 rounded-xl bg-gray-100 py-3 font-medium text-dark transition hover:bg-gray-200 dark:bg-dark-3 dark:text-white dark:hover:bg-dark-4"
               >
-                Cancel
+                Hủy
               </button>
               <button
                 onClick={confirmDelete}
                 className="flex-1 rounded-xl bg-[#d34053] py-3 font-medium text-white transition hover:bg-[#ba3849]"
               >
-                {deleting ? "Deleting..." : "Confirm"}
+                {deleting ? "Đang xóa..." : "Xác nhận"}
               </button>
             </div>
           </div>
@@ -775,7 +765,7 @@ export default function DishesPage() {
       {/* ── MODAL THÊM MÓN ĂN ── */}
       <Modal isOpen={showAddModal} setIsOpen={setShowAddModal} className="relative max-w-[600px] p-6 sm:p-8">
         <div className="mb-6 flex items-center justify-between">
-          <h3 className="text-xl font-bold text-dark dark:text-white">ADD NEW DISH</h3>
+          <h3 className="text-xl font-bold text-dark dark:text-white">THÊM MÓN ĂN MỚI</h3>
           <button
             onClick={() => setShowAddModal(false)}
             className="flex size-8 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-dark-3"
@@ -787,23 +777,23 @@ export default function DishesPage() {
         </div>
 
         <div className="mb-8 space-y-6">
-          <InputGroup label="DISH CODE (*)" type="text" placeholder="Enter dish code..." value={addForm.dish_price_id} handleChange={(e) => { setAddForm((f) => ({ ...f, dish_price_id: e.target.value })); setAddErrors((p) => ({ ...p, dish_price_id: "" })); }} error={addErrors.dish_price_id} />
-          <InputGroup label="DISH NAME (*)" type="text" placeholder="Enter dish name..." value={addForm.dish_name} handleChange={(e) => { setAddForm((f) => ({ ...f, dish_name: e.target.value })); setAddErrors((p) => ({ ...p, dish_name: "" })); }} error={addErrors.dish_name} />
+          <InputGroup label="MÃ MÓN ĂN (*)" type="text" placeholder="Nhập mã món ăn..." value={addForm.dish_price_id} handleChange={(e) => { setAddForm((f) => ({ ...f, dish_price_id: e.target.value })); setAddErrors((p) => ({ ...p, dish_price_id: "" })); }} error={addErrors.dish_price_id} />
+          <InputGroup label="TÊN MÓN ĂN (*)" type="text" placeholder="Nhập tên món ăn..." value={addForm.dish_name} handleChange={(e) => { setAddForm((f) => ({ ...f, dish_name: e.target.value })); setAddErrors((p) => ({ ...p, dish_name: "" })); }} error={addErrors.dish_name} />
 
           {/* Drop Zone */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-dark dark:text-white">IMAGE</label>
+            <label className="mb-2 block text-sm font-medium text-dark dark:text-white">HÌNH ẢNH</label>
             <div className={`relative flex items-center justify-center rounded-xl border border-dashed border-stroke bg-[#fafbfe] text-center transition-colors hover:border-primary dark:border-dark-3 dark:bg-dark-2/50 ${addForm.image ? "py-4" : "py-10"}`}>
               {addForm.image ? (
                 <div className="flex flex-col items-center gap-3">
                   <img src={getImageUrl(addForm.image)!} alt="Preview" className="h-32 w-32 rounded-xl object-cover shadow-sm border border-stroke" />
                   <div className="flex items-center gap-2">
                     <label className={`cursor-pointer text-sm font-medium text-primary hover:underline ${addUploading ? "pointer-events-none opacity-50" : ""}`}>
-                      {addUploading ? "Loading..." : "Change image"}
+                      {addUploading ? "Đang tải..." : "Thay đổi hình ảnh"}
                       <input type="file" accept="image/*" className="hidden" onChange={handleAddImageUpload} disabled={addUploading} />
                     </label>
                     <span className="text-gray-300">|</span>
-                    <button onClick={() => setAddForm((f) => ({ ...f, image: null }))} className="text-sm font-medium text-red-500 hover:underline">Delete image</button>
+                    <button onClick={() => setAddForm((f) => ({ ...f, image: null }))} className="text-sm font-medium text-red-500 hover:underline">Xóa hình ảnh</button>
                   </div>
                 </div>
               ) : (
@@ -813,7 +803,7 @@ export default function DishesPage() {
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 text-dark dark:text-white"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
                     )}
                   </div>
-                  <span className="text-sm font-medium text-dark dark:text-white">{addUploading ? "Uploading image..." : "Click to upload image from computer"}</span>
+                  <span className="text-sm font-medium text-dark dark:text-white">{addUploading ? "Đang tải ảnh..." : "Nhấp để tải ảnh lên từ máy tính"}</span>
                   <input type="file" accept="image/*" className="hidden" onChange={handleAddImageUpload} disabled={addUploading} />
                 </label>
               )}
@@ -821,22 +811,22 @@ export default function DishesPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Select label="CATEGORY (*)" value={addForm.category_id ?? ""} onChange={(e) => { setAddForm((f) => ({ ...f, category_id: e.target.value ? Number(e.target.value) : null })); setAddErrors((p) => ({ ...p, category_id: "" })); }} items={categories.map((c) => ({ value: c.category_id, label: c.category_name }))} placeholder="-- Select category --" error={addErrors.category_id} />
-            <Select label="STATUS (*)" value={addForm.dish_status ? "1" : "0"} onChange={(e) => setAddForm((f) => ({ ...f, dish_status: e.target.value === "1" }))} items={[{ value: "1", label: "Selling" }, { value: "0", label: "Suspended" }]} />
+            <Select label="DANH MỤC (*)" value={addForm.category_id ?? ""} onChange={(e) => { setAddForm((f) => ({ ...f, category_id: e.target.value ? Number(e.target.value) : null })); setAddErrors((p) => ({ ...p, category_id: "" })); }} items={categories.map((c) => ({ value: c.category_id, label: c.category_name }))} placeholder="-- Chọn danh mục --" error={addErrors.category_id} />
+            <Select label="TRẠNG THÁI (*)" value={addForm.dish_status ? "1" : "0"} onChange={(e) => setAddForm((f) => ({ ...f, dish_status: e.target.value === "1" }))} items={[{ value: "1", label: "Đang bán" }, { value: "0", label: "Ngưng bán" }]} />
           </div>
 
           <div className="rounded-xl border border-stroke bg-white p-5 dark:border-dark-3 dark:bg-dark-2/50">
-            <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-gray-400">Dish Information (*)</p>
+            <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-gray-400">Thông tin món ăn (*)</p>
             <div className="grid grid-cols-2 gap-4 mb-4">
-              <InputGroup label="PRICE (VND) (*)" type="number" value={addForm.dish_price} handleChange={(e) => { setAddForm((f) => ({ ...f, dish_price: Number(e.target.value) })); setAddErrors((p) => ({ ...p, dish_price: "" })); }} placeholder="0" error={addErrors.dish_price} />
+              <InputGroup label="GIÁ (đ) (*)" type="number" value={addForm.dish_price} handleChange={(e) => { setAddForm((f) => ({ ...f, dish_price: Number(e.target.value) })); setAddErrors((p) => ({ ...p, dish_price: "" })); }} placeholder="0" error={addErrors.dish_price} />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <Select label="SIZE (*)" value={addForm.size_id ?? ""} onChange={(e) => { setAddForm((f) => ({ ...f, size_id: e.target.value ? Number(e.target.value) : null })); setAddErrors((p) => ({ ...p, size_id: "" })); }} items={sizes.map((s) => ({ value: s.size_id, label: s.size_name }))} placeholder="-- Select --" error={addErrors.size_id} />
-              <Select label="CRUST (*)" value={addForm.crust_id ?? ""} onChange={(e) => { setAddForm((f) => ({ ...f, crust_id: e.target.value ? Number(e.target.value) : null })); setAddErrors((p) => ({ ...p, crust_id: "" })); }} items={crusts.map((c) => ({ value: c.crust_id, label: c.crust_name }))} placeholder="-- Select --" error={addErrors.crust_id} />
+              <Select label="KÍCH THƯỚC (*)" value={addForm.size_id ?? ""} onChange={(e) => { setAddForm((f) => ({ ...f, size_id: e.target.value ? Number(e.target.value) : null })); setAddErrors((p) => ({ ...p, size_id: "" })); }} items={sizes.map((s) => ({ value: s.size_id, label: s.size_name }))} placeholder="-- Chọn --" error={addErrors.size_id} />
+              <Select label="ĐẾ BÁNH (*)" value={addForm.crust_id ?? ""} onChange={(e) => { setAddForm((f) => ({ ...f, crust_id: e.target.value ? Number(e.target.value) : null })); setAddErrors((p) => ({ ...p, crust_id: "" })); }} items={crusts.map((c) => ({ value: c.crust_id, label: c.crust_name }))} placeholder="-- Chọn --" error={addErrors.crust_id} />
             </div>
           </div>
 
-          <TextAreaGroup label="INGREDIENTS" placeholder="Enter ingredients..." value={addForm.ingredient} onChange={(e) => setAddForm((f) => ({ ...f, ingredient: e.target.value }))} />
+          <TextAreaGroup label="THÀNH PHẦN" placeholder="Nhập thành phần..." value={addForm.ingredient} onChange={(e) => setAddForm((f) => ({ ...f, ingredient: e.target.value }))} />
         </div>
 
         <div className="flex gap-4">
@@ -844,7 +834,7 @@ export default function DishesPage() {
             onClick={() => setShowAddModal(false)}
             className="flex-1 rounded-xl border border-stroke bg-white py-3 font-medium text-dark transition hover:bg-gray-50 dark:border-dark-3 dark:bg-dark-3 dark:text-white dark:hover:bg-dark-4"
           >
-            Cancel
+            Hủy
           </button>
           <button
             onClick={handleAddDish}
@@ -853,7 +843,7 @@ export default function DishesPage() {
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
               <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
             </svg>
-            {addSaving ? "Saving..." : "Add Dish"}
+            {addSaving ? "Đang lưu..." : "Thêm món"}
           </button>
         </div>
       </Modal>

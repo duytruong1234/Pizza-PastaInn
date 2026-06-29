@@ -6,6 +6,7 @@ import { logger } from './utils/logger';
 import { connectRedis } from './utils/redis';
 import { globalErrorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth';
+import { autoCompleteOldOrders } from './jobs/autoCompleteOrders';
 
 // Load biến môi trường
 dotenv.config();
@@ -105,6 +106,10 @@ app.use('/api/auth', authRoutes);
 import menuRoutes from './routes/menu';
 app.use('/api/menu', menuRoutes);
 
+// Policy routes
+import policyRoutes from './routes/policy';
+app.use('/api/policies', policyRoutes);
+
 // Store routes
 import storeRoutes from './routes/store';
 app.use('/api/stores', storeRoutes);
@@ -149,6 +154,10 @@ async function startServer() {
   // Kết nối Redis (không bắt buộc — app vẫn chạy nếu Redis down)
   await connectRedis();
 
+  // Khởi chạy job tự động hoàn thành đơn hàng cũ
+  await autoCompleteOldOrders();
+  setInterval(autoCompleteOldOrders, 30 * 60 * 1000);
+
   app.listen(PORT, () => {
     logger.info(`Pizza&PastaInn API running at http://localhost:${PORT}`);
     logger.info(`Health check: http://localhost:${PORT}/api/health`);
@@ -162,4 +171,4 @@ startServer().catch((err) => {
 
 // Trigger restart after freeing port 4000
 export default app;
-// Trigger restart to load latest configurations.
+// Trigger restart to load latest configurations (policies added).

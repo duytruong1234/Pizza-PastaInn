@@ -137,9 +137,9 @@ export function DishPicker({ isOpen, onClose, dishOptions, alreadySelected, onCo
     <Modal isOpen={isOpen} setIsOpen={(v) => { if (!v) onClose(); }} title="" className="max-w-[950px] p-0 sm:p-0">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-stroke px-6 py-4 dark:border-dark-3">
-        <h3 className="text-lg font-bold text-dark dark:text-white">Configure Combo Dishes</h3>
+        <h3 className="text-lg font-bold text-dark dark:text-white">Cấu hình món ăn trong Combo</h3>
         <button type="button" onClick={handleConfirm} className="rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-amber-600">
-          Confirm selection ({selected.size})
+          Xác nhận chọn ({selected.size})
         </button>
       </div>
 
@@ -147,7 +147,7 @@ export function DishPicker({ isOpen, onClose, dishOptions, alreadySelected, onCo
         {/* Left: Filters */}
         <div className="w-56 shrink-0 border-r border-stroke bg-gray-50/50 p-5 dark:border-dark-3 dark:bg-dark-2/30">
           <div className="mb-5">
-            <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-500">Category</h4>
+            <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-500">Danh mục</h4>
             <div className="space-y-2.5">
               {availableCats.map(c => (
                 <label key={c} className="flex cursor-pointer items-center gap-2.5 select-none">
@@ -165,7 +165,7 @@ export function DishPicker({ isOpen, onClose, dishOptions, alreadySelected, onCo
 
           {availableSizes.length > 0 && (
             <div className="mb-5">
-              <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-500">Size</h4>
+              <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-500">Kích thước</h4>
               <div className="space-y-2.5">
                 {availableSizes.map(s => (
                   <label key={s} className="flex cursor-pointer items-center gap-2.5 select-none">
@@ -184,7 +184,7 @@ export function DishPicker({ isOpen, onClose, dishOptions, alreadySelected, onCo
 
           {availableCrusts.length > 0 && (
             <div>
-              <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-500">Crust Type</h4>
+              <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-500">Loại đế</h4>
               <div className="space-y-2.5">
                 {availableCrusts.map(c => (
                   <label key={c} className="flex cursor-pointer items-center gap-2.5 select-none">
@@ -206,7 +206,7 @@ export function DishPicker({ isOpen, onClose, dishOptions, alreadySelected, onCo
         <div className="flex-1 p-5">
           <input
             type="text"
-            placeholder="Search dish code or name..."
+            placeholder="Tìm kiếm mã hoặc tên món ăn..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="mb-4 w-full rounded-lg border border-stroke bg-transparent px-4 py-2.5 outline-none focus:border-primary dark:border-dark-3"
@@ -220,15 +220,15 @@ export function DishPicker({ isOpen, onClose, dishOptions, alreadySelected, onCo
                     <th className="w-10 px-3 py-3">
                       <input type="checkbox" checked={filtered.length > 0 && selected.size === filtered.length} onChange={toggleAll} className="size-4 cursor-pointer rounded" />
                     </th>
-                    <th className="px-3 py-3 font-semibold text-gray-600 dark:text-gray-300">Image</th>
-                    <th className="px-3 py-3 font-semibold text-gray-600 dark:text-gray-300">Dish Name</th>
-                    <th className="px-3 py-3 font-semibold text-gray-600 dark:text-gray-300">Category</th>
-                    <th className="px-3 py-3 font-semibold text-gray-600 dark:text-gray-300">Size / Crust</th>
+                    <th className="px-3 py-3 font-semibold text-gray-600 dark:text-gray-300">Hình ảnh</th>
+                    <th className="px-3 py-3 font-semibold text-gray-600 dark:text-gray-300">Tên món ăn</th>
+                    <th className="px-3 py-3 font-semibold text-gray-600 dark:text-gray-300">Danh mục</th>
+                    <th className="px-3 py-3 font-semibold text-gray-600 dark:text-gray-300">Kích thước / Đế</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.length === 0 ? (
-                    <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">No matching dishes found</td></tr>
+                    <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">Không tìm thấy món ăn phù hợp</td></tr>
                   ) : filtered.map(d => (
                     <tr
                       key={d.value}
@@ -258,7 +258,7 @@ export function DishPicker({ isOpen, onClose, dishOptions, alreadySelected, onCo
                         {d.data.category_name && <Badge variant="light">{d.data.category_name}</Badge>}
                       </td>
                       <td className="px-3 py-3 text-sm text-gray-600 dark:text-gray-300">
-                        {d.data.size || 'Default'} - {d.data.crust || 'Default'}
+                        {d.data.size || 'Mặc định'} - {d.data.crust || 'Mặc định'}
                       </td>
                     </tr>
                   ))}

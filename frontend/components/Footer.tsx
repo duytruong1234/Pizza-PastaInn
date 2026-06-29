@@ -1,4 +1,10 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { MapPin, Phone, Clock, Store } from 'lucide-react';
+import api from '@/lib/api';
+import { getApiErrorMessage } from '@/lib/apiError';
 
 // Custom SVG Icons for Social Media to match premium styles
 const FacebookIcon = ({ size = 18 }: { size?: number }) => (
@@ -22,10 +28,26 @@ const TikTokIcon = ({ size = 16 }: { size?: number }) => (
 );
 
 export default function Footer() {
+  const [policies, setPolicies] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchPolicies() {
+      try {
+        const res = await api.get('/policies');
+        if (res.data?.success) {
+          setPolicies(res.data.data);
+        }
+      } catch (err) {
+        console.warn('Failed to load policies in footer:', getApiErrorMessage(err));
+      }
+    }
+    fetchPolicies();
+  }, []);
+
   return (
     <footer className="relative z-10 bg-black text-white border-t border-zinc-900/60 -mx-6 -mb-6 mt-14 pt-12 pb-8">
       <div className="max-w-6xl mx-auto px-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-8">
           
           {/* Cột 1: Giới thiệu PIZZA & PASTA INN */}
           <div className="flex flex-col space-y-4">
@@ -87,11 +109,12 @@ export default function Footer() {
               </div>
               
               <div className="pt-1.5">
-                <div className="inline-flex items-center gap-2 bg-[#121212] border border-zinc-800/85 px-4 py-2.5 rounded-xl shadow-inner">
-                  <Clock size={15} className="text-[#f5c043]" />
-                  <span className="text-[12.5px] text-zinc-400 font-medium">
-                    Opening Hours: <strong className="text-white font-bold">10:00 AM — 10:00 PM</strong>
-                  </span>
+                <div className="inline-flex items-start gap-2.5 bg-[#121212] border border-zinc-800/85 px-4 py-2.5 rounded-xl shadow-inner">
+                  <Clock size={15} className="text-[#f5c043] mt-0.5" />
+                  <div className="text-[12.5px] text-zinc-400 font-medium flex flex-col gap-0.5">
+                    <span>Opening Hours:</span>
+                    <strong className="text-white font-bold">10:00 AM — 10:00 PM</strong>
+                  </div>
                 </div>
               </div>
             </div>
@@ -124,14 +147,67 @@ export default function Footer() {
               </div>
               
               <div className="pt-1.5">
-                <div className="inline-flex items-center gap-2 bg-[#121212] border border-zinc-800/85 px-4 py-2.5 rounded-xl shadow-inner">
-                  <Clock size={15} className="text-[#f5c043]" />
-                  <span className="text-[12.5px] text-zinc-400 font-medium">
-                    Opening Hours: <strong className="text-white font-bold">09:00 AM — 09:00 PM</strong>
-                  </span>
+                <div className="inline-flex items-start gap-2.5 bg-[#121212] border border-zinc-800/85 px-4 py-2.5 rounded-xl shadow-inner">
+                  <Clock size={15} className="text-[#f5c043] mt-0.5" />
+                  <div className="text-[12.5px] text-zinc-400 font-medium flex flex-col gap-0.5">
+                    <span>Opening Hours:</span>
+                    <strong className="text-white font-bold">09:00 AM — 09:00 PM</strong>
+                  </div>
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Cột 4: Chính sách & Điều khoản */}
+          <div className="flex flex-col space-y-4">
+            <h3 className="text-sm font-black text-white tracking-widest uppercase">
+              Chính sách & Điều khoản
+            </h3>
+            <ul className="space-y-3 pt-1">
+              {policies.length > 0 ? (
+                policies.map((policy) => {
+                  const isStandard = ['terms', 'privacy', 'delivery'].includes(policy.slug);
+                  const href = isStandard ? `/${policy.slug}` : `/policies/${policy.slug}`;
+                  return (
+                    <li key={policy.slug}>
+                      <Link 
+                        href={href} 
+                        className="text-zinc-400 hover:text-[#f5c043] text-sm font-medium transition-colors duration-200"
+                      >
+                        {policy.title}
+                      </Link>
+                    </li>
+                  );
+                })
+              ) : (
+                <>
+                  <li>
+                    <Link 
+                      href="/terms" 
+                      className="text-zinc-400 hover:text-[#f5c043] text-sm font-medium transition-colors duration-200"
+                    >
+                      Điều khoản sử dụng
+                    </Link>
+                  </li>
+                  <li>
+                    <Link 
+                      href="/privacy" 
+                      className="text-zinc-400 hover:text-[#f5c043] text-sm font-medium transition-colors duration-200"
+                    >
+                      Chính sách bảo mật
+                    </Link>
+                  </li>
+                  <li>
+                    <Link 
+                      href="/delivery" 
+                      className="text-zinc-400 hover:text-[#f5c043] text-sm font-medium transition-colors duration-200"
+                    >
+                      Chính sách giao nhận và hủy đơn
+                    </Link>
+                  </li>
+                </>
+              )}
+            </ul>
           </div>
 
         </div>

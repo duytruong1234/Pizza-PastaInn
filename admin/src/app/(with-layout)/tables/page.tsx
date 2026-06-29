@@ -9,13 +9,13 @@ import { Metadata } from "next";
 import { Suspense } from "react";
 
 export const metadata: Metadata = {
-  title: "Tables",
+  title: "Bảng dữ liệu - Pizza & Pasta Inn Admin",
 };
 
 const TablesPage = () => {
   return (
     <>
-      <Breadcrumb pageName="Tables" />
+      <Breadcrumb pageName="Bảng dữ liệu" />
 
       <div className="space-y-10">
         <Suspense fallback={<TopChannelsSkeleton />}>

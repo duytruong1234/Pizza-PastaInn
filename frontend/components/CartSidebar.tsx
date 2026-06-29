@@ -6,15 +6,64 @@ import { formatPrice } from '@/lib/utils';
 import Image from 'next/image';
 import { useUI } from '@/components/UIProvider';
 import { X, Trash2 } from 'lucide-react';
-import { useCartStore } from '@/store/cartStore';
+import { shouldBypassNextImageOptimization } from '@/lib/image';
+import { useCartStore, CartItem } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
 import { useOrderStore } from '@/store/orderStore';
+import ProductModal from './ProductModal';
+import ComboModal from './ComboModal';
+import HalfHalfModal from './HalfHalfModal';
+import { API_BASE, BACKEND_URL } from '@/lib/config';
 
 export default function CartSidebar() {
   const router = useRouter();
   const { isCartOpen, toggleCart } = useUI();
   const { items, removeFromCart, updateQuantity, clearCart, totalItems, totalPrice } = useCartStore();
   const [isMounted, setIsMounted] = useState(false);
+
+  const [editingItem, setEditingItem] = useState<CartItem | null>(null);
+  const [dishForEdit, setDishForEdit] = useState<any>(null);
+  const [categoryNameForEdit, setCategoryNameForEdit] = useState<string>('');
+  const [loadingEdit, setLoadingEdit] = useState(false);
+
+  const handleEditClick = async (item: CartItem) => {
+    if (item.type === 'regular') {
+      setLoadingEdit(true);
+      try {
+        const res = await fetch(`${API_BASE}/menu/dishes`);
+        const json = await res.json();
+        if (json.success) {
+          const match = json.data.find((d: any) => d.dish_id === item.dish_id);
+          if (match) {
+            setDishForEdit({
+              id: match.dish_id,
+              name: match.dish_name,
+              ingredients: match.ingredient || '',
+              basePrice: match.prices?.[0]?.dish_price || 0,
+              prices: match.prices || [],
+              imageUrl: match.image ? (match.image.startsWith('http') ? match.image : `${BACKEND_URL}${match.image}`) : 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=300&auto=format&fit=crop'
+            });
+
+            const catRes = await fetch(`${API_BASE}/menu/categories`);
+            const catJson = await catRes.json();
+            if (catJson.success) {
+              const cat = catJson.data.find((c: any) => c.category_id === match.category_id);
+              if (cat) {
+                setCategoryNameForEdit(cat.category_name);
+              }
+            }
+            setEditingItem(item);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching dish for edit:', err);
+      } finally {
+        setLoadingEdit(false);
+      }
+    } else {
+      setEditingItem(item);
+    }
+  };
 
   const handleCheckout = () => {
     const user = useAuthStore.getState().user;
@@ -91,6 +140,8 @@ export default function CartSidebar() {
                       src={item.imageUrl || "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=100&auto=format&fit=crop"}
                       alt={item.name}
                       fill
+                      sizes="48px"
+                      unoptimized={shouldBypassNextImageOptimization(item.imageUrl)}
                       className="object-cover"
                     />
                   </div>
@@ -152,8 +203,14 @@ export default function CartSidebar() {
                       <span className="px-1">{item.quantity}</span>
                       <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="px-1.5 hover:bg-yellow-200 rounded-r">+</button>
                     </div>
-                    <button className="bg-[#007a3f] text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">{"Edit"}</button>
-                    <button onClick={() => removeFromCart(item.id)} className="bg-[#ee2828] text-white font-bold text-[10px] px-2 py-0.5 rounded shadow">{"Delete"}</button>
+                    <button
+                      onClick={() => handleEditClick(item)}
+                      disabled={loadingEdit}
+                      className="bg-[#007a3f] text-white text-[10px] font-bold px-2 py-0.5 rounded shadow hover:bg-green-700 transition-colors disabled:opacity-50"
+                    >
+                      {"Edit"}
+                    </button>
+                    <button onClick={() => removeFromCart(item.id)} className="bg-[#ee2828] text-white font-bold text-[10px] px-2 py-0.5 rounded shadow hover:bg-red-700 transition-colors">{"Delete"}</button>
                   </div>
 
                   <div className="text-right flex flex-col justify-end">
@@ -178,6 +235,40 @@ export default function CartSidebar() {
           </button>
         </div>
       </aside>
+
+      {editingItem && editingItem.type === 'regular' && dishForEdit && (
+        <ProductModal
+          isOpen={!!editingItem}
+          onClose={() => {
+            setEditingItem(null);
+            setDishForEdit(null);
+          }}
+          product={dishForEdit}
+          categoryName={categoryNameForEdit}
+          editCartItem={editingItem}
+        />
+      )}
+
+      {editingItem && editingItem.type === 'combo' && (
+        <ComboModal
+          isOpen={!!editingItem}
+          onClose={() => setEditingItem(null)}
+          comboId={editingItem.combo_id || editingItem.dish_id || 0}
+          comboName={editingItem.name}
+          comboPrice={editingItem.price}
+          comboDescription=""
+          imageUrl={editingItem.imageUrl}
+          editCartItem={editingItem}
+        />
+      )}
+
+      {editingItem && editingItem.type === 'half_half' && (
+        <HalfHalfModal
+          isOpen={!!editingItem}
+          onClose={() => setEditingItem(null)}
+          editCartItem={editingItem}
+        />
+      )}
     </>
   );
 }

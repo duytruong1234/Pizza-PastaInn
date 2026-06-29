@@ -64,7 +64,7 @@ export default function RegisterPage() {
       setShowOtpModal(true);
       setOtpValues(['', '', '', '', '', '']);
       setOtpError('');
-      setCountdown(60);
+      setCountdown(300);
       setTimeout(() => otpRefs.current[0]?.focus(), 100);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Unable to send OTP code');
@@ -80,7 +80,7 @@ export default function RegisterPage() {
     setOtpError('');
     try {
       await api.post('/auth/send-otp', { email: formData.email });
-      setCountdown(60);
+      setCountdown(300);
       setOtpValues(['', '', '', '', '', '']);
       otpRefs.current[0]?.focus();
     } catch (err: any) {
@@ -306,7 +306,7 @@ export default function RegisterPage() {
             <div className="text-center">
               {countdown > 0 ? (
                 <p className="text-sm text-gray-400">
-                  Resend code in <span className="font-bold text-pizza-red">{countdown}s</span>
+                  Resend code in <span className="font-bold text-pizza-red">{Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, '0')}</span>
                 </p>
               ) : (
                 <button

@@ -96,15 +96,15 @@ export function WeeksProfitChart({ data }: PropsType) {
       <Chart
         options={options}
         series={[
-          {
-            name: "Sales",
-            data: data.sales,
-          },
-          {
-            name: "Revenue",
-            data: data.revenue,
-          },
-        ]}
+           {
+             name: "Doanh số",
+             data: data.sales,
+           },
+           {
+             name: "Doanh thu",
+             data: data.revenue,
+           },
+         ]}
         type="bar"
         height={370}
       />

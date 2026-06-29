@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ArrowLeft, MapPin, Phone, Mail, User, Clock, FileText, CreditCard, Store, Truck, Package, CheckCircle, QrCode, Search, Loader, AlertTriangle, RotateCcw, BookOpen, Sparkles, Bell, Trash2 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
+import { shouldBypassNextImageOptimization } from '@/lib/image';
 import { useCartStore } from '@/store/cartStore';
 import { useOrderStore } from '@/store/orderStore';
 import { useAuthStore } from '@/store/authStore';
@@ -403,7 +404,7 @@ function OrderSummary() {
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.message);
-      setCountdown(60);
+      setCountdown(300);
       setOtpValues(['', '', '', '', '', '']);
       setTimeout(() => otpRefs.current[0]?.focus(), 200);
     } catch (err: any) {
@@ -508,31 +509,33 @@ function OrderSummary() {
 
       <div className="checkout-summary-items">
         {displayItems.map((item) => (
-          <div key={item.id} className="checkout-summary-item">
-            <div className="checkout-summary-qty">
-              <span>x{item.quantity}</span>
-            </div>
-            <div className="checkout-summary-item-image">
+          <div key={item.id} className="checkout-summary-item flex gap-4 py-4 border-b border-white/5 last:border-0 items-start">
+            <div className="relative w-16 h-16 rounded-full overflow-hidden border shrink-0 shadow-md border-white/[0.06]">
               <Image
                 src={item.imageUrl || 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=100&auto=format&fit=crop'}
                 alt={item.name}
                 fill
+                sizes="64px"
+                unoptimized={shouldBypassNextImageOptimization(item.imageUrl)}
                 className="object-cover"
               />
             </div>
-            <div className="checkout-summary-item-info">
-              <h4>{item.name}</h4>
+            <div className="flex-1 flex flex-col justify-start text-left">
+              <h4 className="font-extrabold text-sm md:text-base tracking-wide leading-snug text-white">{item.name}</h4>
+              <div className="text-[11px] font-bold tracking-wider text-zinc-400 mt-0.5">
+                Quantity: x{item.quantity}
+              </div>
               {item.options?.comboItems ? (
                 <div className="flex flex-col gap-1 mt-1 text-[11px] text-white/80">
                   {item.options.comboItems.map((ci: any, idx: number) => (
                     <div key={idx} className="flex flex-col">
                       <span className="text-white font-bold">{idx + 1}. {ci.name}</span>
-                      <div className="ml-3 font-normal text-white/70 space-y-0.5">
-                        {ci.size && <span>Size: {ci.size}<br /></span>}
-                        {ci.crust && <span>Crust: {ci.crust}<br /></span>}
+                      <div className="ml-3 font-normal text-white/45 text-[9.5px] space-y-0.5 mt-0.5">
+                        {ci.size && <span className="font-bold tracking-wider">SIZE: {ci.size.toUpperCase()}<br /></span>}
+                        {ci.crust && <span className="font-bold tracking-wider">CRUST: {ci.crust.toUpperCase()}<br /></span>}
                         {ci.toppings && ci.toppings.length > 0 && ci.toppings.map((tp: any, tidx: number) => (
-                          <span key={tidx} className="italic text-white/60 ml-2 block">
-                            • topping: {tp.name} (+{formatPrice(tp.price)})
+                          <span key={tidx} className="italic text-white/35 ml-1 block">
+                            • Topping: {tp.name} (+{formatPrice(tp.price)})
                           </span>
                         ))}
                       </div>
@@ -545,20 +548,20 @@ function OrderSummary() {
                   )}
                 </div>
               ) : (
-                <div className="text-[11px] text-white/80 space-y-0.5">
-                  {item.options?.size && <p>Size: {item.options.size}</p>}
-                  {item.options?.crust && <p>Crust: {item.options.crust}</p>}
+                <div className="text-[10px] text-white/45 space-y-0.5 mt-0.5">
+                  {item.options?.size && <p className="font-bold tracking-wider">SIZE: {item.options.size.toUpperCase()}</p>}
+                  {item.options?.crust && <p className="font-bold tracking-wider">CRUST: {item.options.crust.toUpperCase()}</p>}
                   {item.options?.toppings && (
                     Array.isArray(item.options.toppings) && item.options.toppings.length > 0 ? (
                       <div className="ml-1 mt-0.5">
                         {item.options.toppings.map((tp: any, tidx: number) => (
-                          <span key={tidx} className="italic text-white/60 block">
-                            • topping: {tp.name} (+{formatPrice(tp.price)})
+                          <span key={tidx} className="italic text-white/35 block">
+                            • Topping: {tp.name} (+{formatPrice(tp.price)})
                           </span>
                         ))}
                       </div>
                     ) : typeof item.options.toppings === 'string' && (item.options.toppings as string).length > 0 ? (
-                      <p>Topping: {item.options.toppings as string}</p>
+                      <p className="tracking-wide">Topping: {item.options.toppings as string}</p>
                     ) : null
                   )}
                   {item.options?.notes && (
@@ -574,18 +577,14 @@ function OrderSummary() {
       </div>
 
       <div className="checkout-summary-totals">
-        <div className="checkout-summary-row">
-          <span>SUBTOTAL</span>
-          <span>{formatPrice(displayTotal)}</span>
-        </div>
         <div className="checkout-summary-row" style={{ flexDirection: 'column', gap: '4px' }}>
           <span>SHIPPING FEE</span>
-          <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', fontWeight: 600, lineHeight: 1.4 }}>
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-2.5 rounded-md text-[10px] font-bold mt-1 uppercase tracking-wider leading-relaxed text-center">
             SHIPPING FEE WILL BE EMAILED ONCE THE STORE CONFIRMS YOUR DELIVERY DISTANCE
-          </span>
+          </div>
         </div>
         <div className="checkout-summary-total-row">
-          <span>TOTAL PRICE</span>
+          <span>SUBTOTAL</span>
           <span className="checkout-total-price">{formatPrice(displayTotal)}</span>
         </div>
       </div>
@@ -699,7 +698,7 @@ function OrderSummary() {
 
               <div className="text-center mt-3">
                 {countdown > 0 ? (
-                  <span className="text-[12px] text-white/40">Resend code in {countdown}s</span>
+                  <span className="text-[12px] text-white/40">Resend code in {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, '0')}</span>
                 ) : (
                   <button
                     onClick={handleSendOtp}
@@ -727,7 +726,7 @@ function OrderSummary() {
 // ── Component: Đặt hàng thành công ──────────────────────────────────────────
 
 
-function OrderSuccess() {
+function OrderSuccess({ stores }: { stores: any[] }) {
   const { orderResult, formData, resetForm, cartBackup } = useOrderStore();
   const { user } = useAuthStore();
   const router = useRouter();
@@ -804,7 +803,29 @@ function OrderSuccess() {
                 <p className="text-white/50 font-bold"><span className="text-white/30 font-medium uppercase text-[10px] tracking-wider block mb-0.5">Recipient</span>{formData.customer_name}</p>
                 <p className="text-white/50 font-bold"><span className="text-white/30 font-medium uppercase text-[10px] tracking-wider block mb-0.5">Phone number</span>{formData.customer_phone}</p>
                 <p className="text-white/50 font-bold"><span className="text-white/30 font-medium uppercase text-[10px] tracking-wider block mb-0.5">Email</span>{formData.customer_email}</p>
-                <p className="text-white/50 font-bold"><span className="text-white/30 font-medium uppercase text-[10px] tracking-wider block mb-0.5">Delivery address</span>{formData.customer_address || 'Pick up directly at branch'}</p>
+                <p className="text-white/50 font-bold">
+                  <span className="text-white/30 font-medium uppercase text-[10px] tracking-wider block mb-0.5">
+                    {formData.order_type === 'pickup' ? 'Pickup Store' : 'Delivery address'}
+                  </span>
+                  {formData.order_type === 'pickup' ? (
+                    (() => {
+                      const selectedStore = stores?.find(s => s.store_id === formData.store_id);
+                      return selectedStore ? (
+                        <span className="block text-white font-bold mt-1 text-xs md:text-sm">
+                          {selectedStore.store_name}
+                          <span className="block font-medium text-white/50 text-[11px] mt-0.5">{selectedStore.address}</span>
+                          {selectedStore.hotline && (
+                            <span className="block font-medium text-white/50 text-[11px] mt-0.5">Hotline: {selectedStore.hotline}</span>
+                          )}
+                        </span>
+                      ) : (
+                        'Pick up directly at branch'
+                      );
+                    })()
+                  ) : (
+                    formData.customer_address || 'Pick up directly at branch'
+                  )}
+                </p>
               </div>
               <div className="space-y-2.5">
                 {formData.nearest_store_name && (
@@ -823,32 +844,64 @@ function OrderSuccess() {
             {/* Chi tiết món đã đặt */}
             {cartBackup && cartBackup.length > 0 && (
               <div className="mt-4">
-                <h5 className="text-[11px] font-extrabold text-[#d4a017] tracking-[0.15em] uppercase mb-3">ORDERED ITEMS DETAIL</h5>
-                <div className="space-y-2">
+                <h5 className="text-[11px] font-extrabold text-[#d4a017] tracking-[0.15em] uppercase mb-4">ORDERED ITEMS DETAIL</h5>
+                <div className="space-y-4">
                   {cartBackup.map((item, idx) => (
-                    <div key={item.id || idx} className="flex items-start gap-3 bg-white/[0.02] border border-white/[0.04] p-3 rounded-xl">
-                      <span className="text-[10px] font-black text-[#cd3645] bg-[#cd3645]/10 px-2 py-1 rounded-md flex-shrink-0">x{item.quantity}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-white/70 font-bold text-xs">{item.name}</p>
-                        <div className="text-[10px] text-white/40 space-y-0.5 mt-0.5">
-                          {item.options?.size && <span className="block">Size: {item.options.size}</span>}
-                          {item.options?.crust && <span className="block">Crust: {item.options.crust}</span>}
-                          {item.options?.toppings && Array.isArray(item.options.toppings) && item.options.toppings.length > 0 && (
-                            <span className="block">Toppings: {item.options.toppings.map((t: any) => t.name || t.topping_name).join(', ')}</span>
-                          )}
-                          {item.options?.comboItems && item.options.comboItems.length > 0 && (
-                            <div className="mt-1 space-y-0.5">
-                              {item.options.comboItems.map((ci: any, cidx: number) => (
-                                <span key={cidx} className="block">{cidx + 1}. {ci.name}{ci.size ? ` (${ci.size})` : ''}{ci.crust ? ` - ${ci.crust}` : ''}</span>
-                              ))}
-                            </div>
-                          )}
-                          {item.options?.notes && (
-                            <span className="block text-[#ef4444]/60 italic">Note: {item.options.notes}</span>
-                          )}
-                        </div>
+                    <div key={item.id || idx} className="flex items-start gap-4 py-4 border-b border-white/5 last:border-0">
+                      <div className="relative w-16 h-16 rounded-full overflow-hidden border shrink-0 shadow-md border-white/[0.06]">
+                        <Image
+                          src={item.imageUrl || 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=100&auto=format&fit=crop'}
+                          alt={item.name}
+                          fill
+                          sizes="64px"
+                          unoptimized={shouldBypassNextImageOptimization(item.imageUrl)}
+                          className="object-cover"
+                        />
                       </div>
-                      <span className="text-xs font-bold text-white/50 whitespace-nowrap">{formatPrice(item.price * item.quantity)}</span>
+                      <div className="flex-1 min-w-0 text-left">
+                        <p className="text-white font-extrabold text-sm md:text-base tracking-wide leading-snug">{item.name}</p>
+                        <div className="text-[11px] font-bold tracking-wider text-zinc-400 mt-0.5">
+                          Quantity: x{item.quantity}
+                        </div>
+                        {item.options?.comboItems && item.options.comboItems.length > 0 ? (
+                          <div className="flex flex-col gap-1 mt-1 text-[10px] text-white/45 space-y-0.5">
+                            {item.options.comboItems.map((ci: any, cidx: number) => (
+                              <div key={cidx} className="flex flex-col">
+                                <span className="text-white/85 font-bold">{cidx + 1}. {ci.name}</span>
+                                <div className="ml-3 font-normal text-white/40 space-y-0.5">
+                                  {ci.size && <span className="font-bold">SIZE: {ci.size.toUpperCase()}<br /></span>}
+                                  {ci.crust && <span className="font-bold">CRUST: {ci.crust.toUpperCase()}<br /></span>}
+                                  {ci.toppings && ci.toppings.length > 0 && ci.toppings.map((tp: any, tidx: number) => (
+                                    <span key={tidx} className="italic text-white/35 ml-1 block">
+                                      • Topping: {tp.name || tp.topping_name} (+{formatPrice(tp.price || 0)})
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-white/45 space-y-0.5 mt-0.5">
+                            {item.options?.size && <p className="font-bold tracking-wider">SIZE: {item.options.size.toUpperCase()}</p>}
+                            {item.options?.crust && <p className="font-bold tracking-wider">CRUST: {item.options.crust.toUpperCase()}</p>}
+                            {item.options?.toppings && Array.isArray(item.options.toppings) && item.options.toppings.length > 0 && (
+                              <div className="ml-1 mt-0.5">
+                                {item.options.toppings.map((tp: any, tidx: number) => (
+                                  <span key={tidx} className="italic text-white/35 block">
+                                    • Topping: {tp.name || tp.topping_name} (+{formatPrice(tp.price || 0)})
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {item.options?.notes && (
+                          <div className="bg-[#9f280a] inline-block px-1.5 py-0.5 mt-1 rounded text-[10px] text-white self-start">
+                            Note: {item.options.notes}
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-sm font-extrabold text-[#cd3645] whitespace-nowrap self-start mt-1">{formatPrice(item.price * item.quantity)}</span>
                     </div>
                   ))}
                 </div>
@@ -1688,7 +1741,7 @@ export default function CheckoutPage() {
   if (step === 'success') {
     return (
       <div className="checkout-page flex items-center justify-center min-h-screen">
-        <OrderSuccess />
+        <OrderSuccess stores={stores} />
       </div>
     );
   }

@@ -10,13 +10,13 @@ export default function Page() {
 
   return (
     <div className="mx-auto w-full max-w-242.5">
-      <Breadcrumb pageName="Profile" />
+      <Breadcrumb pageName="Thông tin cá nhân" />
 
       <div className="overflow-hidden rounded-[10px] bg-white shadow-1 dark:bg-gray-dark dark:shadow-card">
         <div className="relative z-20 h-35 md:h-65">
           <Image
             src="/images/cover/cover-01.png"
-            alt="profile cover"
+            alt="Ảnh bìa"
             className="h-full w-full rounded-tl-[10px] rounded-tr-[10px] object-cover object-center"
             width={970}
             height={260}
@@ -33,7 +33,9 @@ export default function Page() {
             <h3 className="mb-1 text-heading-6 font-bold text-dark dark:text-white">
               {user?.username || "Admin"}
             </h3>
-            <p className="font-medium capitalize">{user?.role || "admin"}</p>
+            <p className="font-medium capitalize">
+              {user?.role === "admin" ? "Quản trị viên" : user?.role || "Khách"}
+            </p>
 
             <div className="mx-auto mt-5 mb-5.5 grid max-w-92.5 grid-cols-2 rounded-[5px] border border-stroke py-2.25 shadow-1 dark:border-dark-3 dark:bg-dark-2 dark:shadow-card">
               <div className="flex flex-col items-center justify-center gap-1 border-r border-stroke px-4 dark:border-dark-3">
@@ -43,9 +45,9 @@ export default function Page() {
                 </span>
               </div>
               <div className="flex flex-col items-center justify-center gap-1 px-4">
-                <span className="text-body-sm">Role</span>
+                <span className="text-body-sm">Vai trò</span>
                 <span className="font-medium text-dark dark:text-white capitalize">
-                  {user?.role || "N/A"}
+                  {user?.role === "admin" ? "Quản trị viên" : user?.role || "N/A"}
                 </span>
               </div>
             </div>

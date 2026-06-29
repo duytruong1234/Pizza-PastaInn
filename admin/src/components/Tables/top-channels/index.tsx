@@ -22,17 +22,17 @@ export async function TopChannels({ className }: { className?: string }) {
       )}
     >
       <h2 className="mb-4 text-body-2xlg font-bold text-dark dark:text-white">
-        Top Channels
+        Kênh hàng đầu
       </h2>
 
       <Table>
         <TableHeader>
           <TableRow className="border-none uppercase [&>th]:text-center">
-            <TableHead className="min-w-[120px] text-left!">Source</TableHead>
-            <TableHead>Visitors</TableHead>
-            <TableHead className="text-right!">Revenues</TableHead>
-            <TableHead>Sales</TableHead>
-            <TableHead>Conversion</TableHead>
+            <TableHead className="min-w-[120px] text-left!">Nguồn</TableHead>
+            <TableHead>Lượt truy cập</TableHead>
+            <TableHead className="text-right!">Doanh thu</TableHead>
+            <TableHead>Doanh số</TableHead>
+            <TableHead>Chuyển đổi</TableHead>
           </TableRow>
         </TableHeader>
 
@@ -57,7 +57,7 @@ export async function TopChannels({ className }: { className?: string }) {
               <TableCell>{compactFormat(channel.visitors)}</TableCell>
 
               <TableCell className="text-right! text-green-light-1">
-                ${standardFormat(channel.revenues)}
+                {standardFormat(channel.revenues)} đ
               </TableCell>
 
               <TableCell>{channel.sales}</TableCell>

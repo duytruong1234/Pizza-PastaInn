@@ -18,6 +18,20 @@ router.post('/rooms/init', async (req: Request, res: Response): Promise<void> =>
     // 1. Phía khách hàng đã đăng nhập
     if (customer_id) {
       const customerIdInt = parseInt(String(customer_id));
+      if (isNaN(customerIdInt)) {
+        sendError(res, 'Ma khach hang khong hop le', 400);
+        return;
+      }
+
+      const customer = await prisma.user.findUnique({
+        where: { user_id: customerIdInt },
+        select: { user_id: true },
+      });
+
+      if (!customer) {
+        sendError(res, 'Khong tim thay khach hang', 404);
+        return;
+      }
       
       // Tìm phòng chat đang chờ hoặc đang hoạt động
       let room = await prisma.chatRoom.findFirst({

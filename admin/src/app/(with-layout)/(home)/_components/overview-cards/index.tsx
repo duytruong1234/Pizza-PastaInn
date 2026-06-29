@@ -41,25 +41,25 @@ export function OverviewCardsGroup() {
   return (
     <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4 2xl:gap-7.5">
       <OverviewCard
-        label="Total Orders"
+        label="Tổng đơn hàng"
         data={{ value: compactFormat(stats.totalOrders), growthRate: 0 }}
         Icon={icons.Views}
       />
 
       <OverviewCard
-        label="Revenue"
+        label="Doanh thu"
         data={{ value: compactFormat(stats.totalRevenue) + "đ", growthRate: 0 }}
         Icon={icons.Profit}
       />
 
       <OverviewCard
-        label="Total Dishes"
+        label="Tổng món ăn"
         data={{ value: compactFormat(stats.totalDishes), growthRate: 0 }}
         Icon={icons.Product}
       />
 
       <OverviewCard
-        label="Customers"
+        label="Khách hàng"
         data={{ value: compactFormat(stats.totalCustomers), growthRate: 0 }}
         Icon={icons.Users}
       />

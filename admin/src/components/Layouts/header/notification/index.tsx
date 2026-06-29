@@ -56,7 +56,7 @@ export function Notification() {
     >
       <DropdownTrigger
         className="grid size-12 cursor-pointer place-items-center rounded-full border bg-gray-2 text-dark outline-none hover:text-primary focus-visible:border-primary focus-visible:text-primary dark:border-dark-4 dark:bg-dark-2 dark:text-white dark:hover:bg-dark-3 dark:focus-visible:border-primary"
-        aria-label="View Notifications"
+        aria-label="Xem thông báo"
       >
         <span className="relative">
           <BellIcon />
@@ -79,10 +79,10 @@ export function Notification() {
       >
         <div className="mb-1 flex items-center justify-between px-2 py-1.5">
           <span className="text-lg font-medium text-dark dark:text-white">
-            Notifications
+            Thông báo
           </span>
           <span className="rounded-md bg-primary px-2.25 py-0.5 text-xs font-medium text-white">
-            5 new
+            5 mới
           </span>
         </div>
 
@@ -121,7 +121,7 @@ export function Notification() {
           onClick={() => setIsOpen(false)}
           className="block rounded-lg border border-primary p-2 text-center text-sm font-medium tracking-wide text-primary transition-colors outline-none hover:bg-blue-light-5 focus:bg-blue-light-5 focus:text-primary focus-visible:border-primary dark:border-dark-3 dark:text-dark-6 dark:hover:border-dark-5 dark:hover:bg-dark-3 dark:hover:text-dark-7 dark:focus-visible:border-dark-5 dark:focus-visible:bg-dark-3 dark:focus-visible:text-dark-7"
         >
-          See all notifications
+          Xem tất cả thông báo
         </Link>
       </DropdownContent>
     </Dropdown>

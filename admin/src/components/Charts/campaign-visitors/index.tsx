@@ -17,7 +17,7 @@ export async function CampaignVisitors({ className }: { className?: string }) {
       <div className="border-b border-stroke px-6 py-5.5 dark:border-dark-3">
         <div className="flex justify-between">
           <h2 className="mb-1.5 text-2xl font-bold text-dark dark:text-white">
-            Campaign Visitors
+            Lượt truy cập chiến dịch
           </h2>
 
           <div className="mb-0.5 text-2xl font-bold text-dark dark:text-white">
@@ -26,7 +26,7 @@ export async function CampaignVisitors({ className }: { className?: string }) {
         </div>
 
         <div className="flex justify-between">
-          <div className="text-sm font-medium">Last Campaign Performance</div>
+          <div className="text-sm font-medium">Hiệu quả chiến dịch gần nhất</div>
 
           <div
             className={cn(
