@@ -6,6 +6,10 @@ import prisma from '../lib/prisma';
 import { sendSuccess, sendError } from '../utils/response';
 import { logger } from '../utils/logger';
 import { sendOrderConfirmedEmail, sendDeliveringEmail, sendDeliveredEmail } from '../services/emailService';
+import {
+  DashboardAnalyticsService,
+  isDashboardAnalyticsRange,
+} from '../services/dashboardAnalyticsService';
 import { Response } from 'express';
 
 const router = Router();
@@ -23,7 +27,10 @@ router.get('/stats', async (_req: AuthRequest, res: Response): Promise<void> => 
   try {
     const [totalOrders, totalRevenue, totalCustomers, totalDishes] = await Promise.all([
       prisma.order.count(),
-      prisma.order.aggregate({ _sum: { total_order: true } }),
+      prisma.order.aggregate({
+        where: { order_status: { not: 'cancelled' } },
+        _sum: { total_order: true },
+      }),
       prisma.user.count({ where: { role: 'customer' } }),
       prisma.dish.count(),
     ]);
@@ -85,6 +92,27 @@ router.get('/revenue', async (_req: AuthRequest, res: Response): Promise<void> =
   }
 });
 
+/**
+ * GET /api/admin/dashboard-analytics?range=7d|30d|12m
+ * Dữ liệu tổng hợp cho biểu đồ dashboard admin.
+ */
+router.get('/dashboard-analytics', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const requestedRange = req.query.range;
+    if (requestedRange !== undefined && !isDashboardAnalyticsRange(requestedRange)) {
+      sendError(res, 'Khoảng thời gian không hợp lệ. Chỉ hỗ trợ 7d, 30d hoặc 12m', 400);
+      return;
+    }
+
+    const range = requestedRange === undefined ? '12m' : requestedRange;
+    const analytics = await DashboardAnalyticsService.getAnalytics(range);
+    sendSuccess(res, { data: analytics });
+  } catch (err) {
+    logger.error('Admin dashboard analytics error:', err);
+    sendError(res, 'Lỗi khi lấy dữ liệu dashboard', 500);
+  }
+});
+
 // ─── QUẢN LÝ ĐƠN HÀNG ──────────────────────────────────────────────────────
 
 /**
@@ -129,6 +157,12 @@ router.get('/orders', async (req: AuthRequest, res: Response): Promise<void> => 
           items: {
             include: {
               order: false,
+              dish_price: {
+                include: {
+                  dish: { select: { dish_name: true, image: true } },
+                },
+              },
+              combo: { select: { combo_name: true, image_combo: true } },
             },
           },
         },
@@ -902,7 +936,7 @@ router.post('/stores', async (req: AuthRequest, res: Response): Promise<void> =>
       },
     });
     // Warn if coordinates missing (needed for delivery fee calculation)
-    const warning = (lat == null || lon == null) ? ' ⚠️ Thiếu tọa độ GPS - chức năng tính phí giao hàng sẽ không hoạt động cho chi nhánh này.' : '';
+    const warning = (lat == null || lon == null) ? ' [Cảnh báo] Thiếu tọa độ GPS - chức năng tính phí giao hàng sẽ không hoạt động cho chi nhánh này.' : '';
     sendSuccess(res, { data: store, message: 'Thêm chi nhánh thành công' + warning }, 201);
   } catch (err) {
     logger.error('Admin create store error:', err);
@@ -941,7 +975,7 @@ router.put('/stores/:id', async (req: AuthRequest, res: Response): Promise<void>
         is_active,
       },
     });
-    const warning = (lat == null || lon == null) ? ' ⚠️ Thiếu tọa độ GPS - chức năng tính phí giao hàng sẽ không hoạt động cho chi nhánh này.' : '';
+    const warning = (lat == null || lon == null) ? ' [Cảnh báo] Thiếu tọa độ GPS - chức năng tính phí giao hàng sẽ không hoạt động cho chi nhánh này.' : '';
     sendSuccess(res, { data: store, message: 'Cập nhật chi nhánh thành công' + warning });
   } catch (err) {
     logger.error('Admin update store error:', err);
@@ -1404,6 +1438,190 @@ router.delete('/chat/rooms/:roomId', async (req: AuthRequest, res: Response): Pr
   } catch (err) {
     logger.error('Admin delete chat room error:', err);
     sendError(res, 'Lỗi khi xóa cuộc hội thoại', 500);
+  }
+});
+
+// ==========================================
+// CHATBOT ADMIN ROUTES
+// ==========================================
+
+/**
+ * GET /api/admin/chatbot/stats
+ * Thống kê tổng quan Chatbot AI
+ */
+router.get('/chatbot/stats', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const [totalSessions, totalMessages, todaySessions, intentStats] = await Promise.all([
+      prisma.chatbotSession.count(),
+      prisma.chatbotMessage.count(),
+      prisma.chatbotSession.count({
+        where: { started_at: { gte: new Date(new Date().setHours(0,0,0,0)) } }
+      }),
+      prisma.chatbotMessage.groupBy({
+        by: ['intent'],
+        where: { role: 'bot', intent: { not: null } },
+        _count: { intent: true }
+      })
+    ]);
+
+    const avgMessagesPerSession = totalSessions > 0 ? (totalMessages / totalSessions).toFixed(1) : 0;
+
+    sendSuccess(res, {
+      data: {
+        totalSessions,
+        totalMessages,
+        todaySessions,
+        avgMessagesPerSession,
+        intentStats
+      }
+    });
+  } catch (err) {
+    logger.error('Admin chatbot stats error:', err);
+    sendError(res, 'Lỗi lấy thống kê chatbot', 500);
+  }
+});
+
+/**
+ * GET /api/admin/chatbot/sessions
+ * Lấy danh sách session (có phân trang)
+ */
+router.get('/chatbot/sessions', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const page = req.query.page ? Math.max(1, Number(req.query.page)) : 1;
+    const limit = req.query.limit ? Math.max(1, Number(req.query.limit)) : 10;
+    const skip = (page - 1) * limit;
+    const search = req.query.search ? String(req.query.search) : '';
+    const intent = req.query.intent ? String(req.query.intent) : '';
+
+    const whereClause: any = {};
+    if (search) {
+      whereClause.user = {
+        OR: [
+          { username: { contains: search } },
+          { email: { contains: search } }
+        ]
+      };
+    }
+    if (intent) {
+      whereClause.last_intent = intent;
+    }
+
+    const [total, sessions] = await Promise.all([
+      prisma.chatbotSession.count({ where: whereClause }),
+      prisma.chatbotSession.findMany({
+        where: whereClause,
+        include: {
+          user: { select: { username: true, email: true } },
+          messages: {
+            take: 1,
+            orderBy: { created_at: 'asc' }
+          }
+        },
+        orderBy: { started_at: 'desc' },
+        skip,
+        take: limit
+      })
+    ]);
+
+    // Also get last message
+    const formattedSessions = await Promise.all(sessions.map(async (s) => {
+      const lastMessage = await prisma.chatbotMessage.findFirst({
+        where: { session_id: s.session_id },
+        orderBy: { created_at: 'desc' }
+      });
+      return {
+        ...s,
+        first_message: s.messages[0] || null,
+        last_message: lastMessage
+      };
+    }));
+
+    sendSuccess(res, {
+      data: { sessions: formattedSessions, total, page, limit }
+    });
+  } catch (err) {
+    logger.error('Admin chatbot sessions error:', err);
+    sendError(res, 'Lỗi lấy danh sách session', 500);
+  }
+});
+
+/**
+ * GET /api/admin/chatbot/sessions/:id
+ * Chi tiết session và tin nhắn
+ */
+router.get('/chatbot/sessions/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const sessionId = Number(req.params.id);
+    if (isNaN(sessionId)) {
+      sendError(res, 'Mã session không hợp lệ', 400);
+      return;
+    }
+
+    const session = await prisma.chatbotSession.findUnique({
+      where: { session_id: sessionId },
+      include: {
+        user: { select: { username: true, email: true } },
+        messages: { orderBy: { created_at: 'asc' } }
+      }
+    });
+
+    if (!session) {
+      sendError(res, 'Không tìm thấy session', 404);
+      return;
+    }
+
+    sendSuccess(res, { data: session });
+  } catch (err) {
+    logger.error('Admin get session detail error:', err);
+    sendError(res, 'Lỗi lấy chi tiết session', 500);
+  }
+});
+
+/**
+ * DELETE /api/admin/chatbot/sessions/:id
+ * Xóa session
+ */
+router.delete('/chatbot/sessions/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const sessionId = Number(req.params.id);
+    if (isNaN(sessionId)) {
+      sendError(res, 'Mã session không hợp lệ', 400);
+      return;
+    }
+
+    await prisma.chatbotSession.delete({
+      where: { session_id: sessionId }
+    });
+
+    sendSuccess(res, { message: 'Xóa session thành công' });
+  } catch (err) {
+    logger.error('Admin delete session error:', err);
+    sendError(res, 'Lỗi xóa session', 500);
+  }
+});
+
+// ==========================================
+// RECOMMENDATION ADMIN ROUTES
+// ==========================================
+
+/**
+ * GET /api/admin/recommendations/stats
+ * Thống kê đề xuất món ăn
+ */
+router.get('/recommendations/stats', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { getPopularDishes, getTopRatedDishes } = await import('../services/recommendationService');
+    const [popular, topRated] = await Promise.all([
+      getPopularDishes(10),
+      getTopRatedDishes(10)
+    ]);
+
+    sendSuccess(res, {
+      data: { popular, topRated }
+    });
+  } catch (err) {
+    logger.error('Admin recommendation stats error:', err);
+    sendError(res, 'Lỗi lấy thống kê đề xuất', 500);
   }
 });
 

@@ -1791,7 +1791,10 @@ export default function ProfilePage() {
 
                                       if (isCombo) {
                                         dishName = item.combo?.combo_name || `Combo #${item.combo_id}`;
-                                        imageSrc = item.combo?.image_combo || 'https://images.unsplash.com/photo-1579751626657-72bc17010498?q=80&w=100&auto=format&fit=crop';
+                                        const comboImg = item.combo?.image_combo;
+                                        imageSrc = comboImg
+                                          ? (comboImg.startsWith('http') ? comboImg : `${backendUrl}${comboImg}`)
+                                          : 'https://images.unsplash.com/photo-1579751626657-72bc17010498?q=80&w=100&auto=format&fit=crop';
                                       } else if (isHalfHalf) {
                                         dishName = 'PIZZA HALF & HALF';
                                         imageSrc = 'https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?q=80&w=100&auto=format&fit=crop';
@@ -1800,7 +1803,10 @@ export default function ProfilePage() {
                                         itemSpec = `${size ? `SIZE: ${size.toUpperCase()}` : ''}${crust && crust.toLowerCase() !== 'none' ? ` - CRUST: ${crust.toUpperCase()}` : ''}`;
                                       } else {
                                         dishName = item.dish_price?.dish?.dish_name || 'Dish';
-                                        imageSrc = item.dish_price?.dish?.image || imageSrc;
+                                        const dishImg = item.dish_price?.dish?.image;
+                                        imageSrc = dishImg
+                                          ? (dishImg.startsWith('http') ? dishImg : `${backendUrl}${dishImg}`)
+                                          : imageSrc;
                                         const isPizza = dishName.toLowerCase().includes('pizza');
                                         if (isPizza) {
                                           const size = item.dish_price?.size?.size_name;

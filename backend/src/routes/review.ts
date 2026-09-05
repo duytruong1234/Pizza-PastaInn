@@ -6,6 +6,9 @@ const router = Router();
 // Lấy danh sách đánh giá công khai
 router.get('/', ReviewController.getPublicReviews);
 
+// Kiểm tra order có thể review được không
+router.get('/order-check/:orderId', ReviewController.checkOrderReviewEligibility);
+
 // Gửi đánh giá mới
 router.post('/', ReviewController.createReview);
 

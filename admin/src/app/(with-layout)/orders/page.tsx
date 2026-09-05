@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import dayjs from "dayjs";
 import { Badge } from "@/components/ui/badge";
+import { useDialog } from "@/components/ui/dialog-provider";
 
 interface Order {
   order_id: number;
@@ -122,6 +123,7 @@ function OrderDetailModal({
   const [customTime, setCustomTime] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const { showAlert, showDanger } = useDialog();
 
   useEffect(() => {
     setMounted(true);
@@ -136,6 +138,73 @@ function OrderDetailModal({
 
   if (!order) return null;
   if (!mounted) return null;
+
+  const handlePrintInvoice = (o: Order) => {
+    const itemsHtml = (o.items || []).map((item: any) => {
+      const isCombo = !!item.combo_id;
+      const isHalfHalf = !!item.is_half_half;
+      let name = 'Món ăn';
+      if (isCombo) name = item.combo?.combo_name || `Combo #${item.combo_id}`;
+      else if (isHalfHalf) name = 'Pizza Half & Half';
+      else name = item.dish_price?.dish?.dish_name || 'Món ăn';
+      return `<tr>
+        <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:left">${name}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:right">${(item.order_price || 0).toLocaleString()} đ</td>
+      </tr>`;
+    }).join('');
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title></title>
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      body{font-family:'Segoe UI',Tahoma,sans-serif;padding:20px;margin:0 auto;color:#333}
+      .header{text-align:center;padding-bottom:12px;margin-bottom:12px}
+      .header h1{font-size:20px;font-weight:800;margin-bottom:2px}
+      .header p{font-size:11px;color:#888}
+      .info{margin-bottom:12px;font-size:13px;line-height:1.8}
+      .info strong{color:#111}
+      table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}
+      th{background:#f5f5f5;padding:8px;text-align:left;font-weight:700;border-bottom:2px solid #ddd}
+      .totals{padding-top:10px;margin-top:10px;font-size:14px}
+      .totals .row{display:flex;justify-content:space-between;padding:3px 0}
+      .totals .grand{font-size:16px;font-weight:800;color:#5750F1;border-top:1px solid #eee;padding-top:8px;margin-top:6px}
+      .footer{text-align:center;margin-top:16px;padding-top:12px;font-size:11px;color:#999}
+      @media print{body{padding:0}button{display:none!important}}
+    </style></head><body>
+    <div class="header">
+      <h1>PIZZA & PASTA INN</h1>
+      <p>HÓA ĐƠN #${o.order_id}</p>
+    </div>
+    <div class="info">
+      <div><strong>Khách hàng:</strong> ${o.customer_name || 'Khách vãng lai'}</div>
+      <div><strong>SĐT:</strong> ${o.customer_phone || 'N/A'}</div>
+      <div><strong>Loại đơn:</strong> ${ORDER_TYPE_LABELS[o.order_type] || o.order_type}</div>
+      <div><strong>Thanh toán:</strong> ${PAYMENT_LABELS[o.payment_method] || o.payment_method}</div>
+      <div><strong>Ngày đặt:</strong> ${o.created_at ? dayjs(o.created_at).format('DD/MM/YYYY HH:mm') : 'N/A'}</div>
+    </div>
+    <table>
+      <thead><tr><th>Món</th><th style="text-align:center">SL</th><th style="text-align:right">Giá</th></tr></thead>
+      <tbody>${itemsHtml}</tbody>
+    </table>
+    <div class="totals">
+      <div class="row"><span>Tạm tính:</span><span>${(o.total_price_dish || 0).toLocaleString()} đ</span></div>
+      <div class="row"><span>Phí giao hàng:</span><span>${(o.shipping_fee || 0).toLocaleString()} đ</span></div>
+      ${(o.discount_amount || 0) > 0 ? `<div class="row"><span>Giảm giá:</span><span>-${(o.discount_amount || 0).toLocaleString()} đ</span></div>` : ''}
+      <div class="row grand"><span>TỔNG CỘNG:</span><span>${(o.total_order || 0).toLocaleString()} đ</span></div>
+    </div>
+    <div class="footer">
+      <p>Cảm ơn quý khách đã sử dụng dịch vụ!</p>
+      <p>Pizza & Pasta Inn</p>
+    </div>
+    <button onclick="window.print()" style="display:block;width:100%;margin-top:16px;padding:10px;background:#5750F1;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">In hóa đơn</button>
+    </body></html>`;
+
+    const printWindow = window.open('', '_blank', 'width=420,height=600');
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+    }
+  };
 
   const handleConfirmOrder = async () => {
     setSubmitting(true);
@@ -160,7 +229,7 @@ function OrderDetailModal({
       });
       setShowConfirmForm(false);
     } catch {
-      alert("Lỗi khi duyệt đơn hàng");
+      await showAlert("Lỗi khi duyệt đơn hàng");
     } finally {
       setSubmitting(false);
     }
@@ -180,12 +249,23 @@ function OrderDetailModal({
               {order.created_at ? dayjs(order.created_at).format("DD/MM/YYYY HH:mm:ss") : "Chưa xác định"}
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-full border border-stroke w-9 h-9 flex items-center justify-center text-gray-500 hover:bg-gray-100 dark:border-dark-3 dark:hover:bg-dark-2 transition"
-          >
-            ✕
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handlePrintInvoice(order)}
+              className="rounded-lg border border-primary bg-primary/10 text-primary px-3 py-2 text-xs font-bold hover:bg-primary hover:text-white transition flex items-center gap-1.5"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              In hóa đơn
+            </button>
+            <button
+              onClick={onClose}
+              className="rounded-full border border-stroke w-9 h-9 flex items-center justify-center text-gray-500 hover:bg-gray-100 dark:border-dark-3 dark:hover:bg-dark-2 transition"
+            >
+              &times;
+            </button>
+          </div>
         </div>
 
         <div className="p-6 space-y-5">
@@ -296,7 +376,7 @@ function OrderDetailModal({
           {(order.store || order.shipping_distance_meters || order.customer_latitude) && (
             <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 dark:border-blue-800/30 dark:bg-blue-950/20">
               <h3 className="text-sm font-bold text-dark dark:text-white mb-3 uppercase tracking-wide flex items-center gap-2">
-                <span>📍</span> Thông tin giao hàng
+                Thông tin giao hàng
               </h3>
               <div className="space-y-2 text-sm">
                 {order.store && (
@@ -561,7 +641,7 @@ function OrderDetailModal({
                         {dayjs(m.time).format("HH:mm:ss DD/MM/YYYY")}
                       </span>
                       {idx < milestones.length - 1 && (
-                        <span className="text-gray-300 dark:text-gray-600 font-bold">➔</span>
+                        <span className="text-gray-300 dark:text-gray-600 font-bold">&rarr;</span>
                       )}
                     </div>
                   ))}
@@ -584,7 +664,7 @@ function OrderDetailModal({
                     </button>
                     <button
                       onClick={async () => {
-                        if (confirm("Bạn có chắc muốn hủy đơn hàng này không?")) {
+                        if (await showDanger("Bạn có chắc muốn hủy đơn hàng này không?", "Hủy đơn hàng")) {
                           await onUpdateStatus(order.order_id, "cancelled");
                         }
                       }}
@@ -606,7 +686,10 @@ function OrderDetailModal({
 
                 {order.order_status === "shipped" && (
                   <button
-                    onClick={() => onUpdateStatus(order.order_id, "completed")}
+                    onClick={async () => {
+                      await onUpdateStatus(order.order_id, "completed");
+                      onClose();
+                    }}
                     className="rounded-xl bg-green px-6 py-3 font-bold text-white hover:bg-opacity-90 transition shadow-lg active:scale-95"
                   >
                     Hoàn thành đơn hàng
@@ -615,13 +698,13 @@ function OrderDetailModal({
 
                 {order.order_status === "completed" && (
                   <p className="text-green-500 font-bold flex items-center gap-1.5">
-                    <span>✓</span> Đơn hàng đã hoàn thành thành công!
+                    <span>&#x2713;</span> Đơn hàng đã hoàn thành thành công!
                   </p>
                 )}
 
                 {order.order_status === "cancelled" && (
                   <p className="text-red-500 font-bold flex items-center gap-1.5">
-                    <span>✕</span> Đơn hàng này đã bị hủy!
+                    <span>&times;</span> Đơn hàng này đã bị hủy!
                   </p>
                 )}
               </div>
@@ -639,7 +722,7 @@ function OrderDetailModal({
                         onClick={() => setShowConfirmForm(false)}
                         className="rounded-full border border-stroke w-9 h-9 flex items-center justify-center text-gray-500 hover:bg-gray-100 dark:border-dark-3 dark:hover:bg-dark-2 transition"
                       >
-                        ✕
+                        &times;
                       </button>
                     </div>
 
@@ -731,7 +814,7 @@ function OrderDetailModal({
                           disabled={submitting}
                           className="rounded-lg bg-green-500 px-5 py-2.5 font-bold text-white hover:bg-green-600 transition shadow active:scale-95 disabled:opacity-50"
                         >
-                          {submitting ? "Processing..." : "✓ Confirm Approval"}
+                          {submitting ? "Processing..." : "Confirm Approval"}
                         </button>
                         <button
                           onClick={() => setShowConfirmForm(false)}
@@ -766,6 +849,7 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [detailOrder, setDetailOrder] = useState<Order | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const { showAlert } = useDialog();
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -800,7 +884,7 @@ export default function OrdersPage() {
         viewDetail(orderId);
       }
     } catch (err) {
-      alert("Lỗi khi cập nhật trạng thái");
+      await showAlert("Lỗi khi cập nhật trạng thái");
     }
   };
 
@@ -810,7 +894,7 @@ export default function OrdersPage() {
       const res = await api.get(`/api/admin/orders/${orderId}`);
       setDetailOrder(res.data.data);
     } catch {
-      alert("Lỗi khi lấy chi tiết đơn hàng");
+      await showAlert("Lỗi khi lấy chi tiết đơn hàng");
     } finally {
       setLoadingDetail(false);
     }

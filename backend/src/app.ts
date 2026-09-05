@@ -131,6 +131,14 @@ app.use('/api/addresses', addressRoutes);
 import reviewRoutes from './routes/review';
 app.use('/api/reviews', reviewRoutes);
 
+// Recommendation routes (gợi ý món ăn)
+import recommendationRoutes from './routes/recommendation';
+app.use('/api/recommendations', recommendationRoutes);
+
+// Chatbot AI routes (gợi ý món ăn bằng AI)
+import chatbotRoutes from './routes/chatbot';
+app.use('/api/chatbot', chatbotRoutes);
+
 // Chat routes
 import chatRoutes from './routes/chat';
 app.use('/api/chat', chatRoutes);

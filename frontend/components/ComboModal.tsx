@@ -18,7 +18,7 @@ const CustomSelect = ({ value, options, onChange }: { value: any, options: { val
         className="w-full bg-white/10 border border-white/20 text-white rounded-lg p-2.5 flex items-center justify-between cursor-pointer hover:bg-white/15 transition-colors"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="text-sm truncate">{selectedOption ? selectedOption.label : "Select..."}</span>
+        <span className="text-sm truncate">{selectedOption ? selectedOption.label : "Chọn..."}</span>
         <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </div>
 
@@ -494,7 +494,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
           </button>
           <h2 className="text-2xl md:text-3xl font-bold uppercase tracking-wide pr-8 mb-2">{comboName?.normalize('NFC')}</h2>
           <div className="text-white/90 text-[15px] mb-3 flex items-baseline gap-2">
-            <span>Price:</span>
+            <span>Giá:</span>
             <span className="text-2xl font-bold text-[#f0c14b] tracking-wide">
               {formatPrice(comboPrice)}
             </span>
@@ -523,8 +523,8 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                     <h3 className="font-bold text-lg mb-1 border-b border-white/20 pb-1">{group.group_name}</h3>
                     <p className="text-xs text-white/60 mb-4">
                       {group.min_select === group.max_select
-                        ? `Select ${group.min_select}`
-                        : `Select ${group.min_select} - ${group.max_select}`
+                        ? `Chọn ${group.min_select}`
+                        : `Chọn ${group.min_select} - ${group.max_select}`
                       }
                     </p>
 
@@ -585,7 +585,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                           <div>
                             {crustsList.length > 0 && (
                               <div className="mb-6 pb-6 border-b border-white/10">
-                                <label className="block text-sm font-bold text-white mb-3">Crust (*)</label>
+                                <label className="block text-sm font-bold text-white mb-3">Đế bánh (*)</label>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                   {crustsList.filter(c => c.is_visible !== false && c.crust_name !== 'None').map(crust => {
                                     const selectedCrustId = pizzaCrustSelections[group.group_id] || 0;
@@ -644,7 +644,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                                 ) : (
                                   <div className="space-y-3 p-3 bg-black/20 rounded-lg border border-white/10">
                                     <div>
-                                      <label className="block text-xs text-white/80 mb-1 font-semibold">Half 1:</label>
+                                      <label className="block text-xs text-white/80 mb-1 font-semibold">Nửa 1:</label>
                                       <CustomSelect
                                         value={selectedDishId}
                                         options={dishOptions}
@@ -658,7 +658,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                                       />
                                     </div>
                                     <div>
-                                      <label className="block text-xs text-white/80 mb-1 font-semibold">Half 2:</label>
+                                      <label className="block text-xs text-white/80 mb-1 font-semibold">Nửa 2:</label>
                                       <CustomSelect
                                         value={pizzaDish2Selections[group.group_id] || dishOptions[0]?.value}
                                         options={dishOptions}
@@ -673,7 +673,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
 
                               {uniqueSizes.length > 1 && (
                                 <div>
-                                  <label className="block text-sm font-bold text-white mb-2">Size (*)</label>
+                                  <label className="block text-sm font-bold text-white mb-2">Cỡ (*)</label>
                                   <div className="flex gap-3">
                                     {uniqueSizes.map((szData: any) => {
                                       const sId = szData.size?.size_id || 0;
@@ -691,7 +691,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                                             }
                                           }}
                                         >
-                                          {szData.size ? szData.size.size_name : 'Standard'}
+                                          {szData.size ? szData.size.size_name : 'Tiêu chuẩn'}
                                         </button>
                                       );
                                     })}
@@ -710,7 +710,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                               if (availableToppings.length === 0) return null;
                               return (
                                 <div className="mt-6">
-                                  <label className="block text-sm font-bold text-white mb-3">Extra Toppings</label>
+                                  <label className="block text-sm font-bold text-white mb-3">Thêm Topping</label>
                                   <div className="space-y-3">
                                     {availableToppings.map(topping => {
                                       const isSelected = (selectedToppings[group.group_id] || []).some(t => t.topping_id === topping.topping_id);
@@ -750,7 +750,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                           <div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                               <div>
-                                <label className="block text-sm font-bold text-white mb-2">Category</label>
+                                <label className="block text-sm font-bold text-white mb-2">Thể loại</label>
                                 <div className="space-y-3">
                                   {['Risotto', 'Grantin', 'Spaghetti'].filter(c => catMap[c] && catMap[c].length > 0).map(cat => (
                                     <label key={cat} className="flex items-center gap-3 cursor-pointer group" onClick={() => {
@@ -769,7 +769,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                                 </div>
                               </div>
                               <div>
-                                <label className="block text-sm font-bold text-white mb-2">Options</label>
+                                <label className="block text-sm font-bold text-white mb-2">Lựa chọn</label>
                                 <CustomSelect
                                   value={selectedComboItemId}
                                   options={itemsInCat.map((item: any) => ({
@@ -791,7 +791,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                               if (availableToppings.length === 0) return null;
                               return (
                                 <div className="mt-6">
-                                  <label className="block text-sm font-bold text-white mb-3">Extra Toppings</label>
+                                  <label className="block text-sm font-bold text-white mb-3">Thêm Topping</label>
                                   <div className="space-y-3">
                                     {availableToppings.map(topping => {
                                       const isSelected = (selectedToppings[group.group_id] || []).some(t => t.topping_id === topping.topping_id);
@@ -847,7 +847,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
               <div className="order-2">
                 {fixedGroups.length > 0 && (
                   <div className="mb-6">
-                    <h3 className="font-bold text-lg mb-2 border-b border-white/20 pb-1">Included in Combo</h3>
+                    <h3 className="font-bold text-lg mb-2 border-b border-white/20 pb-1">Đã bao gồm trong Combo</h3>
                     <ul className="list-disc pl-5 space-y-1 mt-3">
                       {fixedGroups.map(g => {
                         const groupNameLower = g.group_name.toLowerCase();
@@ -868,7 +868,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                             <span className="font-semibold leading-relaxed">{g.group_name}</span>
                             {availableToppings.length > 0 && (
                               <div className="mt-2 ml-4">
-                                <label className="block text-xs font-bold text-white/70 mb-2">Extra Toppings:</label>
+                                <label className="block text-xs font-bold text-white/70 mb-2">Thêm Topping:</label>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                   {availableToppings.map(topping => {
                                     const isSelected = (selectedToppings[g.group_id] || []).some(t => t.topping_id === topping.topping_id);
@@ -893,10 +893,10 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
               </div>
 
               <div className="order-4">
-                <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">Note</h3>
+                <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">Ghi chú</h3>
                 <input
                   type="text"
-                  placeholder="Leave a note about your order here..."
+                  placeholder="Ghi chú cho đơn hàng của bạn..."
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   className="w-full bg-white text-black rounded-lg p-3 outline-none text-sm mt-2"
@@ -929,7 +929,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
             className="w-auto px-8 sm:px-12 bg-[#f0c14b] hover:bg-[#e2b036] text-black font-bold h-12 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2.5 text-base"
           >
             <ShoppingCart size={20} />
-            {editCartItem ? "Update Cart" : "Add to Cart"} : {formatPrice(totalPrice)}
+            {editCartItem ? "Cập nhật giỏ" : "Thêm vào giỏ"} : {formatPrice(totalPrice)}
           </button>
         </div>
 

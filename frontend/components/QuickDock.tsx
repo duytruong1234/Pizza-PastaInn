@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, ArrowUp, X, Send, MessageSquare, Paperclip, MoreVertical, Trash2, ImageIcon } from 'lucide-react';
+import { User, ArrowUp, X, Send, MessageSquare, Paperclip, MoreVertical, Trash2, ImageIcon, Bot } from 'lucide-react';
 import Link from 'next/link';
 import api from '../lib/api';
 import { useAuthStore } from '../store/authStore';
@@ -174,18 +174,18 @@ export default function QuickDock() {
     e.preventDefault();
     const errors: Record<string, string> = {};
     if (!guestName.trim()) {
-      errors.name = 'Please enter your full name';
+      errors.name = 'Vui lòng nhập họ tên';
     }
 
     const phoneTrimmed = guestPhone.trim();
     if (!phoneTrimmed) {
-      errors.phone = 'Please enter your phone number';
+      errors.phone = 'Vui lòng nhập số điện thoại';
     } else if (!/^0\d{9}$/.test(phoneTrimmed)) {
-      errors.phone = 'Phone number must be 10 digits starting with 0';
+      errors.phone = 'Số điện thoại phải có 10 chữ số bắt đầu bằng 0';
     }
 
     if (!guestAddress.trim()) {
-      errors.address = 'Please enter delivery address';
+      errors.address = 'Vui lòng nhập địa chỉ giao hàng';
     }
 
     if (Object.keys(errors).length > 0) {
@@ -225,7 +225,7 @@ export default function QuickDock() {
 
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-      alert('Only image files are accepted (jpg, png, gif, webp)');
+      alert('Chỉ chấp nhận file ảnh (jpg, png, gif, webp)');
       return;
     }
 
@@ -248,7 +248,7 @@ export default function QuickDock() {
       }
     } catch (err) {
       console.warn('Error uploading image:', getApiErrorMessage(err));
-      alert('Unable to upload image, please try again');
+      alert('Không thể tải ảnh lên, vui lòng thử lại');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -310,7 +310,7 @@ export default function QuickDock() {
           {/* Header */}
           <div className="flex items-center justify-between pb-3">
             <h4 className="font-extrabold text-lg tracking-wide text-zinc-100">
-              Contact Support
+              Liên hệ hỗ trợ
             </h4>
             <button 
               onClick={() => setContactOpen(false)}
@@ -380,6 +380,26 @@ export default function QuickDock() {
               <span className="font-extrabold text-sm text-white">Facebook</span>
             </a>
 
+            {/* AI Assistant Chat Card */}
+            <div 
+              onClick={() => {
+                setContactOpen(false);
+                window.dispatchEvent(new CustomEvent('open-ai-chat'));
+              }}
+              className="bg-gradient-to-r from-[#1c291c] to-[#110a04] border border-[#007a3f]/40 hover:border-[#007a3f] p-3.5 rounded-2xl flex items-center gap-3 cursor-pointer hover:bg-[#203320]/90 active:scale-[0.97] transition-all shadow col-span-2 text-left group"
+            >
+              <div className="w-10 h-10 rounded-full bg-[#007a3f]/20 border border-[#007a3f]/40 flex items-center justify-center text-[#00a854] shrink-0 group-hover:scale-105 transition-transform">
+                <Bot size={20} />
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-extrabold text-sm text-white">Chat với Trợ lý AI</span>
+                  <span className="bg-gradient-to-r from-amber-400 to-orange-400 text-black text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider">AI</span>
+                </div>
+                <span className="text-[11px] text-zinc-400">Tư vấn chọn món ngon theo khẩu vị</span>
+              </div>
+            </div>
+
             {/* Live Chat with Staff Card */}
             <div 
               onClick={() => {
@@ -397,7 +417,7 @@ export default function QuickDock() {
 
           {/* Footer Info Lines */}
           <div className="text-left text-xs font-semibold text-zinc-300 space-y-2 border-t border-white/5 pt-4 mt-1 leading-relaxed">
-            <p>Live support from 9:00 AM to 10:00 PM daily</p>
+            <p>Hỗ trợ trực tuyến từ 9:00 đến 22:00 hàng ngày</p>
           </div>
         </div>
       )}
@@ -416,14 +436,14 @@ export default function QuickDock() {
                 </div>
                 <div className="text-left">
                   <span className="text-zinc-300 text-[10px] font-semibold tracking-wide block uppercase leading-none">
-                    Live Support
+                    Hỗ trợ trực tuyến
                   </span>
                   <h4 className="font-extrabold text-[15px] text-white tracking-wide leading-snug mt-0.5">
-                    Support Staff
+                    Nhân viên hỗ trợ
                   </h4>
                   <div className="flex items-center gap-1.5 mt-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span className="text-[10px] text-emerald-400/90 font-bold uppercase tracking-wider">Online</span>
+                    <span className="text-[10px] text-emerald-400/90 font-bold uppercase tracking-wider">Trực tuyến</span>
                   </div>
                 </div>
               </div>
@@ -454,10 +474,10 @@ export default function QuickDock() {
             <div className="flex-1 bg-[#1a1513] text-white p-6 flex flex-col justify-between overflow-y-auto custom-scrollbar">
               <div className="text-center pt-2">
                 <h3 className="font-extrabold text-zinc-100 text-[17px] tracking-wide">
-                  CONNECT WITH OUR SUPPORT STAFF
+                  KẾT NỐI VỚI NHÂN VIÊN HỖ TRỢ
                 </h3>
                 <p className="text-zinc-400 text-xs mt-1.5 leading-relaxed max-w-[280px] mx-auto font-medium">
-                  Please provide your information so our staff can assist you best!
+                  Vui lòng cung cấp thông tin để nhân viên hỗ trợ bạn tốt nhất!
                 </p>
               </div>
 
@@ -465,13 +485,13 @@ export default function QuickDock() {
                 {/* Full name input */}
                 <div>
                   <label className="block text-[10px] font-black text-zinc-400 tracking-widest uppercase mb-1.5">
-                    Full Name (*)
+                    Họ và tên (*)
                   </label>
                   <input
                     type="text"
                     value={guestName}
                     onChange={(e) => setGuestName(e.target.value)}
-                    placeholder="Enter your name"
+                    placeholder="Nhập họ tên"
                     className="w-full bg-[#2a221f] text-white border border-white/[0.08] rounded-xl py-3 px-4 focus:outline-none focus:border-amber-500 transition-all placeholder-zinc-500 text-sm font-semibold shadow-inner"
                   />
                   {formErrors.name && (
@@ -482,13 +502,13 @@ export default function QuickDock() {
                 {/* Phone number input */}
                 <div>
                   <label className="block text-[10px] font-black text-zinc-400 tracking-widest uppercase mb-1.5">
-                    Phone Number (*) <span className="text-[#ffc107] font-bold normal-case tracking-normal ml-1">Format: 10 digits starting with 0</span>
+                    Số điện thoại (*) <span className="text-[#ffc107] font-bold normal-case tracking-normal ml-1">Định dạng: 10 chữ số bắt đầu bằng 0</span>
                   </label>
                   <input
                     type="tel"
                     value={guestPhone}
                     onChange={(e) => setGuestPhone(e.target.value)}
-                    placeholder="Enter your phone number"
+                    placeholder="Nhập số điện thoại"
                     className="w-full bg-[#2a221f] text-white border border-white/[0.08] rounded-xl py-3 px-4 focus:outline-none focus:border-amber-500 transition-all placeholder-zinc-500 text-sm font-semibold shadow-inner"
                   />
                   {formErrors.phone && (
@@ -499,13 +519,13 @@ export default function QuickDock() {
                 {/* Delivery address input */}
                 <div>
                   <label className="block text-[10px] font-black text-zinc-400 tracking-widest uppercase mb-1.5">
-                    Delivery Address (*)
+                    Địa chỉ giao hàng (*)
                   </label>
                   <input
                     type="text"
                     value={guestAddress}
                     onChange={(e) => setGuestAddress(e.target.value)}
-                    placeholder="Enter your address"
+                    placeholder="Nhập địa chỉ"
                     className="w-full bg-[#2a221f] text-white border border-white/[0.08] rounded-xl py-3 px-4 focus:outline-none focus:border-amber-500 transition-all placeholder-zinc-500 text-sm font-semibold shadow-inner"
                   />
                   {formErrors.address && (
@@ -517,7 +537,7 @@ export default function QuickDock() {
                   type="submit"
                   className="w-full bg-[#ffc107] hover:bg-[#ffb300] active:scale-95 text-zinc-950 font-black text-sm uppercase py-4 rounded-2xl shadow-lg transition-all tracking-wider mt-2.5 cursor-pointer"
                 >
-                  Start Chatting
+                  Bắt đầu chat
                 </button>
               </form>
             </div>
@@ -528,11 +548,11 @@ export default function QuickDock() {
                 
                 <div className="text-center py-1 select-none">
                   <span className="px-3 py-1 bg-zinc-200/60 rounded-full text-zinc-500 text-[10px] font-extrabold uppercase tracking-wide">
-                    Live Support Channel
+                    Kênh hỗ trợ trực tuyến
                   </span>
                   {roomStatus === 'closed' && (
                     <div className="mt-2.5 bg-rose-50 border border-rose-100/50 rounded-xl p-2.5 text-rose-600 text-xs font-semibold leading-relaxed mx-2">
-                      Conversation has ended. Send a new message to reopen the chat.
+                      Cuộc trò chuyện đã kết thúc. Gửi tin nhắn mới để mở lại.
                     </div>
                   )}
                 </div>
@@ -540,8 +560,8 @@ export default function QuickDock() {
                 {dbMessages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-zinc-400 select-none">
                     <MessageSquare className="w-10 h-10 mb-2 opacity-30 animate-pulse text-[#ee2828]" />
-                    <p className="text-xs font-bold">No messages yet</p>
-                    <p className="text-[10px] text-zinc-400/80 mt-1">Say hello to start chatting with our staff!</p>
+                    <p className="text-xs font-bold">Chưa có tin nhắn</p>
+                    <p className="text-[10px] text-zinc-400/80 mt-1">Gửi lời chào để bắt đầu trò chuyện với nhân viên!</p>
                   </div>
                 ) : (
                   dbMessages.map((msg) => {
@@ -621,7 +641,7 @@ export default function QuickDock() {
                   type="text" 
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  placeholder={isUploading ? "Uploading image..." : "Type a message..."}
+                  placeholder={isUploading ? "Đang tải ảnh..." : "Nhập tin nhắn..."}
                   disabled={isUploading}
                   className="w-full bg-transparent text-[#202c3d] focus:outline-none placeholder-zinc-400 text-[13px] pl-4 pr-16 py-2.5 font-semibold"
                 />
@@ -643,7 +663,7 @@ export default function QuickDock() {
                       type="button" 
                       onClick={() => fileInputRef.current?.click()}
                       className="hover:text-[#007a3f] transition-colors cursor-pointer" 
-                      title="Attach image"
+                      title="Đính kèm ảnh"
                     >
                       <Paperclip size={20} />
                     </button>

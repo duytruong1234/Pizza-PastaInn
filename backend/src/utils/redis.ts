@@ -21,14 +21,14 @@ try {
   });
 
   redis.on('connect', () => {
-    logger.info('✅ Redis connected');
+    logger.info('[OK] Redis connected');
   });
 
   redis.on('error', (err) => {
-    logger.error('❌ Redis error:', err.message);
+    logger.error('[ERROR] Redis error:', err.message);
   });
 } catch (err) {
-  logger.warn('⚠️ Redis không khả dụng, ứng dụng sẽ chạy không có Redis cache');
+  logger.warn('[WARN] Redis không khả dụng, ứng dụng sẽ chạy không có Redis cache');
   redis = null;
 }
 
@@ -41,7 +41,7 @@ export async function connectRedis(): Promise<void> {
   try {
     await redis.connect();
   } catch (err) {
-    logger.warn('⚠️ Không thể kết nối Redis, tiếp tục chạy không có cache');
+    logger.warn('[WARN] Không thể kết nối Redis, tiếp tục chạy không có cache');
     try {
       redis.disconnect();
     } catch (e) {}

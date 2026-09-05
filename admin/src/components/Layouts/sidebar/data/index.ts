@@ -89,18 +89,25 @@ export const NAV_DATA = [
     ],
   },
   {
-    label: "KHÁC",
+    label: "TRÍ TUỆ NHÂN TẠO",
     items: [
       {
-        title: "Thống kê",
-        icon: Icons.PieChart,
-        items: [
-          {
-            title: "Biểu đồ",
-            url: "/charts/basic-chart",
-          },
-        ],
+        title: "AI Chatbot",
+        url: "/ai-chatbot",
+        icon: Icons.BotIcon,
+        items: [],
       },
+      {
+        title: "Gợi ý thông minh",
+        url: "/recommendations",
+        icon: Icons.SparklesIcon,
+        items: [],
+      },
+    ],
+  },
+  {
+    label: "KHÁC",
+    items: [
       {
         title: "Chính sách",
         url: "/policies",

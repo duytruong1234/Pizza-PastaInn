@@ -9,7 +9,7 @@ import { formatPrice } from '@/lib/utils';
 import { shouldBypassNextImageOptimization } from '@/lib/image';
 import { useUI } from '@/components/UIProvider';
 import { useRouter } from 'next/navigation';
-import { API_BASE } from '@/lib/config';
+import { API_BASE, BACKEND_URL } from '@/lib/config';
 
 interface Topping {
   topping_id: number;
@@ -244,13 +244,9 @@ export default function OrderLookupPage() {
 
         {/* Page Header */}
         <div className="text-center space-y-3 mb-10">
-          <span className="text-[#f5c043] text-xs font-black tracking-[0.2em] uppercase block">
-            ORDER TRACKING
-          </span>
           <h1 className={`text-3xl md:text-5xl font-black tracking-wide uppercase leading-tight ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
             ORDER LOOKUP
           </h1>
-          <div className="w-16 h-1 bg-[#f5c043] mx-auto rounded-full mt-4"></div>
         </div>
 
         {/* Center Search Panel */}
@@ -521,7 +517,10 @@ export default function OrderLookupPage() {
 
                             if (isCombo) {
                               dishName = item.combo?.combo_name || `Combo #${item.combo_id}`;
-                              imageSrc = item.combo?.image_combo || 'https://images.unsplash.com/photo-1579751626657-72bc17010498?q=80&w=100&auto=format&fit=crop';
+                              const comboImg = item.combo?.image_combo;
+                              imageSrc = comboImg
+                                ? (comboImg.startsWith('http') ? comboImg : `${BACKEND_URL}${comboImg}`)
+                                : 'https://images.unsplash.com/photo-1579751626657-72bc17010498?q=80&w=100&auto=format&fit=crop';
                             } else if (isHalfHalf) {
                               dishName = 'PIZZA HALF & HALF';
                               imageSrc = 'https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?q=80&w=100&auto=format&fit=crop';
@@ -530,7 +529,10 @@ export default function OrderLookupPage() {
                               itemSpec = `${size ? `SIZE: ${size.toUpperCase()}` : ''}${crust && crust.toLowerCase() !== 'none' ? ` - CRUST: ${crust.toUpperCase()}` : ''}`;
                             } else {
                               dishName = item.dish_price?.dish?.dish_name || 'Dish';
-                              imageSrc = item.dish_price?.dish?.image || imageSrc;
+                              const dishImg = item.dish_price?.dish?.image;
+                              imageSrc = dishImg
+                                ? (dishImg.startsWith('http') ? dishImg : `${BACKEND_URL}${dishImg}`)
+                                : imageSrc;
                               const isPizza = dishName.toLowerCase().includes('pizza');
                               if (isPizza) {
                                 const size = item.dish_price?.size?.size_name;

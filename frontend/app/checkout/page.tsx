@@ -512,11 +512,13 @@ function OrderSummary() {
           <div key={item.id} className="checkout-summary-item flex gap-4 py-4 border-b border-white/5 last:border-0 items-start">
             <div className="relative w-16 h-16 rounded-full overflow-hidden border shrink-0 shadow-md border-white/[0.06]">
               <Image
-                src={item.imageUrl || 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=100&auto=format&fit=crop'}
+                src={item.type === 'half_half'
+                  ? (item.imageUrl || 'https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?q=80&w=300&auto=format&fit=crop')
+                  : (item.imageUrl || 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=100&auto=format&fit=crop')}
                 alt={item.name}
                 fill
                 sizes="64px"
-                unoptimized={shouldBypassNextImageOptimization(item.imageUrl)}
+                unoptimized={shouldBypassNextImageOptimization(item.imageUrl || '')}
                 className="object-cover"
               />
             </div>
@@ -543,7 +545,7 @@ function OrderSummary() {
                   ))}
                   {item.options?.notes && (
                     <div className="bg-[#9f280a] inline-block px-1.5 py-0.5 mt-1 rounded text-[10px] text-white self-start">
-                      Note: {item.options.notes}
+                      Ghi chú: {item.options.notes}
                     </div>
                   )}
                 </div>
@@ -566,7 +568,7 @@ function OrderSummary() {
                   )}
                   {item.options?.notes && (
                     <div className="bg-[#9f280a] inline-block px-1.5 py-0.5 mt-1 rounded text-[10px] text-white">
-                      Note: {item.options.notes}
+                      Ghi chú: {item.options.notes}
                     </div>
                   )}
                 </div>
@@ -624,7 +626,7 @@ function OrderSummary() {
         {isSubmitting ? (
           <span className="checkout-spinner" />
         ) : (
-          `CONFIRM ORDER: ${formatPrice(displayTotal)}`
+          `XÁC NHẬN ĐƠN HÀNG: ${formatPrice(displayTotal)}`
         )}
       </button>
 
@@ -776,7 +778,7 @@ function OrderSuccess({ stores }: { stores: any[] }) {
             <p className="text-xs md:text-sm text-white/60 leading-relaxed font-medium mt-1">
               The system is calculating the exact shipping fee to your address. The total invoice will be sent to your email within 3 - 5 minutes.
               <br />
-              <span className="text-[#ef4444] font-bold">Note:</span> If you want to change information or cancel the order, please contact the Hotline: <strong className="font-black text-white">02839240343</strong>
+              <span className="text-[#ef4444] font-bold">Lưu ý:</span> Nếu bạn muốn thay đổi thông tin hoặc hủy đơn hàng, vui lòng liên hệ Hotline: <strong className="font-black text-white">02839240343</strong>
             </p>
           </div>
         </div>
@@ -897,7 +899,7 @@ function OrderSuccess({ stores }: { stores: any[] }) {
                         )}
                         {item.options?.notes && (
                           <div className="bg-[#9f280a] inline-block px-1.5 py-0.5 mt-1 rounded text-[10px] text-white self-start">
-                            Note: {item.options.notes}
+                            Ghi chú: {item.options.notes}
                           </div>
                         )}
                       </div>
@@ -1500,7 +1502,7 @@ function AddressFormModal({
                   ) : addressDetail.trim() ? (
                     <span className="flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-full">
                       <svg width="9" height="9" viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="5" /></svg>
-                      Select suggestions for more accuracy
+                      Chọn gợi ý để chính xác hơn
                     </span>
                   ) : null}
                 </div>
@@ -1522,7 +1524,7 @@ function AddressFormModal({
                 />
                 {!coordsConfirmed && addressDetail.trim() && (
                   <p className="mt-1.5 text-[11px] text-amber-400/80 leading-snug">
-                    💡 Select an address from the suggestion list to save coordinates and calculate shipping fee accurately.
+                    Chọn địa chỉ từ danh sách gợi ý để lưu tọa độ và tính phí giao hàng chính xác.
                   </p>
                 )}
               </div>

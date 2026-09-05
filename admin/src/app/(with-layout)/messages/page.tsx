@@ -7,6 +7,7 @@ import {
   MessageSquare, User, Phone, MapPin, RefreshCw, AlertTriangle, Trash2
 } from "lucide-react";
 import { toast } from "sonner";
+import { useDialog } from "@/components/ui/dialog-provider";
 
 interface MessageImage {
   image_id: number;
@@ -63,6 +64,7 @@ export default function MessagesPage() {
   const [loadingRooms, setLoadingRooms] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const { showDanger } = useDialog();
 
   // Chat input
   const [inputText, setInputText] = useState("");
@@ -185,7 +187,7 @@ export default function MessagesPage() {
 
   // Action: Delete conversation
   const handleDeleteConversation = async (roomId: number) => {
-    if (!window.confirm("Cảnh báo: Hành động này sẽ xóa vĩnh viễn cuộc hội thoại này và tất cả tin nhắn bên trong. Bạn có chắc chắn muốn xóa?")) return;
+    if (!(await showDanger("Cảnh báo: Hành động này sẽ xóa vĩnh viễn cuộc hội thoại này và tất cả tin nhắn bên trong. Bạn có chắc chắn muốn xóa?", "Xóa cuộc hội thoại"))) return;
 
     try {
       const res = await api.delete(`/api/admin/chat/rooms/${roomId}`);

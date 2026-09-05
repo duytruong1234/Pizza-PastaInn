@@ -8,12 +8,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Pizza & Pasta Inn",
-  description: "Delicious Pizza & Pasta",
+  title: "PizzaGenie",
+  description: "Delicious Pizza & Pasta - PizzaGenie",
 };
 
 import { UIProvider } from "@/components/UIProvider";
 import QuickDock from "@/components/QuickDock";
+import ChatbotWidget from "@/components/ChatbotWidget";
 
 export default function RootLayout({
   children,
@@ -29,6 +30,7 @@ export default function RootLayout({
         <UIProvider>
           {children}
           <QuickDock />
+          <ChatbotWidget />
         </UIProvider>
       </body>
     </html>

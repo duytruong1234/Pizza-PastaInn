@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { DialogProvider } from '@/components/ui/dialog-provider';
 
 type ThemeType = 'light' | 'dark';
 
@@ -47,7 +48,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <UIContext.Provider value={{ isCartOpen, toggleCart, theme, toggleTheme, setTheme }}>
-      {children}
+      <DialogProvider>{children}</DialogProvider>
     </UIContext.Provider>
   );
 }

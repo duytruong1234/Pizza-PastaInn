@@ -49,19 +49,17 @@ export default function HeaderClient({ storeName }: { storeName: string }) {
       <Link href="/" className="flex items-center pt-1 md:pt-2 transition-transform active:scale-95">
         <img
           src="/images/logo.png"
-          alt="Pizza Inn Logo"
+          alt="PizzaGenie Logo"
           className="h-8 md:h-11 w-auto object-contain"
         />
       </Link>
-
-
       {/* Navigation (Desktop only) */}
       <nav className="hidden md:flex items-center gap-10 text-base font-black uppercase">
         {[
           { label: "Menu", href: "/" },
-          { label: "Order Lookup", href: "/lookup" },
-          { label: "About", href: "/about" },
-          { label: "Reviews", href: "/reviews" }
+          { label: "Tra cứu đơn", href: "/lookup" },
+          { label: "Giới thiệu", href: "/about" },
+          { label: "Đánh giá", href: "/reviews" }
         ].map((item) => {
           const active = item.href === "/" ? pathname === "/" : pathname?.startsWith(item.href);
           return (
@@ -87,7 +85,7 @@ export default function HeaderClient({ storeName }: { storeName: string }) {
         <button
           onClick={toggleTheme}
           className="group cursor-pointer rounded-full bg-black/45 p-[3px] outline-none transition-all duration-300 hover:bg-black/60 focus:outline-none border border-white/[0.08] hover:border-white/15 active:scale-95 shadow-sm"
-          title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          title={theme === 'dark' ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối"}
         >
           <span className="sr-only">
             Switch to {theme === 'dark' ? 'light' : 'dark'} mode
@@ -167,7 +165,7 @@ export default function HeaderClient({ storeName }: { storeName: string }) {
                   className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors border-b border-gray-100"
                 >
                   <User size={16} />
-                  {"My Profile"}
+                  {"Tài khoản"}
                 </Link>
 
                 <button
@@ -175,7 +173,7 @@ export default function HeaderClient({ storeName }: { storeName: string }) {
                   className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
                 >
                   <LogOut size={16} />
-                  {"Log out"}
+                  {"Đăng xuất"}
                 </button>
               </div>
             )}
@@ -183,7 +181,7 @@ export default function HeaderClient({ storeName }: { storeName: string }) {
         ) : (
           <Link href="/login" className="flex flex-col items-center justify-center text-gray-300 hover:text-white transition-colors">
             <User size={18} className="fill-current" />
-            <span className="text-[10px] mt-0.5 font-semibold hidden md:block">{"Sign in"}</span>
+            <span className="text-[10px] mt-0.5 font-semibold hidden md:block">{"Đăng nhập"}</span>
           </Link>
         )}
 
@@ -202,9 +200,9 @@ export default function HeaderClient({ storeName }: { storeName: string }) {
         <div className="absolute top-full left-0 right-0 bg-[#121424]/98 border-b border-white/[0.08] shadow-[0_10px_30px_rgba(0,0,0,0.5)] p-5 flex flex-col gap-4 animate-in fade-in slide-in-from-top-2 duration-200 z-40 md:hidden font-black uppercase text-sm tracking-wide text-white/90">
           {[
             { label: "Menu", href: "/" },
-            { label: "Order Lookup", href: "/lookup" },
-            { label: "About", href: "/about" },
-            { label: "Reviews", href: "/reviews" }
+            { label: "Tra cứu đơn", href: "/lookup" },
+            { label: "Giới thiệu", href: "/about" },
+            { label: "Đánh giá", href: "/reviews" }
           ].map((item, idx, arr) => {
             const active = item.href === "/" ? pathname === "/" : pathname?.startsWith(item.href);
             return (

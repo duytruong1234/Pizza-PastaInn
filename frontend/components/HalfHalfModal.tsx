@@ -33,7 +33,7 @@ export default function HalfHalfModal({ isOpen, onClose, editCartItem = null }: 
           className="w-full bg-black/20 border border-white/20 text-white rounded-lg p-2.5 flex items-center justify-between cursor-pointer hover:bg-black/30 transition-colors"
           onClick={() => setIsSelectOpen(!isSelectOpen)}
         >
-          <span className="text-sm truncate">{selectedOption ? selectedOption.label : "Select..."}</span>
+          <span className="text-sm truncate">{selectedOption ? selectedOption.label : "Chọn..."}</span>
           <ChevronDown size={16} className={`transition-transform duration-200 ${isSelectOpen ? (openUpwards ? 'rotate-0' : 'rotate-180') : ''}`} />
         </div>
 
@@ -225,7 +225,9 @@ export default function HalfHalfModal({ isOpen, onClose, editCartItem = null }: 
       name: label,
       price: basePrice + toppingsPrice,
       quantity,
-      imageUrl: dish1?.image ? (dish1.image.startsWith('http') ? dish1.image : `${BACKEND_URL}${dish1.image}`) : '',
+      imageUrl: baseHalfHalfDish?.image
+        ? (baseHalfHalfDish.image.startsWith('http') ? baseHalfHalfDish.image : `${BACKEND_URL}${baseHalfHalfDish.image}`)
+        : 'https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?q=80&w=300&auto=format&fit=crop',
       // Dữ liệu 2 nửa pizza để lưu vào bảng cart_item_half
       halves: [
         { dish_id: dish1?.dish_id || 0, name: dish1?.dish_name || '' },
@@ -254,13 +256,13 @@ export default function HalfHalfModal({ isOpen, onClose, editCartItem = null }: 
 
         {/* Left Side: Configuration */}
         <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar relative border-b md:border-b-0 md:border-r border-white/20">
-          <h2 className="text-3xl font-black text-white leading-tight mb-1">Pizza Half / Half</h2>
-          <p className="text-white/80 mb-6 text-sm">Mix and match two of your favorite flavors on one pizza!</p>
+          <h2 className="text-3xl font-black text-white leading-tight mb-1">Pizza Nửa / Nửa</h2>
+          <p className="text-white/80 mb-6 text-sm">Kết hợp hai hương vị yêu thích trên một chiếc pizza!</p>
 
           <div className="space-y-8">
             {/* 1. Size */}
             <div>
-              <label className="block text-lg font-bold text-white mb-3 border-b border-white/20 pb-1">1. Size (*)</label>
+              <label className="block text-lg font-bold text-white mb-3 border-b border-white/20 pb-1">1. Cỡ (*)</label>
               <div className="flex gap-3">
                 {sizes.map(s => (
                   <button
@@ -271,7 +273,7 @@ export default function HalfHalfModal({ isOpen, onClose, editCartItem = null }: 
                         : 'bg-black/20 text-white hover:bg-black/30'
                       }`}
                   >
-                    {s.size_name} {s.size_name === 'Regular' ? '(6 Pieces)' : s.size_name === 'Large' ? '(12 Pieces)' : ''}
+                    {s.size_name} {s.size_name === 'Regular' ? '(6 Miếng)' : s.size_name === 'Large' ? '(12 Miếng)' : ''}
                   </button>
                 ))}
               </div>
@@ -279,7 +281,7 @@ export default function HalfHalfModal({ isOpen, onClose, editCartItem = null }: 
 
             {/* 2. Crust */}
             <div>
-              <label className="block text-lg font-bold text-white mb-3 border-b border-white/20 pb-1">2. Crust (*)</label>
+              <label className="block text-lg font-bold text-white mb-3 border-b border-white/20 pb-1">2. Đế bánh (*)</label>
               <div className="space-y-2">
                 {crusts.map(c => (
                   <label
@@ -301,11 +303,11 @@ export default function HalfHalfModal({ isOpen, onClose, editCartItem = null }: 
 
             {/* 3. Choose Pizza */}
             <div>
-              <label className="block text-lg font-bold text-white mb-3 border-b border-white/20 pb-1">3. Choose Pizza (*)</label>
+              <label className="block text-lg font-bold text-white mb-3 border-b border-white/20 pb-1">3. Chọn Pizza (*)</label>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-white/80 mb-2">First Half</label>
+                  <label className="block text-sm font-semibold text-white/80 mb-2">Nửa thứ nhất</label>
                   <CustomSelect
                     value={firstHalfId || ''}
                     options={pizzas.map(p => ({ value: p.dish_id, label: p.dish_name }))}
@@ -314,7 +316,7 @@ export default function HalfHalfModal({ isOpen, onClose, editCartItem = null }: 
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-white/80 mb-2">Second Half</label>
+                  <label className="block text-sm font-semibold text-white/80 mb-2">Nửa thứ hai</label>
                   <CustomSelect
                     value={secondHalfId || ''}
                     options={pizzas.map(p => ({ value: p.dish_id, label: p.dish_name }))}
@@ -327,7 +329,7 @@ export default function HalfHalfModal({ isOpen, onClose, editCartItem = null }: 
             {/* 4. Add Topping */}
             {filteredToppings.length > 0 && (
               <div>
-                <label className="block text-lg font-bold text-white mb-3 border-b border-white/20 pb-1">4. Add Topping (Options)</label>
+                <label className="block text-lg font-bold text-white mb-3 border-b border-white/20 pb-1">4. Thêm Topping (Tuỳ chọn)</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                   {filteredToppings.map(t => {
                     const isSelected = selectedToppingIds.includes(t.topping_id);
@@ -349,10 +351,10 @@ export default function HalfHalfModal({ isOpen, onClose, editCartItem = null }: 
 
             {/* Note */}
             <div className="mt-8">
-              <label className="block text-lg font-bold text-white mb-3 border-b border-white/20 pb-1">Note</label>
+              <label className="block text-lg font-bold text-white mb-3 border-b border-white/20 pb-1">Ghi chú</label>
               <input
                 type="text"
-                placeholder="Leave a note about your order here..."
+                placeholder="Ghi chú cho đơn hàng của bạn..."
                 value={note}
                 onChange={e => setNote(e.target.value)}
                 className="w-full bg-white text-black rounded-lg p-3 outline-none text-sm mt-2"
@@ -370,15 +372,15 @@ export default function HalfHalfModal({ isOpen, onClose, editCartItem = null }: 
             <X size={18} />
           </button>
 
-          <h3 className="text-xl font-bold text-white mb-6 pr-8 uppercase border-b border-white/20 pb-2">Order Summary</h3>
+          <h3 className="text-xl font-bold text-white mb-6 pr-8 uppercase border-b border-white/20 pb-2">Tóm tắt đơn hàng</h3>
 
           <div className="bg-black/30 rounded-xl border border-white/10 p-5 mb-auto">
             <h4 className="font-bold text-[#f0c14b] text-lg mb-3 border-b border-white/10 pb-2 leading-snug">
               {pizzas.find(p => p.dish_id === firstHalfId)?.dish_name} / {pizzas.find(p => p.dish_id === secondHalfId)?.dish_name}
             </h4>
             <div className="space-y-2 text-sm text-white/90">
-              <p><span className="font-bold text-white/70">Size:</span> {sizes.find(s => s.size_id === selectedSizeId)?.size_name}</p>
-              <p><span className="font-bold text-white/70">Crust:</span> {crusts.find(c => c.crust_id === selectedCrustId)?.crust_name}</p>
+              <p><span className="font-bold text-white/70">Cỡ:</span> {sizes.find(s => s.size_id === selectedSizeId)?.size_name}</p>
+              <p><span className="font-bold text-white/70">Đế:</span> {crusts.find(c => c.crust_id === selectedCrustId)?.crust_name}</p>
               {selectedToppingIds.length > 0 ? (
                 <div>
                   <span className="font-bold text-white/70">Topping:</span>
@@ -391,12 +393,12 @@ export default function HalfHalfModal({ isOpen, onClose, editCartItem = null }: 
                   </div>
                 </div>
               ) : (
-                <p><span className="font-bold text-white/70">Topping:</span> None</p>
+                <p><span className="font-bold text-white/70">Topping:</span> Không</p>
               )}
             </div>
             {note && (
               <div className="mt-4 inline-block bg-white/10 text-white text-sm px-3 py-2 rounded-lg border border-white/20 italic">
-                Note: {note}
+                Ghi chú: {note}
               </div>
             )}
           </div>
@@ -424,7 +426,7 @@ export default function HalfHalfModal({ isOpen, onClose, editCartItem = null }: 
               className="w-full sm:w-[90%] bg-[#f0c14b] hover:bg-[#e2b036] text-black font-bold py-3 px-6 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2.5 text-base"
             >
               <ShoppingCart size={20} />
-              <span>{editCartItem ? "Update Cart" : "Add to Cart"} : {formatPrice(subtotal)}</span>
+              <span>{editCartItem ? "Cập nhật giỏ" : "Thêm vào giỏ"} : {formatPrice(subtotal)}</span>
             </button>
           </div>
         </div>

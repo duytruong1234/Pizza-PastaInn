@@ -346,7 +346,7 @@ export default function StoresPage() {
           </div>
           {(!addForm.latitude.trim() || !addForm.longitude.trim()) && (
             <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs text-amber-700 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
-              ⚠️ Cần tọa độ GPS để tính toán phí giao hàng. Bạn có thể lấy tọa độ từ Google Maps (nhấp chuột phải → Tọa độ).
+              Cần tọa độ GPS để tính toán phí giao hàng. Bạn có thể lấy tọa độ từ Google Maps (nhấp chuột phải → Tọa độ).
             </div>
           )}
           <div className="flex items-center justify-between">
@@ -407,7 +407,7 @@ export default function StoresPage() {
           </div>
           {(!editForm.latitude.trim() || !editForm.longitude.trim()) && (
             <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs text-amber-700 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
-              ⚠️ Cần tọa độ GPS để tính toán phí giao hàng. Bạn có thể lấy tọa độ từ Google Maps (nhấp chuột phải → Tọa độ).
+              Cần tọa độ GPS để tính toán phí giao hàng. Bạn có thể lấy tọa độ từ Google Maps (nhấp chuột phải → Tọa độ).
             </div>
           )}
           <div className="flex items-center justify-between">

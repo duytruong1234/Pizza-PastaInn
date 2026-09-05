@@ -5,6 +5,9 @@ import CategoryNav from '@/components/CategoryNav';
 import CartSidebar from '@/components/CartSidebar';
 import ProductCard from '@/components/ProductCard';
 import { SearchResultsBanner, EmptyState } from '@/components/PageComponents';
+import PopularDishes from '@/components/PopularDishes';
+import ReorderFavorites from '@/components/ReorderFavorites';
+import TopRatedDishes from '@/components/TopRatedDishes';
 import { BACKEND_URL } from '@/lib/config';
 
 const FALLBACK_PRODUCT_IMAGE = 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=300&auto=format&fit=crop';
@@ -67,8 +70,10 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
   // Truy vấn tìm kiếm
   const searchQuery = typeof searchParams.search === 'string' ? searchParams.search.trim() : '';
 
-  // Xác định danh mục đang chọn (bỏ qua khi đang tìm kiếm)
-  const activeCategoryId = !searchQuery && searchParams.category ? Number(searchParams.category) : (!searchQuery ? categories[0]?.category_id : undefined);
+  // Xác định trạng thái xem (Trang Nổi Bật vs Xem danh mục cụ thể)
+  const hasCategoryFilter = Boolean(!searchQuery && searchParams.category);
+  const activeCategoryId = hasCategoryFilter ? Number(searchParams.category) : undefined;
+  const isFeaturedPage = !searchQuery && !hasCategoryFilter;
 
   // Kiểm tra xem danh mục đang chọn có phải "Combo" không
   const activeCategory = categories.find((c: any) => c.category_id === activeCategoryId);
@@ -141,6 +146,7 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
             products = dishData.map((dish: any, index: number) => ({
               id: dish.dish_id,
               name: dish.dish_name,
+              categoryId: dish.category_id,
               ingredients: formatIngredientsText(dish.ingredient || ''),
               price: dish.prices?.[0]?.dish_price || 0,
               dish_price_id: dish.prices?.[0]?.dish_price_id || null,
@@ -236,7 +242,25 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
               <SearchResultsBanner query={searchQuery} count={products.length} />
             )}
 
+            {/* Gợi ý món ăn — chỉ hiển thị tại tab NỔI BẬT (trang chủ) và khi không tìm kiếm */}
+            {isFeaturedPage && (
+              <div className="max-w-[1100px] mx-auto px-4 lg:px-8">
+                <PopularDishes />
+                <ReorderFavorites />
+                <TopRatedDishes />
+              </div>
+            )}
 
+            {/* Tiêu đề danh mục khi xem toàn bộ thực đơn hoặc lọc theo danh mục */}
+            {!searchQuery && (
+              <div className="max-w-[1100px] mx-auto px-4 lg:px-8 mt-4 mb-2">
+                <div className={`${isFeaturedPage ? 'border-t border-white/10 pt-5' : ''}`}>
+                  <h2 className="text-lg md:text-xl font-extrabold text-white tracking-wide uppercase">
+                    {isFeaturedPage ? 'Toàn bộ thực đơn' : (activeCategory?.category_name || 'Thực đơn')}
+                  </h2>
+                </div>
+              </div>
+            )}
 
             {/* Trạng thái rỗng */}
             {products.length === 0 && (
@@ -245,23 +269,26 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
 
             {/* Lưới sản phẩm */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-10 lg:gap-x-12 gap-y-10 lg:gap-y-16 justify-items-center max-w-[1100px] mx-auto px-12 lg:px-20 py-4">
-              {products.map((p, index) => (
-                <ProductCard
-                  key={p.id}
-                  id={p.id}
-                  name={p.name}
-                  ingredients={p.ingredients}
-                  price={p.price}
-                  dish_price_id={p.dish_price_id}
-                  prices={p.prices}
-                  theme={index % 2 === 0 ? 'green' : 'red'}
-                  layout={index % 2 === 0 ? 'image-left' : 'image-right'}
-                  imageUrl={p.imageUrl}
-                  isCombo={p.isCombo || false}
-                  isHalfHalf={p.isHalfHalf || false}
-                  categoryName={activeCategory?.category_name || ''}
-                />
-              ))}
+              {products.map((p, index) => {
+                const itemCategory = categories.find((c: any) => c.category_id === p.categoryId);
+                return (
+                  <ProductCard
+                    key={p.id}
+                    id={p.id}
+                    name={p.name}
+                    ingredients={p.ingredients}
+                    price={p.price}
+                    dish_price_id={p.dish_price_id}
+                    prices={p.prices}
+                    theme={index % 2 === 0 ? 'green' : 'red'}
+                    layout={index % 2 === 0 ? 'image-left' : 'image-right'}
+                    imageUrl={p.imageUrl}
+                    isCombo={p.isCombo || false}
+                    isHalfHalf={p.isHalfHalf || false}
+                    categoryName={itemCategory?.category_name || activeCategory?.category_name || ''}
+                  />
+                );
+              })}
             </div>
 
             {/* Footer */}

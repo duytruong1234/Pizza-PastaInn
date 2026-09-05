@@ -5,10 +5,10 @@ import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
 import { shouldBypassNextImageOptimization } from '@/lib/image';
-import { X, ShoppingCart, Check } from 'lucide-react';
+import { X, ShoppingCart, Check, Sparkles } from 'lucide-react';
 import { useCartStore, CartItem } from '@/store/cartStore';
 import { useUI } from '@/components/UIProvider';
-import { API_BASE } from '@/lib/config';
+import { API_BASE, BACKEND_URL } from '@/lib/config';
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -29,6 +29,9 @@ export default function ProductModal({ isOpen, onClose, product, categoryName, e
   const { addToCart, removeFromCart } = useCartStore();
   const { toggleCart, isCartOpen } = useUI();
 
+  const [activeProduct, setActiveProduct] = useState(product);
+  const [similarDishes, setSimilarDishes] = useState<any[]>([]);
+
   const [sizes, setSizes] = useState<any[]>([]);
   const [crusts, setCrusts] = useState<any[]>([]);
   const [toppings, setToppings] = useState<any[]>([]);
@@ -39,12 +42,16 @@ export default function ProductModal({ isOpen, onClose, product, categoryName, e
   const [note, setNote] = useState('');
   const [quantity, setQuantity] = useState(1);
 
+  useEffect(() => {
+    setActiveProduct(product);
+  }, [product]);
 
   useEffect(() => {
     const mainContainer = document.getElementById('main-scroll-container');
     if (isOpen) {
       if (mainContainer) mainContainer.style.overflow = 'hidden';
-      fetchData();
+      fetchData(activeProduct);
+      fetchSimilarDishes(activeProduct.id);
       // Đặt lại trạng thái
       if (editCartItem) {
         setQuantity(editCartItem.quantity);
@@ -56,14 +63,41 @@ export default function ProductModal({ isOpen, onClose, product, categoryName, e
       }
     } else {
       if (mainContainer) mainContainer.style.overflow = '';
+      setSimilarDishes([]);
     }
 
     return () => {
       if (mainContainer) mainContainer.style.overflow = '';
     };
-  }, [isOpen]);
+  }, [isOpen, activeProduct.id]);
 
-  const fetchData = async () => {
+  const fetchSimilarDishes = async (dishId: number) => {
+    try {
+      const res = await fetch(`${API_BASE}/recommendations/similar/${dishId}?limit=3`);
+      const json = await res.json();
+      if (json.success && json.data) {
+        setSimilarDishes(json.data);
+      }
+    } catch (e) {
+      console.error('Error fetching similar dishes:', e);
+    }
+  };
+
+  const handleSwitchProduct = (item: any) => {
+    setActiveProduct({
+      id: item.dish_id,
+      name: item.dish_name,
+      ingredients: item.ingredient || '',
+      basePrice: item.prices?.[0]?.dish_price || 0,
+      prices: item.prices || [],
+      imageUrl: item.image ? (item.image.startsWith('http') ? item.image : `${BACKEND_URL}${item.image}`) : 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=600&auto=format&fit=crop'
+    });
+    setSelectedToppings([]);
+    setNote('');
+    setQuantity(1);
+  };
+
+  const fetchData = async (prod = activeProduct) => {
     try {
       const [sizesRes, crustsRes] = await Promise.all([
         fetch(`${API_BASE}/menu/sizes`),
@@ -74,7 +108,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName, e
 
       if (sizesData.success) {
         // Lọc size thực tế có trong giá sản phẩm
-        const availableSizeIds = new Set(product.prices?.map(p => p.size_id).filter(id => id !== null));
+        const availableSizeIds = new Set(prod.prices?.map((p: any) => p.size_id).filter((id: any) => id !== null));
         const availableSizes = sizesData.data.filter((s: any) => availableSizeIds.has(s.size_id));
         setSizes(availableSizes);
         if (editCartItem && editCartItem.options?.size) {
@@ -88,7 +122,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName, e
       }
       if (crustsData.success) {
         // Lọc đế bánh thực tế có trong giá sản phẩm
-        const availableCrustIds = new Set(product.prices?.map(p => p.crust_id).filter(id => id !== null));
+        const availableCrustIds = new Set(prod.prices?.map((p: any) => p.crust_id).filter((id: any) => id !== null));
         const availableCrusts = crustsData.data.filter((c: any) => availableCrustIds.has(c.crust_id));
         setCrusts(availableCrusts);
         if (editCartItem && editCartItem.options?.crust) {
@@ -146,7 +180,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName, e
   };
 
   if (!isOpen) return null;
-  const productImageSrc = product.imageUrl || 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=600&auto=format&fit=crop';
+  const productImageSrc = activeProduct.imageUrl || 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=600&auto=format&fit=crop';
 
   const handleToppingToggle = (topping: any) => {
     setSelectedToppings(prev =>
@@ -159,22 +193,22 @@ export default function ProductModal({ isOpen, onClose, product, categoryName, e
   // Tìm giá chính xác theo size và crust đã chọn
   let exactDishPriceObj: any = null;
   if (selectedSize || selectedCrust) {
-    exactDishPriceObj = product.prices?.find(
+    exactDishPriceObj = activeProduct.prices?.find(
       (p) => p.size_id === selectedSize?.size_id && p.crust_id === selectedCrust?.crust_id
     );
   }
   // Sản phẩm không có size/crust (Salad, Drink) dùng giá đầu tiên
-  if (!exactDishPriceObj && product.prices && product.prices.length > 0) {
-    exactDishPriceObj = product.prices[0];
+  if (!exactDishPriceObj && activeProduct.prices && activeProduct.prices.length > 0) {
+    exactDishPriceObj = activeProduct.prices[0];
   }
 
-  const currentBasePrice = exactDishPriceObj ? exactDishPriceObj.dish_price : product.basePrice;
+  const currentBasePrice = exactDishPriceObj ? exactDishPriceObj.dish_price : activeProduct.basePrice;
   const extraToppingsPrice = selectedToppings.reduce((sum, t) => sum + (t.price_topping || 0), 0);
   const totalPrice = (currentBasePrice + extraToppingsPrice) * quantity;
 
   const handleAddToCart = async () => {
     const dish_price_id = exactDishPriceObj?.dish_price_id
-      || `${product.id}_default`;
+      || `${activeProduct.id}_default`;
 
     if (editCartItem) {
       await removeFromCart(editCartItem.id);
@@ -182,12 +216,12 @@ export default function ProductModal({ isOpen, onClose, product, categoryName, e
 
     addToCart({
       type: 'regular',
-      dish_id: product.id,
+      dish_id: activeProduct.id,
       dish_price_id,
-      name: product.name,
+      name: activeProduct.name,
       price: currentBasePrice + extraToppingsPrice,
       quantity,
-      imageUrl: product.imageUrl,
+      imageUrl: activeProduct.imageUrl,
       options: {
         size: selectedSize?.size_name,
         crust: selectedCrust?.crust_name,
@@ -220,7 +254,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName, e
           <div className="w-full md:w-1/2 relative h-[30vh] min-h-[200px] md:h-auto md:min-h-full shrink-0">
             <Image
               src={productImageSrc}
-              alt={product.name}
+              alt={activeProduct.name}
               fill
               sizes="(max-width: 768px) 100vw, 50vw"
               unoptimized={shouldBypassNextImageOptimization(productImageSrc)}
@@ -231,14 +265,14 @@ export default function ProductModal({ isOpen, onClose, product, categoryName, e
           {/* Bên phải: Chi tiết & Tùy chọn */}
           <div className="w-full md:w-1/2 flex flex-col bg-[#9f280a] min-h-0 relative">
             <div className="p-4 md:p-6 pb-2 overflow-y-auto custom-scrollbar flex-1">
-              <h2 className="text-3xl md:text-4xl font-bold mb-2">{product.name?.normalize('NFC')}</h2>
-              <p className="text-sm text-white/80 mb-6">{product.ingredients?.normalize('NFC')}</p>
+              <h2 className="text-3xl md:text-4xl font-bold mb-2">{activeProduct.name?.normalize('NFC')}</h2>
+              <p className="text-sm text-white/80 mb-6">{activeProduct.ingredients?.normalize('NFC')}</p>
 
               <div className="space-y-6">
               {/* Kích thước */}
               {sizes.length > 0 && (
                 <div>
-                  <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">{"Size (*):"}</h3>
+                  <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">{"Cỡ (*):"}</h3>
                   <div className="flex gap-3">
                     {sizes.map(size => (
                       <button
@@ -259,11 +293,11 @@ export default function ProductModal({ isOpen, onClose, product, categoryName, e
               {/* Đế bánh */}
               {crusts.length > 0 && (
                 <div>
-                  <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">{"Crust (*):"}</h3>
+                  <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">{"Đế bánh (*):"}</h3>
                   <div className="space-y-2">
                     {crusts.map(crust => {
                       // Tìm giá cho tổ hợp đế bánh + size đã chọn
-                      const crustPrice = product.prices?.find(
+                      const crustPrice = activeProduct.prices?.find(
                         (p: any) => p.size_id === selectedSize?.size_id && p.crust_id === crust.crust_id
                       );
                       return (
@@ -292,7 +326,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName, e
               {/* Topping thêm */}
               {toppings.length > 0 && (
                 <div>
-                  <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">{"Extra Toppings:"}</h3>
+                  <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">{"Thêm Topping:"}</h3>
                   <div className="space-y-2">
                     {toppings.map(topping => {
                       const isSelected = selectedToppings.some(t => t.topping_id === topping.topping_id);
@@ -321,15 +355,60 @@ export default function ProductModal({ isOpen, onClose, product, categoryName, e
 
               {/* Ghi chú */}
               <div>
-                <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">{"Note:"}</h3>
+                <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">{"Ghi chú:"}</h3>
                 <input
                   type="text"
-                  placeholder={"Leave a note about your order here..."}
+                  placeholder={"Ghi chú cho đơn hàng của bạn..."}
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   className="w-full px-4 py-2 rounded-lg bg-white text-black text-sm outline-none"
                 />
               </div>
+
+              {/* Gợi ý món tương tự (Content-Based Filtering qua Cosine Similarity) */}
+              {similarDishes.length > 0 && (
+                <div className="pt-2">
+                  <div className="flex items-center justify-between mb-3 border-b border-white/20 pb-1">
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={16} className="text-[#f0c14b]" />
+                      <h3 className="font-bold text-base text-white">Món tương tự bạn có thể thích</h3>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {similarDishes.map((item) => (
+                      <div
+                        key={item.dish_id}
+                        onClick={() => handleSwitchProduct(item)}
+                        className="bg-black/30 hover:bg-black/50 p-2.5 rounded-xl border border-white/10 hover:border-[#f0c14b]/60 cursor-pointer transition-all hover:scale-[1.02] flex sm:flex-col items-center gap-2.5 text-left group"
+                      >
+                        <div className="w-14 h-14 sm:w-16 sm:h-16 relative rounded-lg overflow-hidden shrink-0 border border-white/10">
+                          <Image
+                            src={item.image ? (item.image.startsWith('http') ? item.image : `${BACKEND_URL}${item.image}`) : 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=150'}
+                            alt={item.dish_name}
+                            fill
+                            sizes="64px"
+                            className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            unoptimized={shouldBypassNextImageOptimization(item.image)}
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0 sm:w-full sm:text-center">
+                          <p className="text-xs font-bold text-white line-clamp-1 group-hover:text-[#f0c14b] transition-colors">
+                            {item.dish_name}
+                          </p>
+                          <p className="text-[11px] font-extrabold text-[#f0c14b] mt-0.5">
+                            {formatPrice(item.prices?.[0]?.dish_price || 0)}
+                          </p>
+                          {item.similarity_score && (
+                            <span className="text-[9px] text-emerald-300 block mt-0.5 font-medium">
+                              Tương đồng {Math.round(item.similarity_score * 100)}%
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               </div>
             </div>
 
@@ -356,7 +435,7 @@ export default function ProductModal({ isOpen, onClose, product, categoryName, e
                 className="w-full sm:w-[90%] bg-[#f0c14b] hover:bg-[#e2b036] text-black font-bold py-3 px-6 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2.5 text-base"
               >
                 <ShoppingCart size={20} />
-                <span>{editCartItem ? "Update Cart" : "Add to Cart"} : {formatPrice(totalPrice)}</span>
+                <span>{editCartItem ? "Cập nhật giỏ" : "Thêm vào giỏ"} : {formatPrice(totalPrice)}</span>
               </button>
             </div>
 

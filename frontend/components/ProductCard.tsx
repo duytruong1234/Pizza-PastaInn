@@ -98,7 +98,7 @@ export default function ProductCard({
                   onClick={onAddToCartClick}
                   className="bg-[#ee2828] hover:bg-red-700 text-white text-[10px] lg:text-xs font-bold px-3 py-1.5 lg:px-4 lg:py-2 rounded-md shadow-lg transition-all active:scale-95"
                 >
-                  {"Add to Cart"}
+                  {"Thêm vào giỏ"}
                 </button>
               </>
             ) : (
@@ -107,7 +107,7 @@ export default function ProductCard({
                   onClick={onAddToCartClick}
                   className="bg-[#007a3f] hover:bg-green-700 text-white text-[10px] lg:text-xs font-bold px-3 py-1.5 lg:px-4 lg:py-2 rounded-md shadow-lg transition-all active:scale-95"
                 >
-                  {"Add to Cart"}
+                  {"Thêm vào giỏ"}
                 </button>
                 <div className="bg-white px-2 py-1 lg:px-2.5 lg:py-1.5 rounded-md text-xs lg:text-sm font-extrabold shadow-inner">
                   <span className="text-[#ee2828]">{formatPrice(price)}</span>

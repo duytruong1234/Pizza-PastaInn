@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 import { Badge } from "@/components/ui/badge";
+import { useDialog } from "@/components/ui/dialog-provider";
 import { createPortal } from "react-dom";
 import { 
   Star, 
@@ -39,6 +40,7 @@ export default function ReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { showAlert, showDanger } = useDialog();
 
   // Filters & Search states
   const [searchQuery, setSearchQuery] = useState("");
@@ -104,7 +106,7 @@ export default function ReviewsPage() {
         ));
       }
     } catch (err) {
-      alert("Lỗi khi thay đổi trạng thái hiển thị");
+      await showAlert("Lỗi khi thay đổi trạng thái hiển thị");
     }
   };
 
@@ -127,7 +129,7 @@ export default function ReviewsPage() {
         setReplyText("");
       }
     } catch (err) {
-      alert("Lỗi khi gửi phản hồi");
+      await showAlert("Lỗi khi gửi phản hồi");
     } finally {
       setReplyLoading(false);
     }
@@ -135,7 +137,7 @@ export default function ReviewsPage() {
 
   // Action: Delete shop reply
   const handleDeleteReply = async (reviewId: number) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa phản hồi này không?")) return;
+    if (!(await showDanger("Bạn có chắc chắn muốn xóa phản hồi này không?", "Xóa phản hồi"))) return;
 
     try {
       const res = await api.patch(`/api/admin/reviews/${reviewId}`, {
@@ -147,13 +149,13 @@ export default function ReviewsPage() {
         ));
       }
     } catch (err) {
-      alert("Lỗi khi xóa phản hồi");
+      await showAlert("Lỗi khi xóa phản hồi");
     }
   };
 
   // Action: Delete review completely
   const handleDeleteReview = async (reviewId: number) => {
-    if (!confirm("Cảnh báo: Hành động này sẽ xóa vĩnh viễn đánh giá này. Bạn có chắc chắn muốn xóa?")) return;
+    if (!(await showDanger("Cảnh báo: Hành động này sẽ xóa vĩnh viễn đánh giá này. Bạn có chắc chắn muốn xóa?", "Xóa đánh giá"))) return;
 
     try {
       const res = await api.delete(`/api/admin/reviews/${reviewId}`);
@@ -161,7 +163,7 @@ export default function ReviewsPage() {
         setReviews(prev => prev.filter(r => r.review_id !== reviewId));
       }
     } catch (err) {
-      alert("Lỗi khi xóa đánh giá");
+      await showAlert("Lỗi khi xóa đánh giá");
     }
   };
 
@@ -276,7 +278,7 @@ export default function ReviewsPage() {
               const pct = getStarPercentage(count);
               return (
                 <div key={star} className="flex items-center gap-3 text-xs font-semibold">
-                  <span className="w-6 text-right font-black text-dark dark:text-white">{star}★</span>
+                  <span className="w-6 text-right font-black text-dark dark:text-white">{star}&#x2605;</span>
                   <div className="flex-1 h-3 rounded-full bg-gray-150 dark:bg-zinc-800 overflow-hidden">
                     <div 
                       className="h-full bg-[#f5c043] rounded-full transition-all duration-500" 
@@ -325,11 +327,11 @@ export default function ReviewsPage() {
               className="w-full rounded-xl border border-stroke bg-white py-2.5 px-3 text-xs font-bold text-dark-4 outline-none focus:border-primary dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
             >
               <option value="all">Tất cả sao</option>
-              <option value="5">5★ Hoàn hảo</option>
-              <option value="4">4★ Rất tốt</option>
-              <option value="3">3★ Trung bình</option>
-              <option value="2">2★ Kém</option>
-              <option value="1">1★ Rất kém</option>
+              <option value="5">5&#x2605; Hoàn hảo</option>
+              <option value="4">4&#x2605; Rất tốt</option>
+              <option value="3">3&#x2605; Trung bình</option>
+              <option value="2">2&#x2605; Kém</option>
+              <option value="1">1&#x2605; Rất kém</option>
             </select>
           </div>
 
@@ -745,7 +747,7 @@ function OrderDetailModal({
             onClick={onClose}
             className="rounded-full border border-stroke w-9 h-9 flex items-center justify-center text-gray-500 hover:bg-gray-150 dark:border-dark-3 dark:hover:bg-dark-2 font-bold transition"
           >
-            ✕
+            &times;
           </button>
         </div>
 
@@ -1094,7 +1096,7 @@ function OrderDetailModal({
                           {dayjs(m.time).format("HH:mm:ss DD/MM")}
                         </div>
                         {idx < milestones.length - 1 && (
-                          <div className="text-gray-300 font-extrabold mx-1">➔</div>
+                          <div className="text-gray-300 font-extrabold mx-1">&rarr;</div>
                         )}
                       </div>
                     ))}

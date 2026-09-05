@@ -39,7 +39,8 @@
 /* Custom scrollbar helper - hides scrollbar visually but keeps scrolling active */
 html,
 body,
-.custom-scrollbar {
+.custom-scrollbar,
+.no-scrollbar {
   -ms-overflow-style: none !important;
   /* IE and Edge */
   scrollbar-width: none !important;
@@ -48,7 +49,8 @@ body,
 
 html::-webkit-scrollbar,
 body::-webkit-scrollbar,
-.custom-scrollbar::-webkit-scrollbar {
+.custom-scrollbar::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
   display: none !important;
   /* Chrome, Safari and Opera */
   width: 0 !important;

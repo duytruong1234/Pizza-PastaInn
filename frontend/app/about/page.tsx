@@ -38,11 +38,10 @@ export default function AboutPage() {
             <span className="text-[#f5c043] block">INN</span>
           </h1>
 
-          <div className="flex flex-col items-center mt-6 mb-8">
+          <div className="flex flex-col items-center mt-3 mb-2">
             <span className="text-zinc-300 font-bold text-xs md:text-sm tracking-[0.25em] uppercase">
               PIZZA • SPAGHETTI • RISOTTO/GRANTIN • SALAD
             </span>
-            <div className="w-16 h-1 bg-[#f5c043] mt-4 rounded-full"></div>
           </div>
 
           <p className="text-zinc-200 text-base md:text-lg leading-relaxed max-w-3xl mx-auto font-medium">
@@ -265,7 +264,7 @@ export default function AboutPage() {
                   className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg absolute bottom-6 right-6 cursor-pointer ${
                     theme === 'dark' ? 'bg-[#f5c043] text-black hover:bg-[#e5b33c] hover:scale-110' : 'bg-[#007a3f] text-white hover:bg-[#006030] hover:scale-110'
                   }`}
-                  title="Call Hotline"
+                  title="Gọi Hotline"
                 >
                   <Phone size={18} className="fill-current stroke-[2]" />
                 </a>
@@ -312,7 +311,7 @@ export default function AboutPage() {
                   className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg absolute bottom-6 right-6 cursor-pointer ${
                     theme === 'dark' ? 'bg-[#f5c043] text-black hover:bg-[#e5b33c] hover:scale-110' : 'bg-[#007a3f] text-white hover:bg-[#006030] hover:scale-110'
                   }`}
-                  title="Call Hotline"
+                  title="Gọi Hotline"
                 >
                   <Phone size={18} className="fill-current stroke-[2]" />
                 </a>

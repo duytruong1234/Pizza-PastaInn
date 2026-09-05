@@ -357,7 +357,7 @@ export default function EditPolicyPage({ params }: { params: Promise<{ slug: str
                                 className="w-full rounded-lg border border-stroke bg-transparent px-2.5 py-1.5 text-xs text-dark outline-none focus:border-primary dark:border-zinc-800 dark:text-white"
                               />
                               <p className="mt-1 text-[9px] text-gray-450 dark:text-zinc-500 leading-normal">
-                                ℹ️ Định dạng ký tự hiển thị ở đầu câu.
+                                Định dạng ký tự hiển thị ở đầu câu.
                               </p>
                             </div>
 
@@ -374,7 +374,7 @@ export default function EditPolicyPage({ params }: { params: Promise<{ slug: str
                                 required
                               />
                               <p className="mt-1 text-[9px] text-gray-450 dark:text-zinc-500 leading-normal">
-                                ℹ️ Nội dung văn bản thực tế của quy định.
+                                Nội dung văn bản thực tế của quy định.
                               </p>
                             </div>
 
