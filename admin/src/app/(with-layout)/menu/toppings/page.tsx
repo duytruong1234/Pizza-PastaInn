@@ -147,7 +147,7 @@ export default function ToppingsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-dark dark:text-white">QUẢN LÝ TOPPING</h1>
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500">Tổng cộng: {toppings.length} topping</span>
@@ -159,6 +159,39 @@ export default function ToppingsPage() {
             label="Thêm topping"
             icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5"><path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" /></svg>}
           />
+        </div>
+      </div>
+
+      {/* Summary Stats */}
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Tổng topping</p>
+          <p className="mt-2 text-2xl font-black text-dark dark:text-white">{toppings.length} loại</p>
+          <p className="mt-1 text-xs text-gray-400">Danh mục nguyên liệu thêm vào món ăn</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Dùng cho Pizza</p>
+          <p className="mt-2 text-2xl font-black text-emerald-600">
+            {toppings.filter((t) => t.is_for_pizza).length} loại
+          </p>
+          <p className="mt-1 text-xs text-gray-400">Topping áp dụng khi khách đặt bánh Pizza</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-primary">Dùng cho Mỳ Ý</p>
+          <p className="mt-2 text-2xl font-black text-primary">
+            {toppings.filter((t) => t.is_for_spaghetti).length} loại
+          </p>
+          <p className="mt-1 text-xs text-gray-400">Topping áp dụng cho các món Pasta & Mỳ Ý</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-amber-600">Đơn giá trung bình</p>
+          <p className="mt-2 text-2xl font-black text-amber-600">
+            {toppings.length
+              ? Math.round(toppings.reduce((s, t) => s + Number(t.price_topping || 0), 0) / toppings.length).toLocaleString("vi-VN")
+              : 0}{" "}
+            đ
+          </p>
+          <p className="mt-1 text-xs text-gray-400">Mức giá phụ thu trung bình mỗi phần</p>
         </div>
       </div>
 
@@ -251,7 +284,7 @@ export default function ToppingsPage() {
           <InputGroup label="GIÁ TOPPING (đ) (*)" type="number" placeholder="0" value={addForm.price_topping || ""} handleChange={(e) => { setAddForm(prev => ({ ...prev, price_topping: Number(e.target.value) })); setAddError(p => ({ ...p, price_topping: "" })); }} error={addError.price_topping} />
           <Select label="KÍCH THƯỚC ÁP DỤNG (*)" value={addForm.size_id ?? ""} onChange={(e) => { setAddForm(prev => ({ ...prev, size_id: e.target.value ? Number(e.target.value) : null })); setAddError(p => ({ ...p, size_id: "" })); }} items={sizes.map(s => ({ value: s.size_id, label: s.size_name }))} placeholder="-- Tất cả kích thước --" error={addError.size_id} />
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex items-center justify-between rounded-lg border border-stroke p-3 dark:border-dark-3">
               <label className="text-sm font-semibold text-dark dark:text-white">Dùng cho Pizza</label>
               <Switch checked={addForm.is_for_pizza} onChange={(checked) => setAddForm(prev => ({ ...prev, is_for_pizza: checked }))} />
@@ -276,7 +309,7 @@ export default function ToppingsPage() {
           <InputGroup label="GIÁ TOPPING (đ) (*)" type="number" placeholder="0" value={editForm.price_topping || ""} handleChange={(e) => { setEditForm(prev => ({ ...prev, price_topping: Number(e.target.value) })); setEditError(p => ({ ...p, price_topping: "" })); }} error={editError.price_topping} />
           <Select label="KÍCH THƯỚC ÁP DỤNG (*)" value={editForm.size_id ?? ""} onChange={(e) => { setEditForm(prev => ({ ...prev, size_id: e.target.value ? Number(e.target.value) : null })); setEditError(p => ({ ...p, size_id: "" })); }} items={sizes.map(s => ({ value: s.size_id, label: s.size_name }))} placeholder="-- Tất cả kích thước --" error={editError.size_id} />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex items-center justify-between rounded-lg border border-stroke p-3 dark:border-dark-3">
               <label className="text-sm font-semibold text-dark dark:text-white">Dùng cho Pizza</label>
               <Switch checked={editForm.is_for_pizza} onChange={(checked) => setEditForm(prev => ({ ...prev, is_for_pizza: checked }))} />

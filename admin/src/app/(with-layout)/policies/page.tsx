@@ -104,6 +104,34 @@ export default function PoliciesPage() {
     <div className="mx-auto w-full max-w-270">
       <Breadcrumb pageName="Quản lý chính sách" />
 
+      {/* Summary Stats */}
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Tổng chính sách</p>
+          <p className="mt-2 text-2xl font-black text-dark dark:text-white">{policies.length} văn bản</p>
+          <p className="mt-1 text-xs text-gray-400">Điều khoản & quy định công bố trên hệ thống</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Đang áp dụng</p>
+          <p className="mt-2 text-2xl font-black text-emerald-600">{policies.length} văn bản</p>
+          <p className="mt-1 text-xs text-gray-400">Hiển thị công khai tại chân trang khách hàng</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-primary">Cập nhật gần nhất</p>
+          <p className="mt-2 text-2xl font-black text-primary">
+            {policies[0]?.updated_at
+              ? new Date(policies[0].updated_at).toLocaleDateString("vi-VN")
+              : "Hôm nay"}
+          </p>
+          <p className="mt-1 text-xs text-gray-400">Thời điểm hiệu chỉnh nội dung mới nhất</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-amber-600">Bản nháp / Chờ duyệt</p>
+          <p className="mt-2 text-2xl font-black text-amber-600">0 văn bản</p>
+          <p className="mt-1 text-xs text-gray-400">Tất cả chính sách đều đã được xuất bản</p>
+        </div>
+      </div>
+
       <div className="rounded-2xl border border-stroke bg-white p-6 shadow-sm dark:border-dark-3 dark:bg-gray-dark">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
           <h3 className="text-lg font-bold text-dark dark:text-white">

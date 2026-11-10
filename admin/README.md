@@ -6,11 +6,11 @@
 
 **NextAdmin** provides you with a diverse set of dashboard UI components, elements, examples and pages necessary for creating top-notch admin panels or dashboards with **powerful** features and integrations. Whether you are working on a complex web application or a basic website, **NextAdmin** has got you covered.
 
-### [✨ Visit Website](https://nextadmin.co/)
+### [Visit Website](https://nextadmin.co/)
 
-### [🚀 Live Demo](https://demo.nextadmin.co/)
+### [Live Demo](https://demo.nextadmin.co/)
 
-### [📖 Docs](https://docs.nextadmin.co/)
+### [Docs](https://docs.nextadmin.co/)
 
 By leveraging the latest features of **Next.js 14** and key functionalities like **server-side rendering (SSR)**, **static site generation (SSG)**, and seamless **API route integration**, **NextAdmin** ensures optimal performance. With the added benefits of **React 18 advancements** and **TypeScript** reliability, **NextAdmin** is the ultimate choice to kickstart your **Next.js** project efficiently.
 

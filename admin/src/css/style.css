@@ -380,11 +380,27 @@
 }
 
 @layer base {
+  html,
   body {
-    @apply bg-gray-2 text-dark-5 dark:text-dark-6 dark:bg-[#020D1A];
+    @apply h-full overflow-x-hidden bg-gray-2 text-dark-5 dark:text-dark-6 dark:bg-[#020D1A];
   }
 
-  /* Ẩn scrollbar trên toàn bộ trang admin */
+  /* Ngăn các phần tử phụ trợ do ApexCharts / Flatpickr chèn vào cuối body làm tràn chiều cao 100vh */
+  svg[id^="SvgjsSvg"] {
+    position: fixed !important;
+    top: -9999px !important;
+    left: -9999px !important;
+    width: 0 !important;
+    height: 0 !important;
+    pointer-events: none !important;
+    overflow: hidden !important;
+  }
+
+  .flatpickr-calendar:not(.open):not(.inline) {
+    display: none !important;
+  }
+
+  /* Ẩn scrollbar mặc định nhưng giữ thanh cuộn ngang mỏng cho bảng dữ liệu (.overflow-x-auto) */
   * {
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE and Edge */
@@ -392,6 +408,25 @@
 
   *::-webkit-scrollbar {
     display: none; /* Chrome, Safari and Opera */
+  }
+
+  .overflow-x-auto {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.45) transparent;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar {
+    display: block;
+    height: 6px;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.45);
+    border-radius: 9999px;
   }
 }
 

@@ -1,10 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, ArrowUp, X, Send, MessageSquare, Paperclip, MoreVertical, Trash2, ImageIcon, Bot } from 'lucide-react';
+import { User, ArrowUp, X, Send, MessageSquare, Paperclip, MoreVertical, Trash2, ImageIcon, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import api from '../lib/api';
 import { useAuthStore } from '../store/authStore';
+import { useRecommendationStore } from '../store/recommendationStore';
+import { useCartStore } from '../store/cartStore';
+import { useUI } from './UIProvider';
 import { BACKEND_URL } from '../lib/config';
 
 interface MessageImage {
@@ -50,6 +54,7 @@ const getApiErrorStatus = (err: unknown) => {
 };
 
 export default function QuickDock() {
+  const pathname = usePathname();
   const [contactOpen, setContactOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -57,7 +62,18 @@ export default function QuickDock() {
 
   // Live Chat with Admin states
   const { user, clearAuth } = useAuthStore();
+  const openQuiz = useRecommendationStore(s => s.openQuiz);
+  const cartItemsCount = useCartStore(s => s.items.length);
+  const { isCartOpen, isCartPinned, theme, lang } = useUI();
+  const isLight = theme === 'light';
+  const isEn = lang === 'en';
+  const [isMounted, setIsMounted] = useState(false);
   const [showGuestForm, setShowGuestForm] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMounted(true);
+  }, []);
   const [activeRoomId, setActiveRoomId] = useState<number | null>(null);
   const [roomStatus, setRoomStatus] = useState<string>('pending');
   const [dbMessages, setDbMessages] = useState<DBMessage[]>([]);
@@ -289,32 +305,84 @@ export default function QuickDock() {
     }
   };
 
+  const hasMobileCartBar = isMounted && cartItemsCount > 0 && !isCartOpen;
+  const isPinnedSidebarOpen = isMounted && isCartPinned && isCartOpen;
+
+  if (
+    pathname?.startsWith('/checkout') ||
+    pathname?.startsWith('/login') ||
+    pathname?.startsWith('/register')
+  ) {
+    return null;
+  }
+
   return (
     <>
-      {/* ── "Chat ngay" Floating Circular Button at Bottom-Left ──────────────────────── */}
+      {/* ── Cụm nút nổi góc dưới bên phải (Xếp chồng dọc, tự nâng lên khi có thanh giỏ hàng mobile) ── */}
       <div
-        onClick={() => {
-          setContactOpen(!contactOpen);
-          setChatOpen(false);
-        }}
-        className="fixed left-6 bottom-6 z-[999] flex items-center justify-center w-14 h-14 rounded-full bg-[#ee2828] border-2 border-[#9f280a] shadow-[0_5px_25px_rgba(0,0,0,0.25)] cursor-pointer hover:scale-105 active:scale-95 transition-all select-none"
+        className={`fixed z-[90] flex flex-col items-end gap-2.5 transition-all duration-300 select-none ${
+          hasMobileCartBar ? 'bottom-20 lg:bottom-6' : 'bottom-5 lg:bottom-6'
+        } ${
+          isPinnedSidebarOpen
+            ? 'right-4 sm:right-6 lg:right-[368px] xl:right-[393px]'
+            : 'right-4 sm:right-6'
+        } ${isCartOpen && !isCartPinned ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
       >
-        <svg className="w-7 h-7 text-white drop-shadow-sm" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C6.48 2 2 6.48 2 12c0 2.17.78 4.16 2.06 5.74L3 22l4.43-1.07C8.89 21.57 10.4 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm-3 11c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm3 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm3 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z" />
-        </svg>
+        {!contactOpen && !chatOpen && pathname === '/' && (
+          <button
+            type="button"
+            onClick={() => openQuiz('quick_dock')}
+            title={isEn ? 'Help me choose a dish' : 'Chọn món giúp tôi'}
+            aria-label={isEn ? 'Help me choose a dish' : 'Chọn món giúp tôi'}
+            className="flex items-center justify-center w-12 h-12 rounded-full bg-[#ffc107] hover:bg-[#ffb300] text-zinc-950 border-2 border-[#b38600] shadow-[0_6px_24px_rgba(0,0,0,0.35)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
+          >
+            <Sparkles className="w-5 h-5 text-zinc-950" strokeWidth={2.4} />
+          </button>
+        )}
+
+        <button
+          type="button"
+          aria-label={isEn ? 'Open support & chat' : 'Mở hỗ trợ & trò chuyện'}
+          title={isEn ? 'Online Support' : 'Hỗ trợ trực tuyến'}
+          onClick={() => {
+            setContactOpen(!contactOpen);
+            setChatOpen(false);
+          }}
+          className="flex items-center justify-center w-12 h-12 rounded-full bg-[#ee2828] hover:bg-[#d82020] border-2 border-[#9f280a] shadow-[0_6px_24px_rgba(0,0,0,0.35)] cursor-pointer hover:scale-105 active:scale-95 transition-all"
+        >
+          <svg className="w-6 h-6 text-white drop-shadow-sm" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12c0 2.17.78 4.16 2.06 5.74L3 22l4.43-1.07C8.89 21.57 10.4 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm-3 11c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm3 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm3 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z" />
+          </svg>
+        </button>
       </div>
 
       {/* ── Contact Support Modal ("Liên hệ hỗ trợ") ──────────────────────────────── */}
       {contactOpen && (
-        <div className="fixed left-6 bottom-24 z-[1000] w-[420px] bg-[#2a1f1a] border border-white/[0.08] rounded-[28px] p-6 shadow-[0_15px_45px_rgba(0,0,0,0.5)] text-white animate-fadeIn select-none overflow-hidden">
+        <div
+          className={`fixed z-[1000] w-[calc(100vw-2rem)] sm:w-[400px] border rounded-[28px] p-6 animate-fadeIn select-none overflow-hidden transition-colors duration-200 ${
+            isLight
+              ? 'bg-white border-zinc-200/90 text-zinc-900 shadow-[0_18px_50px_rgba(0,0,0,0.14)]'
+              : 'bg-[#2a1f1a] border-white/[0.08] text-white shadow-[0_15px_45px_rgba(0,0,0,0.5)]'
+          } ${
+            hasMobileCartBar ? 'bottom-36 lg:bottom-24' : 'bottom-22 lg:bottom-24'
+          } ${
+            isPinnedSidebarOpen
+              ? 'right-4 sm:right-6 lg:right-[380px] xl:right-[400px]'
+              : 'right-4 sm:right-6'
+          }`}
+        >
           {/* Header */}
           <div className="flex items-center justify-between pb-3">
-            <h4 className="font-extrabold text-lg tracking-wide text-zinc-100">
-              Liên hệ hỗ trợ
+            <h4 className={`font-extrabold text-lg tracking-wide ${isLight ? 'text-zinc-900' : 'text-zinc-100'}`}>
+              {isEn ? 'Customer Support' : 'Liên hệ hỗ trợ'}
             </h4>
             <button 
               onClick={() => setContactOpen(false)}
-              className="text-zinc-400 hover:text-white rounded-lg p-1.5 hover:bg-white/5 transition-colors cursor-pointer"
+              className={`rounded-lg p-1.5 transition-colors cursor-pointer ${
+                isLight
+                  ? 'text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100'
+                  : 'text-zinc-400 hover:text-white hover:bg-white/5'
+              }`}
             >
               <X size={18} />
             </button>
@@ -327,27 +395,35 @@ export default function QuickDock() {
               href="https://zalo.me/0982636800" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="bg-[#110a04] border border-white/[0.04] p-3.5 rounded-2xl flex items-center gap-3 cursor-pointer hover:bg-[#1c1208]/90 active:scale-[0.97] transition-all shadow"
+              className={`border p-3.5 rounded-2xl flex items-center gap-3 cursor-pointer active:scale-[0.97] transition-all ${
+                isLight
+                  ? 'bg-zinc-50 hover:bg-zinc-100 border-zinc-200/90 shadow-xs'
+                  : 'bg-[#110a04] border-white/[0.04] hover:bg-[#1c1208]/90 shadow'
+              }`}
             >
-              <svg className="w-10 h-10 shrink-0" viewBox="0 0 40 40" fill="none">
+              <svg className={`w-10 h-10 shrink-0 rounded-[10px] ${isLight ? 'border border-zinc-200/80 shadow-2xs' : ''}`} viewBox="0 0 40 40" fill="none">
                 <rect width="40" height="40" rx="10" fill="white" />
                 <path d="M20 6C11.16 6 4 11.6 4 18.5C4 22.4 6.3 25.8 9.9 27.9L8.2 33.3C8.1 33.6 8.3 34 8.7 34C8.9 34 9.1 33.9 9.2 33.8L15.3 29.8C16.8 30.6 18.4 31 20 31C28.8 31 36 25.4 36 18.5C36 11.6 28.8 6 20 6Z" fill="#0068FF" />
                 <text x="20" y="22.5" fill="white" fontSize="9" fontWeight="900" fontFamily="system-ui, sans-serif" textAnchor="middle">Zalo</text>
               </svg>
-              <span className="font-extrabold text-sm text-white">Zalo</span>
+              <span className={`font-extrabold text-sm ${isLight ? 'text-zinc-900' : 'text-white'}`}>Zalo</span>
             </a>
 
             {/* Phone Hotline Card */}
             <a 
               href="tel:0982636800"
-              className="bg-[#110a04] border border-white/[0.04] p-3.5 rounded-2xl flex items-center gap-3 cursor-pointer hover:bg-[#1c1208]/90 active:scale-[0.97] transition-all shadow"
+              className={`border p-3.5 rounded-2xl flex items-center gap-3 cursor-pointer active:scale-[0.97] transition-all ${
+                isLight
+                  ? 'bg-zinc-50 hover:bg-zinc-100 border-zinc-200/90 shadow-xs'
+                  : 'bg-[#110a04] border-white/[0.04] hover:bg-[#1c1208]/90 shadow'
+              }`}
             >
               <div className="w-10 h-10 rounded-full bg-[#00b952] flex items-center justify-center text-white shrink-0 shadow-md">
                 <svg className="w-5 h-5 fill-white text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M20.01 15.38c-1.23-.13-2.42-.54-3.52-1.21-.36-.22-.8-.17-1.11.14l-2.33 2.33c-2.91-1.49-5.28-3.86-6.77-6.77l2.33-2.33c.31-.31.36-.75.14-1.11C8.14 5.34 7.73 4.15 7.6 2.92c-.1-.97-.91-1.69-1.89-1.69H3.19C2.1 1.23 1.2 2.14 1.26 3.24c.48 8.65 7.4 15.57 16.05 16.05 1.1.06 2.01-.84 2.01-1.93v-2.52c0-.98-.72-1.79-1.31-1.46z" />
                 </svg>
               </div>
-              <span className="font-extrabold text-[13px] text-white tracking-tight whitespace-nowrap">0982 636 800</span>
+              <span className={`font-extrabold text-[13px] tracking-tight whitespace-nowrap ${isLight ? 'text-zinc-900' : 'text-white'}`}>0982 636 800</span>
             </a>
 
             {/* TikTok Card */}
@@ -355,14 +431,18 @@ export default function QuickDock() {
               href="https://tiktok.com" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="bg-[#110a04] border border-white/[0.04] p-3.5 rounded-2xl flex items-center gap-3 cursor-pointer hover:bg-[#1c1208]/90 active:scale-[0.97] transition-all shadow"
+              className={`border p-3.5 rounded-2xl flex items-center gap-3 cursor-pointer active:scale-[0.97] transition-all ${
+                isLight
+                  ? 'bg-zinc-50 hover:bg-zinc-100 border-zinc-200/90 shadow-xs'
+                  : 'bg-[#110a04] border-white/[0.04] hover:bg-[#1c1208]/90 shadow'
+              }`}
             >
               <div className="w-10 h-10 rounded-xl bg-black border border-white/10 flex items-center justify-center text-white shadow-md shrink-0">
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.86-.74-3.99-1.72-.08-.07-.15-.15-.24-.22v6.23c.03 3.58-2.3 6.9-5.83 7.62-3.7 1.07-7.85-1.07-9.04-4.72-1.42-3.9 1-8.23 5.04-9.25.96-.28 1.98-.31 2.97-.13v4.01c-.8-.21-1.68-.16-2.43.23-.97.47-1.6 1.52-1.57 2.61.02 1.6 1.43 2.96 3.03 2.93 1.62-.05 2.93-1.47 2.89-3.08.01-4.73-.01-9.46.02-14.19z"/>
                 </svg>
               </div>
-              <span className="font-extrabold text-sm text-white">TikTok</span>
+              <span className={`font-extrabold text-sm ${isLight ? 'text-zinc-900' : 'text-white'}`}>TikTok</span>
             </a>
 
             {/* Facebook Card */}
@@ -370,35 +450,19 @@ export default function QuickDock() {
               href="https://facebook.com" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="bg-[#110a04] border border-white/[0.04] p-3.5 rounded-2xl flex items-center gap-3 cursor-pointer hover:bg-[#1c1208]/90 active:scale-[0.97] transition-all shadow"
+              className={`border p-3.5 rounded-2xl flex items-center gap-3 cursor-pointer active:scale-[0.97] transition-all ${
+                isLight
+                  ? 'bg-zinc-50 hover:bg-zinc-100 border-zinc-200/90 shadow-xs'
+                  : 'bg-[#110a04] border-white/[0.04] hover:bg-[#1c1208]/90 shadow'
+              }`}
             >
               <div className="w-10 h-10 rounded-xl bg-[#1877f2] flex items-center justify-center text-white shadow-md shrink-0">
                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                 </svg>
               </div>
-              <span className="font-extrabold text-sm text-white">Facebook</span>
+              <span className={`font-extrabold text-sm ${isLight ? 'text-zinc-900' : 'text-white'}`}>Facebook</span>
             </a>
-
-            {/* AI Assistant Chat Card */}
-            <div 
-              onClick={() => {
-                setContactOpen(false);
-                window.dispatchEvent(new CustomEvent('open-ai-chat'));
-              }}
-              className="bg-gradient-to-r from-[#1c291c] to-[#110a04] border border-[#007a3f]/40 hover:border-[#007a3f] p-3.5 rounded-2xl flex items-center gap-3 cursor-pointer hover:bg-[#203320]/90 active:scale-[0.97] transition-all shadow col-span-2 text-left group"
-            >
-              <div className="w-10 h-10 rounded-full bg-[#007a3f]/20 border border-[#007a3f]/40 flex items-center justify-center text-[#00a854] shrink-0 group-hover:scale-105 transition-transform">
-                <Bot size={20} />
-              </div>
-              <div className="flex flex-col">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold text-sm text-white">Chat với Trợ lý AI</span>
-                  <span className="bg-gradient-to-r from-amber-400 to-orange-400 text-black text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider">AI</span>
-                </div>
-                <span className="text-[11px] text-zinc-400">Tư vấn chọn món ngon theo khẩu vị</span>
-              </div>
-            </div>
 
             {/* Live Chat with Staff Card */}
             <div 
@@ -406,25 +470,45 @@ export default function QuickDock() {
                 setContactOpen(false);
                 startLiveChat();
               }}
-              className="bg-[#110a04] border border-white/[0.04] p-3.5 rounded-2xl flex items-center gap-3 cursor-pointer hover:bg-[#1c1208]/90 active:scale-[0.97] transition-all shadow col-span-2 text-left"
+              className={`border p-3.5 rounded-2xl flex items-center gap-3 cursor-pointer active:scale-[0.97] transition-all col-span-2 text-left ${
+                isLight
+                  ? 'bg-zinc-50 hover:bg-zinc-100 border-zinc-200/90 shadow-xs'
+                  : 'bg-[#110a04] border-white/[0.04] hover:bg-[#1c1208]/90 shadow'
+              }`}
             >
               <div className="w-10 h-10 rounded-full bg-[#ee2828]/10 flex items-center justify-center text-[#ee2828] shrink-0">
                 <MessageSquare size={20} />
               </div>
-              <span className="font-extrabold text-sm text-white">Chat với nhân viên hỗ trợ</span>
+              <span className={`font-extrabold text-sm ${isLight ? 'text-zinc-900' : 'text-white'}`}>
+                {isEn ? 'Live Chat with Support Staff' : 'Chat với nhân viên hỗ trợ'}
+              </span>
             </div>
           </div>
 
           {/* Footer Info Lines */}
-          <div className="text-left text-xs font-semibold text-zinc-300 space-y-2 border-t border-white/5 pt-4 mt-1 leading-relaxed">
-            <p>Hỗ trợ trực tuyến từ 9:00 đến 22:00 hàng ngày</p>
+          <div className={`text-left text-xs font-semibold space-y-2 border-t pt-4 mt-1 leading-relaxed ${
+            isLight ? 'text-zinc-500 border-zinc-200' : 'text-zinc-300 border-white/5'
+          }`}>
+            <p>{isEn ? 'Online support available daily from 09:00 to 22:00' : 'Hỗ trợ trực tuyến từ 9:00 đến 22:00 hàng ngày'}</p>
           </div>
         </div>
       )}
 
       {/* ── Chatbot Panel Window ────────────────────────────────────────── */}
       {chatOpen && (
-        <div className="fixed left-6 bottom-24 z-[1000] w-[375px] h-[525px] flex flex-col bg-white border border-zinc-200/80 rounded-[28px] shadow-[0_15px_45px_rgba(0,0,0,0.12)] overflow-hidden overscroll-contain animate-fadeIn select-none">
+        <div
+          className={`fixed z-[1000] w-[calc(100vw-2rem)] sm:w-[375px] h-[500px] sm:h-[525px] flex flex-col border rounded-[28px] overflow-hidden overscroll-contain animate-fadeIn select-none ${
+            isLight
+              ? 'bg-white border-zinc-200/90 shadow-[0_18px_50px_rgba(0,0,0,0.14)]'
+              : 'bg-[#1a1513] border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.6)]'
+          } ${
+            hasMobileCartBar ? 'bottom-36 lg:bottom-24' : 'bottom-22 lg:bottom-24'
+          } ${
+            isPinnedSidebarOpen
+              ? 'right-4 sm:right-6 lg:right-[380px] xl:right-[400px]'
+              : 'right-4 sm:right-6'
+          }`}
+        >
           
           {/* Header */}
           <div className="relative bg-gradient-to-b from-[#ee2828] to-[#9f280a] text-white pt-5 pb-9 px-5 rounded-t-[28px] overflow-hidden shrink-0">
@@ -435,15 +519,17 @@ export default function QuickDock() {
                   <User className="w-6 h-6 text-[#ee2828]" />
                 </div>
                 <div className="text-left">
-                  <span className="text-zinc-300 text-[10px] font-semibold tracking-wide block uppercase leading-none">
-                    Hỗ trợ trực tuyến
+                  <span className="text-zinc-200 text-[10px] font-semibold tracking-wide block uppercase leading-none">
+                    {isEn ? 'Online Support' : 'Hỗ trợ trực tuyến'}
                   </span>
                   <h4 className="font-extrabold text-[15px] text-white tracking-wide leading-snug mt-0.5">
-                    Nhân viên hỗ trợ
+                    {isEn ? 'Support Staff' : 'Nhân viên hỗ trợ'}
                   </h4>
                   <div className="flex items-center gap-1.5 mt-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span className="text-[10px] text-emerald-400/90 font-bold uppercase tracking-wider">Trực tuyến</span>
+                    <span className="text-[10px] text-emerald-400/90 font-bold uppercase tracking-wider">
+                      {isEn ? 'Online' : 'Trực tuyến'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -463,7 +549,11 @@ export default function QuickDock() {
               <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="relative block w-full h-[22px]">
                 <path 
                   d="M985.66,92.83C906.67,72,823.78,31,743.84,14.19c-82.26-17.34-168.06-16.33-250.45.39-57.84,11.73-114,31.07-172,41.86A600.21,600.21,0,0,1,0,27.35V120H1200V30.39C1122.56,69.57,1053.47,110.8,985.66,92.83Z" 
-                  fill={showGuestForm ? "#1a1513" : "#f4f7f9"} 
+                  fill={
+                    isLight
+                      ? (showGuestForm ? "#ffffff" : "#f4f7f9")
+                      : (showGuestForm ? "#1a1513" : "#161311")
+                  } 
                 />
               </svg>
             </div>
@@ -471,28 +561,36 @@ export default function QuickDock() {
 
           {/* ── Guest Details Form ────────────────────────────────── */}
           {showGuestForm ? (
-            <div className="flex-1 bg-[#1a1513] text-white p-6 flex flex-col justify-between overflow-y-auto custom-scrollbar">
+            <div className={`flex-1 p-6 flex flex-col justify-between overflow-y-auto custom-scrollbar ${
+              isLight ? 'bg-white text-zinc-900' : 'bg-[#1a1513] text-white'
+            }`}>
               <div className="text-center pt-2">
-                <h3 className="font-extrabold text-zinc-100 text-[17px] tracking-wide">
-                  KẾT NỐI VỚI NHÂN VIÊN HỖ TRỢ
+                <h3 className={`font-extrabold text-[17px] tracking-wide ${isLight ? 'text-zinc-900' : 'text-zinc-100'}`}>
+                  {isEn ? 'CONNECT WITH SUPPORT STAFF' : 'KẾT NỐI VỚI NHÂN VIÊN HỖ TRỢ'}
                 </h3>
-                <p className="text-zinc-400 text-xs mt-1.5 leading-relaxed max-w-[280px] mx-auto font-medium">
-                  Vui lòng cung cấp thông tin để nhân viên hỗ trợ bạn tốt nhất!
+                <p className={`text-xs mt-1.5 leading-relaxed max-w-[280px] mx-auto font-medium ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                  {isEn
+                    ? 'Please provide your details so our staff can assist you quickly!'
+                    : 'Vui lòng cung cấp thông tin để nhân viên hỗ trợ bạn tốt nhất!'}
                 </p>
               </div>
 
               <form onSubmit={handleGuestFormSubmit} className="space-y-4 my-5 flex-1 flex flex-col justify-center text-left">
                 {/* Full name input */}
                 <div>
-                  <label className="block text-[10px] font-black text-zinc-400 tracking-widest uppercase mb-1.5">
-                    Họ và tên (*)
+                  <label className={`block text-[10px] font-black tracking-widest uppercase mb-1.5 ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                    {isEn ? 'Full Name (*)' : 'Họ và tên (*)'}
                   </label>
                   <input
                     type="text"
                     value={guestName}
                     onChange={(e) => setGuestName(e.target.value)}
-                    placeholder="Nhập họ tên"
-                    className="w-full bg-[#2a221f] text-white border border-white/[0.08] rounded-xl py-3 px-4 focus:outline-none focus:border-amber-500 transition-all placeholder-zinc-500 text-sm font-semibold shadow-inner"
+                    placeholder={isEn ? 'Enter your name' : 'Nhập họ tên'}
+                    className={`w-full border rounded-xl py-3 px-4 focus:outline-none transition-all text-sm font-semibold ${
+                      isLight
+                        ? 'bg-zinc-50 text-zinc-900 border-zinc-200 focus:bg-white focus:border-[#d4a017] placeholder-zinc-400'
+                        : 'bg-[#2a221f] text-white border-white/[0.08] focus:border-amber-500 placeholder-zinc-500 shadow-inner'
+                    }`}
                   />
                   {formErrors.name && (
                     <span className="text-red-500 text-[10px] font-bold block mt-1">{formErrors.name}</span>
@@ -501,15 +599,22 @@ export default function QuickDock() {
 
                 {/* Phone number input */}
                 <div>
-                  <label className="block text-[10px] font-black text-zinc-400 tracking-widest uppercase mb-1.5">
-                    Số điện thoại (*) <span className="text-[#ffc107] font-bold normal-case tracking-normal ml-1">Định dạng: 10 chữ số bắt đầu bằng 0</span>
+                  <label className={`block text-[10px] font-black tracking-widest uppercase mb-1.5 ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                    {isEn ? 'Phone Number (*)' : 'Số điện thoại (*)'}{' '}
+                    <span className={`font-bold normal-case tracking-normal ml-1 ${isLight ? 'text-[#b45309]' : 'text-[#ffc107]'}`}>
+                      {isEn ? '10 digits starting with 0' : 'Định dạng: 10 chữ số bắt đầu bằng 0'}
+                    </span>
                   </label>
                   <input
                     type="tel"
                     value={guestPhone}
                     onChange={(e) => setGuestPhone(e.target.value)}
-                    placeholder="Nhập số điện thoại"
-                    className="w-full bg-[#2a221f] text-white border border-white/[0.08] rounded-xl py-3 px-4 focus:outline-none focus:border-amber-500 transition-all placeholder-zinc-500 text-sm font-semibold shadow-inner"
+                    placeholder={isEn ? 'Enter phone number' : 'Nhập số điện thoại'}
+                    className={`w-full border rounded-xl py-3 px-4 focus:outline-none transition-all text-sm font-semibold ${
+                      isLight
+                        ? 'bg-zinc-50 text-zinc-900 border-zinc-200 focus:bg-white focus:border-[#d4a017] placeholder-zinc-400'
+                        : 'bg-[#2a221f] text-white border-white/[0.08] focus:border-amber-500 placeholder-zinc-500 shadow-inner'
+                    }`}
                   />
                   {formErrors.phone && (
                     <span className="text-red-500 text-[10px] font-bold block mt-1">{formErrors.phone}</span>
@@ -518,15 +623,19 @@ export default function QuickDock() {
 
                 {/* Delivery address input */}
                 <div>
-                  <label className="block text-[10px] font-black text-zinc-400 tracking-widest uppercase mb-1.5">
-                    Địa chỉ giao hàng (*)
+                  <label className={`block text-[10px] font-black tracking-widest uppercase mb-1.5 ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                    {isEn ? 'Delivery Address (*)' : 'Địa chỉ giao hàng (*)'}
                   </label>
                   <input
                     type="text"
                     value={guestAddress}
                     onChange={(e) => setGuestAddress(e.target.value)}
-                    placeholder="Nhập địa chỉ"
-                    className="w-full bg-[#2a221f] text-white border border-white/[0.08] rounded-xl py-3 px-4 focus:outline-none focus:border-amber-500 transition-all placeholder-zinc-500 text-sm font-semibold shadow-inner"
+                    placeholder={isEn ? 'Enter delivery address' : 'Nhập địa chỉ'}
+                    className={`w-full border rounded-xl py-3 px-4 focus:outline-none transition-all text-sm font-semibold ${
+                      isLight
+                        ? 'bg-zinc-50 text-zinc-900 border-zinc-200 focus:bg-white focus:border-[#d4a017] placeholder-zinc-400'
+                        : 'bg-[#2a221f] text-white border-white/[0.08] focus:border-amber-500 placeholder-zinc-500 shadow-inner'
+                    }`}
                   />
                   {formErrors.address && (
                     <span className="text-red-500 text-[10px] font-bold block mt-1">{formErrors.address}</span>
@@ -537,22 +646,30 @@ export default function QuickDock() {
                   type="submit"
                   className="w-full bg-[#ffc107] hover:bg-[#ffb300] active:scale-95 text-zinc-950 font-black text-sm uppercase py-4 rounded-2xl shadow-lg transition-all tracking-wider mt-2.5 cursor-pointer"
                 >
-                  Bắt đầu chat
+                  {isEn ? 'Start Chat' : 'Bắt đầu chat'}
                 </button>
               </form>
             </div>
           ) : (
             <>
               {/* Messages List Area */}
-              <div className="flex-1 overflow-y-auto overscroll-contain p-4.5 space-y-4 bg-[#f4f7f9] custom-scrollbar">
+              <div className={`flex-1 overflow-y-auto overscroll-contain p-4.5 space-y-4 custom-scrollbar ${
+                isLight ? 'bg-[#f4f7f9]' : 'bg-[#161311]'
+              }`}>
                 
                 <div className="text-center py-1 select-none">
-                  <span className="px-3 py-1 bg-zinc-200/60 rounded-full text-zinc-500 text-[10px] font-extrabold uppercase tracking-wide">
-                    Kênh hỗ trợ trực tuyến
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wide ${
+                    isLight ? 'bg-zinc-200/70 text-zinc-600' : 'bg-white/[0.06] text-zinc-400'
+                  }`}>
+                    {isEn ? 'Live Support Channel' : 'Kênh hỗ trợ trực tuyến'}
                   </span>
                   {roomStatus === 'closed' && (
-                    <div className="mt-2.5 bg-rose-50 border border-rose-100/50 rounded-xl p-2.5 text-rose-600 text-xs font-semibold leading-relaxed mx-2">
-                      Cuộc trò chuyện đã kết thúc. Gửi tin nhắn mới để mở lại.
+                    <div className={`mt-2.5 border rounded-xl p-2.5 text-xs font-semibold leading-relaxed mx-2 ${
+                      isLight ? 'bg-rose-50 border-rose-200 text-rose-600' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                    }`}>
+                      {isEn
+                        ? 'Conversation has ended. Send a new message to reopen.'
+                        : 'Cuộc trò chuyện đã kết thúc. Gửi tin nhắn mới để mở lại.'}
                     </div>
                   )}
                 </div>
@@ -560,8 +677,12 @@ export default function QuickDock() {
                 {dbMessages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-zinc-400 select-none">
                     <MessageSquare className="w-10 h-10 mb-2 opacity-30 animate-pulse text-[#ee2828]" />
-                    <p className="text-xs font-bold">Chưa có tin nhắn</p>
-                    <p className="text-[10px] text-zinc-400/80 mt-1">Gửi lời chào để bắt đầu trò chuyện với nhân viên!</p>
+                    <p className={`text-xs font-bold ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                      {isEn ? 'No messages yet' : 'Chưa có tin nhắn'}
+                    </p>
+                    <p className="text-[10px] text-zinc-400/80 mt-1">
+                      {isEn ? 'Say hello to start chatting with our staff!' : 'Gửi lời chào để bắt đầu trò chuyện với nhân viên!'}
+                    </p>
                   </div>
                 ) : (
                   dbMessages.map((msg) => {
@@ -575,7 +696,9 @@ export default function QuickDock() {
                           className={`px-4 py-2.5 text-[13px] font-medium leading-relaxed shadow-sm text-left ${
                             !isAdmin 
                               ? 'bg-[#007a3f] text-white rounded-[20px] rounded-tr-none' 
-                              : 'bg-white border border-zinc-100/50 text-[#202c3d] rounded-[20px] rounded-tl-none'
+                              : isLight
+                                ? 'bg-white border border-zinc-200/70 text-[#202c3d] rounded-[20px] rounded-tl-none'
+                                : 'bg-[#241e1a] border border-white/[0.08] text-zinc-100 rounded-[20px] rounded-tl-none'
                           }`}
                         >
                           {msg.message_text && <p className="whitespace-pre-wrap">{msg.message_text}</p>}
@@ -616,13 +739,17 @@ export default function QuickDock() {
               {/* Form Input Area */}
               <form 
                 onSubmit={handleSendMessage}
-                className="bg-white border-t border-zinc-100/80 relative p-3 pb-3.5 shrink-0"
+                className={`border-t relative p-3 pb-3.5 shrink-0 ${
+                  isLight ? 'bg-white border-zinc-200/80' : 'bg-[#1c1714] border-white/[0.08]'
+                }`}
               >
                 {/* Image Upload Attachment Previews in Input Area */}
                 {previewImages.length > 0 && (
                   <div className="flex gap-2 overflow-x-auto pb-3 pt-1 px-1 shrink-0 select-none">
                     {previewImages.map((url, idx) => (
-                      <div key={idx} className="relative w-14 h-14 rounded-lg overflow-hidden border border-zinc-200 shrink-0 shadow-sm">
+                      <div key={idx} className={`relative w-14 h-14 rounded-lg overflow-hidden border shrink-0 shadow-sm ${
+                        isLight ? 'border-zinc-200' : 'border-white/15'
+                      }`}>
                         <img src={url} alt="upload preview" className="w-full h-full object-cover" />
                         <button
                           type="button"
@@ -641,9 +768,11 @@ export default function QuickDock() {
                   type="text" 
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  placeholder={isUploading ? "Đang tải ảnh..." : "Nhập tin nhắn..."}
+                  placeholder={isUploading ? (isEn ? 'Uploading image...' : 'Đang tải ảnh...') : (isEn ? 'Type a message...' : 'Nhập tin nhắn...')}
                   disabled={isUploading}
-                  className="w-full bg-transparent text-[#202c3d] focus:outline-none placeholder-zinc-400 text-[13px] pl-4 pr-16 py-2.5 font-semibold"
+                  className={`w-full bg-transparent focus:outline-none text-[13px] pl-4 pr-16 py-2.5 font-semibold ${
+                    isLight ? 'text-[#202c3d] placeholder-zinc-400' : 'text-white placeholder-zinc-500'
+                  }`}
                 />
                 
                 {/* Hidden File Input for Image Upload */}

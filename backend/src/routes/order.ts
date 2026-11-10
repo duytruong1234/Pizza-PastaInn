@@ -18,4 +18,7 @@ router.get('/:id', OrderController.getOrder);
 // Hủy đơn hàng và khôi phục tồn kho
 router.post('/:id/cancel', OrderController.cancelOrder);
 
+// Đổi phương thức thanh toán cho đơn hàng đang chờ xử lý (VietQR -> COD)
+router.patch('/:id/payment-method', OrderController.switchPaymentMethod);
+
 export default router;

@@ -144,62 +144,95 @@ function OrderDetailModal({
       const isCombo = !!item.combo_id;
       const isHalfHalf = !!item.is_half_half;
       let name = 'Món ăn';
-      if (isCombo) name = item.combo?.combo_name || `Combo #${item.combo_id}`;
-      else if (isHalfHalf) name = 'Pizza Half & Half';
-      else name = item.dish_price?.dish?.dish_name || 'Món ăn';
+      const subDetails: string[] = [];
+
+      if (isCombo) {
+        name = item.combo?.combo_name || `Combo #${item.combo_id}`;
+      } else if (isHalfHalf) {
+        name = 'Pizza Half & Half';
+        if (Array.isArray(item.halves)) {
+          item.halves.forEach((h: any, idx: number) => {
+            if (h.dish?.dish_name) subDetails.push(`Nửa ${idx + 1}: ${h.dish.dish_name}`);
+          });
+        }
+      } else {
+        name = item.dish_price?.dish?.dish_name || 'Món ăn';
+        const sizeName = item.dish_price?.size?.size_name;
+        const crustName = item.dish_price?.crust?.crust_name;
+        if (sizeName || crustName) {
+          subDetails.push([sizeName ? `Cỡ ${sizeName}` : '', crustName ? `Đế ${crustName}` : ''].filter(Boolean).join(' • '));
+        }
+      }
+
+      if (Array.isArray(item.toppings) && item.toppings.length > 0) {
+        subDetails.push('Topping: ' + item.toppings.map((t: any) => t.topping?.topping_name || '').filter(Boolean).join(', '));
+      }
+      if (item.order_item_note) {
+        subDetails.push(`Ghi chú món: ${item.order_item_note}`);
+      }
+
+      const unitPrice = Number(item.order_price || 0);
+      const qty = Number(item.quantity || 1);
       return `<tr>
-        <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:left">${name}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:right">${(item.order_price || 0).toLocaleString()} đ</td>
+        <td style="padding:6px 8px;border-bottom:1px dashed #ddd;text-align:left">
+          <div style="font-weight:700">${name}</div>
+          ${subDetails.map((d) => `<div style="font-size:11px;color:#555;margin-top:2px">- ${d}</div>`).join('')}
+        </td>
+        <td style="padding:6px 8px;border-bottom:1px dashed #ddd;text-align:center;font-weight:700">x${qty}</td>
+        <td style="padding:6px 8px;border-bottom:1px dashed #ddd;text-align:right;font-weight:700">${(unitPrice * qty).toLocaleString()} đ</td>
       </tr>`;
     }).join('');
 
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title></title>
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Hóa đơn #${o.order_id}</title>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
-      body{font-family:'Segoe UI',Tahoma,sans-serif;padding:20px;margin:0 auto;color:#333}
-      .header{text-align:center;padding-bottom:12px;margin-bottom:12px}
-      .header h1{font-size:20px;font-weight:800;margin-bottom:2px}
-      .header p{font-size:11px;color:#888}
-      .info{margin-bottom:12px;font-size:13px;line-height:1.8}
+      body{font-family:'Segoe UI',Tahoma,sans-serif;padding:20px;max-width:380px;margin:0 auto;color:#111}
+      .header{text-align:center;padding-bottom:12px;margin-bottom:12px;border-bottom:2px dashed #111}
+      .header h1{font-size:20px;font-weight:900;margin-bottom:2px}
+      .header p{font-size:11px;color:#555;font-weight:700}
+      .info{margin-bottom:12px;font-size:12.5px;line-height:1.7;border-bottom:1px dashed #ccc;padding-bottom:10px}
       .info strong{color:#111}
-      table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}
-      th{background:#f5f5f5;padding:8px;text-align:left;font-weight:700;border-bottom:2px solid #ddd}
-      .totals{padding-top:10px;margin-top:10px;font-size:14px}
+      .note-box{background:#fff8eb;border:1px solid #f5c043;border-radius:8px;padding:8px 10px;font-size:12px;margin-bottom:12px}
+      table{width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0}
+      th{background:#f5f5f5;padding:7px 8px;text-align:left;font-weight:800;border-bottom:2px solid #111}
+      .totals{padding-top:10px;margin-top:10px;font-size:13px}
       .totals .row{display:flex;justify-content:space-between;padding:3px 0}
-      .totals .grand{font-size:16px;font-weight:800;color:#5750F1;border-top:1px solid #eee;padding-top:8px;margin-top:6px}
-      .footer{text-align:center;margin-top:16px;padding-top:12px;font-size:11px;color:#999}
-      @media print{body{padding:0}button{display:none!important}}
+      .totals .grand{font-size:16px;font-weight:900;color:#d91f1f;border-top:2px solid #111;padding-top:8px;margin-top:6px}
+      .footer{text-align:center;margin-top:16px;padding-top:12px;font-size:11px;color:#666;border-top:1px dashed #ccc}
+      @media print{body{padding:0;max-width:100%}button{display:none!important}}
     </style></head><body>
     <div class="header">
       <h1>PIZZA & PASTA INN</h1>
-      <p>HÓA ĐƠN #${o.order_id}</p>
+      <p>PHIẾU BẾP & HÓA ĐƠN GIAO HÀNG #${o.order_id}</p>
     </div>
     <div class="info">
       <div><strong>Khách hàng:</strong> ${o.customer_name || 'Khách vãng lai'}</div>
       <div><strong>SĐT:</strong> ${o.customer_phone || 'N/A'}</div>
+      ${o.user_address?.address_line ? `<div><strong>Địa chỉ giao:</strong> ${o.user_address.address_line}</div>` : ''}
+      ${o.store?.store_name ? `<div><strong>Chi nhánh:</strong> ${o.store.store_name}</div>` : ''}
       <div><strong>Loại đơn:</strong> ${ORDER_TYPE_LABELS[o.order_type] || o.order_type}</div>
-      <div><strong>Thanh toán:</strong> ${PAYMENT_LABELS[o.payment_method] || o.payment_method}</div>
+      <div><strong>Thanh toán:</strong> ${PAYMENT_LABELS[o.payment_method] || o.payment_method} (${o.payment_status === 'paid' ? 'ĐÃ THANH TOÁN' : 'CHƯA THANH TOÁN'})</div>
       <div><strong>Ngày đặt:</strong> ${o.created_at ? dayjs(o.created_at).format('DD/MM/YYYY HH:mm') : 'N/A'}</div>
     </div>
+    ${o.order_note ? `<div class="note-box"><strong>Ghi chú / Gia vị / Dụng cụ:</strong><br/>${o.order_note}</div>` : ''}
     <table>
-      <thead><tr><th>Món</th><th style="text-align:center">SL</th><th style="text-align:right">Giá</th></tr></thead>
+      <thead><tr><th>Món ăn / Chi tiết</th><th style="text-align:center">SL</th><th style="text-align:right">Thành tiền</th></tr></thead>
       <tbody>${itemsHtml}</tbody>
     </table>
     <div class="totals">
       <div class="row"><span>Tạm tính:</span><span>${(o.total_price_dish || 0).toLocaleString()} đ</span></div>
       <div class="row"><span>Phí giao hàng:</span><span>${(o.shipping_fee || 0).toLocaleString()} đ</span></div>
-      ${(o.discount_amount || 0) > 0 ? `<div class="row"><span>Giảm giá:</span><span>-${(o.discount_amount || 0).toLocaleString()} đ</span></div>` : ''}
-      <div class="row grand"><span>TỔNG CỘNG:</span><span>${(o.total_order || 0).toLocaleString()} đ</span></div>
+      ${(o.discount_amount || 0) > 0 ? `<div class="row" style="color:#007a3f;font-weight:700"><span>Giảm giá (Voucher/Điểm):</span><span>-${(o.discount_amount || 0).toLocaleString()} đ</span></div>` : ''}
+      <div class="row grand"><span>TỔNG THU:</span><span>${(o.total_order || 0).toLocaleString()} đ</span></div>
     </div>
     <div class="footer">
       <p>Cảm ơn quý khách đã sử dụng dịch vụ!</p>
-      <p>Pizza & Pasta Inn</p>
+      <p>Pizza & Pasta Inn • Hotline: 1900 6066</p>
     </div>
-    <button onclick="window.print()" style="display:block;width:100%;margin-top:16px;padding:10px;background:#5750F1;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">In hóa đơn</button>
+    <button onclick="window.print()" style="display:block;width:100%;margin-top:16px;padding:10px;background:#5750F1;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">In hóa đơn / Phiếu bếp (K80)</button>
     </body></html>`;
 
-    const printWindow = window.open('', '_blank', 'width=420,height=600');
+    const printWindow = window.open('', '_blank', 'width=440,height=680');
     if (printWindow) {
       printWindow.document.write(html);
       printWindow.document.close();
@@ -270,7 +303,7 @@ function OrderDetailModal({
 
         <div className="p-6 space-y-5">
           {/* Info grid */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Customer Details */}
             <div className="rounded-xl border border-stroke p-4 dark:border-dark-3">
               <h3 className="text-sm font-bold text-dark dark:text-white mb-3 uppercase tracking-wide">
@@ -716,7 +749,7 @@ function OrderDetailModal({
                     {/* Popup Header */}
                     <div className="flex items-center justify-between border-b border-stroke px-6 py-4 dark:border-dark-3">
                       <h4 className="text-base font-bold text-dark dark:text-white uppercase tracking-wide">
-                        Approve Order #{order.order_id}
+                        Duyệt đơn hàng #{order.order_id}
                       </h4>
                       <button
                         onClick={() => setShowConfirmForm(false)}
@@ -728,11 +761,11 @@ function OrderDetailModal({
 
                     {/* Popup Body */}
                     <div className="p-6 space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Nhập phí ship */}
                         <div>
                           <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">
-                            Shipping Fee (VND)
+                            Phí giao hàng (VNĐ)
                           </label>
                           <input
                             type="text"
@@ -751,7 +784,7 @@ function OrderDetailModal({
                         {/* Nhập giảm giá */}
                         <div>
                           <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">
-                            Discount (VND)
+                            Giảm giá (VNĐ)
                           </label>
                           <input
                             type="text"
@@ -771,25 +804,25 @@ function OrderDetailModal({
                       {/* Chọn thời gian giao */}
                       <div>
                         <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">
-                          Estimated Delivery Time
+                          Thời gian giao dự kiến
                         </label>
                         <select
                           value={deliveryDuration}
                           onChange={(e) => setDeliveryDuration(e.target.value)}
                           className="w-full rounded-lg border border-stroke bg-white px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-gray-dark font-medium"
                         >
-                          <option value="30">30 minutes (Today)</option>
-                          <option value="45">45 minutes (Today)</option>
-                          <option value="60">60 minutes (Today)</option>
-                          <option value="90">90 minutes (Today)</option>
-                          <option value="custom">Select specific time</option>
+                          <option value="30">30 phút (Hôm nay)</option>
+                          <option value="45">45 phút (Hôm nay)</option>
+                          <option value="60">60 phút (Hôm nay)</option>
+                          <option value="90">90 phút (Hôm nay)</option>
+                          <option value="custom">Chọn giờ cụ thể</option>
                         </select>
                       </div>
 
                       {deliveryDuration === "custom" && (
                         <div>
                           <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">
-                            Select Delivery Time
+                            Chọn giờ giao hàng
                           </label>
                           <input
                             type="time"
@@ -802,7 +835,7 @@ function OrderDetailModal({
 
                       {/* Sub-total review */}
                       <div className="bg-gray-50 dark:bg-dark-2 p-3 rounded-lg flex justify-between items-center text-sm border border-stroke dark:border-dark-3 font-semibold">
-                        <span className="text-gray-500">Adjusted Total:</span>
+                        <span className="text-gray-500">Tổng thanh toán sau điều chỉnh:</span>
                         <span className="text-primary text-base font-extrabold">
                           {Math.max(0, (order.total_price_dish || 0) + shippingFee - discountAmount).toLocaleString()} đ
                         </span>
@@ -814,13 +847,13 @@ function OrderDetailModal({
                           disabled={submitting}
                           className="rounded-lg bg-green-500 px-5 py-2.5 font-bold text-white hover:bg-green-600 transition shadow active:scale-95 disabled:opacity-50"
                         >
-                          {submitting ? "Processing..." : "Confirm Approval"}
+                          {submitting ? "Đang xử lý..." : "Xác nhận duyệt đơn"}
                         </button>
                         <button
                           onClick={() => setShowConfirmForm(false)}
                           className="rounded-lg bg-gray-200 px-5 py-2.5 font-bold text-gray-700 hover:bg-gray-300 transition dark:bg-dark-3 dark:text-gray-300 dark:hover:bg-dark-1 active:scale-95"
                         >
-                          Go Back
+                          Quay lại
                         </button>
                       </div>
                     </div>
@@ -842,6 +875,7 @@ function OrderDetailModal({
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [total, setTotal] = useState(0);
+  const [orderStats, setOrderStats] = useState({ total: 0, completed: 0, processing: 0, cancelled: 0 });
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
@@ -861,6 +895,9 @@ export default function OrdersPage() {
       setOrders(res.data.data.orders);
       setTotal(res.data.data.total);
       setTotalPages(res.data.data.totalPages);
+      if (res.data.data.stats) {
+        setOrderStats(res.data.data.stats);
+      }
     } catch {
       setOrders([]);
     } finally {
@@ -902,11 +939,35 @@ export default function OrdersPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold text-dark dark:text-white">
           QUẢN LÝ ĐƠN HÀNG
         </h1>
         <span className="text-sm text-gray-500">Tổng cộng: {total} đơn hàng</span>
+      </div>
+
+      {/* Summary Stats */}
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Tổng đơn hàng</p>
+          <p className="mt-2 text-2xl font-black text-dark dark:text-white">{(orderStats.total || total).toLocaleString("vi-VN")} đơn</p>
+          <p className="mt-1 text-xs text-gray-400">Toàn bộ đơn hàng ghi nhận trên hệ thống</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Đã hoàn thành</p>
+          <p className="mt-2 text-2xl font-black text-emerald-600">{orderStats.completed.toLocaleString("vi-VN")} đơn</p>
+          <p className="mt-1 text-xs text-gray-400">Đơn hàng giao thành công & thanh toán xong</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-primary">Đang xử lý / Giao</p>
+          <p className="mt-2 text-2xl font-black text-primary">{orderStats.processing.toLocaleString("vi-VN")} đơn</p>
+          <p className="mt-1 text-xs text-gray-400">Đơn đang chờ duyệt, chuẩn bị hoặc giao hàng</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-amber-600">Đã hủy</p>
+          <p className="mt-2 text-2xl font-black text-amber-600">{orderStats.cancelled.toLocaleString("vi-VN")} đơn</p>
+          <p className="mt-1 text-xs text-gray-400">Đơn hàng bị hủy bởi khách hoặc cửa hàng</p>
+        </div>
       </div>
 
       {/* Filter */}
@@ -952,31 +1013,31 @@ export default function OrdersPage() {
       {/* Table */}
       <div className="rounded-2xl border border-stroke bg-white shadow-sm dark:border-dark-3 dark:bg-gray-dark">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left text-xs sm:text-sm">
             <thead className="bg-primary text-white">
               <tr className="border-b border-stroke dark:border-dark-3">
-                <th className="rounded-tl-lg px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
+                <th className="rounded-tl-lg px-3 py-3 xl:px-4 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
                   Mã đơn hàng
                 </th>
-                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
+                <th className="px-3 py-3 xl:px-4 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
                   Khách hàng
                 </th>
-                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
+                <th className="px-3 py-3 xl:px-4 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
                   Loại đơn
                 </th>
-                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
+                <th className="px-3 py-3 xl:px-4 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
                   Tổng tiền
                 </th>
-                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
+                <th className="px-3 py-3 xl:px-4 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
                   Hình thức thanh toán
                 </th>
-                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
+                <th className="px-3 py-3 xl:px-4 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
                   Trạng thái
                 </th>
-                <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
+                <th className="px-3 py-3 xl:px-4 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
                   Ngày đặt
                 </th>
-                <th className="rounded-tr-lg px-6 py-4 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
+                <th className="rounded-tr-lg px-3 py-3 xl:px-4 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
                   Ngày nhận
                 </th>
               </tr>
@@ -1001,10 +1062,10 @@ export default function OrdersPage() {
                     className="border-b border-stroke last:border-0 dark:border-dark-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-dark-2 transition"
                     onClick={() => viewDetail(order.order_id)}
                   >
-                    <td className="px-6 py-4 font-medium text-dark dark:text-white">
+                    <td className="px-3 py-3 xl:px-4 font-semibold text-dark dark:text-white whitespace-nowrap">
                       #{order.order_id}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-3 xl:px-4">
                       <div className="text-sm text-dark dark:text-white">
                         {order.customer_name || "N/A"}
                       </div>
@@ -1012,22 +1073,22 @@ export default function OrdersPage() {
                         {order.customer_phone || ""}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm">
+                    <td className="px-3 py-3 xl:px-4 text-xs sm:text-sm whitespace-nowrap">
                       {ORDER_TYPE_LABELS[order.order_type] || order.order_type || "delivery"}
                     </td>
-                    <td className="px-6 py-4 font-medium text-dark dark:text-white whitespace-nowrap">
+                    <td className="px-3 py-3 xl:px-4 font-medium text-dark dark:text-white whitespace-nowrap">
                       {(order.total_order || 0).toLocaleString()} đ
                     </td>
-                    <td className="px-6 py-4 text-sm">
+                    <td className="px-3 py-3 xl:px-4 text-xs sm:text-sm whitespace-nowrap">
                       {PAYMENT_LABELS[order.payment_method] || order.payment_method || "N/A"}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-3 xl:px-4">
                       {renderStatusBadge(order.order_status)}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-3 py-3 xl:px-4 text-xs sm:text-sm text-gray-500 whitespace-nowrap">
                       {order.created_at ? dayjs(order.created_at).format("DD/MM/YYYY HH:mm") : "N/A"}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 font-medium whitespace-nowrap">
+                    <td className="px-3 py-3 xl:px-4 text-xs sm:text-sm text-gray-500 font-medium whitespace-nowrap">
                       {order.pickup_time
                         ? dayjs(order.pickup_time).format("DD/MM/YYYY HH:mm")
                         : order.estimated_delivery_time

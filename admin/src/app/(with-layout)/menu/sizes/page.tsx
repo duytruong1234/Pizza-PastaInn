@@ -102,7 +102,7 @@ export default function SizesPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-dark dark:text-white">QUẢN LÝ KÍCH THƯỚC (SIZE)</h1>
         <Button
           onClick={() => setShowAdd(true)}
@@ -112,6 +112,34 @@ export default function SizesPage() {
           label="Thêm kích thước"
           icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5"><path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" /></svg>}
         />
+      </div>
+
+      {/* Summary Stats */}
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Tổng kích thước</p>
+          <p className="mt-2 text-2xl font-black text-dark dark:text-white">{sizes.length} cỡ</p>
+          <p className="mt-1 text-xs text-gray-400">Các tùy chọn kích cỡ bánh và món ăn</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Đang hiển thị</p>
+          <p className="mt-2 text-2xl font-black text-emerald-600">
+            {sizes.filter((s) => s.is_visible).length} cỡ
+          </p>
+          <p className="mt-1 text-xs text-gray-400">Cho phép khách hàng chọn khi đặt món</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-primary">Cỡ tiêu chuẩn</p>
+          <p className="mt-2 text-2xl font-black text-primary">{sizes[0]?.size_name || "Default"}</p>
+          <p className="mt-1 text-xs text-gray-400">Kích thước mặc định ưu tiên hiển thị</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-amber-600">Đang tạm ẩn</p>
+          <p className="mt-2 text-2xl font-black text-amber-600">
+            {sizes.filter((s) => !s.is_visible).length} cỡ
+          </p>
+          <p className="mt-1 text-xs text-gray-400">Kích thước đang tạm ngưng phục vụ</p>
+        </div>
       </div>
 
       <div className="rounded-2xl border border-stroke bg-white px-5 pb-5 pt-6 shadow-sm sm:px-7.5 dark:border-dark-3 dark:bg-gray-dark">

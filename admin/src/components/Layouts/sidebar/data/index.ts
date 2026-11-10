@@ -13,6 +13,10 @@ export const NAV_DATA = [
             title: "Phân tích",
             url: "/",
           },
+          {
+            title: "Thống kê món lẻ",
+            url: "/dish-sales",
+          },
         ],
       },
     ],
@@ -70,6 +74,12 @@ export const NAV_DATA = [
         items: [],
       },
       {
+        title: "Ưu đãi & Tích điểm",
+        url: "/vouchers",
+        icon: Icons.TicketIcon,
+        items: [],
+      },
+      {
         title: "Đánh giá",
         url: "/reviews",
         icon: Icons.StarIcon,
@@ -89,18 +99,24 @@ export const NAV_DATA = [
     ],
   },
   {
-    label: "TRÍ TUỆ NHÂN TẠO",
+    label: "GỢI Ý MÓN ĂN",
     items: [
       {
-        title: "AI Chatbot",
-        url: "/ai-chatbot",
-        icon: Icons.BotIcon,
+        title: "Thống kê gợi ý",
+        url: "/recommendations",
+        icon: Icons.SparklesIcon,
         items: [],
       },
       {
-        title: "Gợi ý thông minh",
-        url: "/recommendations",
-        icon: Icons.SparklesIcon,
+        title: "Kết hợp món ăn",
+        url: "/dish-pairings",
+        icon: Icons.FourCircle,
+        items: [],
+      },
+      {
+        title: "Phân tích mua cùng",
+        url: "/basket-analysis",
+        icon: Icons.PieChart,
         items: [],
       },
     ],

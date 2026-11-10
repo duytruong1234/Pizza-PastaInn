@@ -6,3 +6,6 @@ uploads/
 .env
 
 /generated/prisma
+
+# Database backups (contain user data)
+backups/

@@ -3,6 +3,7 @@
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { Loader, MapPin } from "lucide-react";
+import { useUI } from "@/components/UIProvider";
 
 const API_BASE = "https://provinces.open-api.vn/api/v2";
 
@@ -31,6 +32,9 @@ export default function AddressPickerVN({
   onSelectCoordinates,
   loadingGeocode = false,
 }: AddressPickerVNProps) {
+  const { theme, lang } = useUI();
+  const isLight = theme === "light";
+
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [wards, setWards] = useState<Ward[]>([]);
 
@@ -260,14 +264,36 @@ export default function AddressPickerVN({
     }
   };
 
+  const labelClass = `text-[12px] font-semibold tracking-wider uppercase ${
+    isLight ? "text-[#5c4d3c]" : "text-white/60"
+  }`;
+
+  const inputClass = `w-full rounded-[10px] py-2.5 px-4 pr-10 text-[14px] outline-none transition-all duration-200 border disabled:cursor-not-allowed ${
+    isLight
+      ? "bg-[#fcfaf6] border-black/15 text-[#1c1208] placeholder:text-[#9a8c7a] focus:border-[#cd3645] focus:ring-2 focus:ring-[#cd3645]/15 focus:bg-white disabled:opacity-50"
+      : "bg-white/[0.06] border-white/10 text-white placeholder:text-white/30 focus:border-[#d4a017] focus:ring-2 focus:ring-[#d4a017]/15 disabled:opacity-50"
+  }`;
+
+  const dropdownMenuClass = `absolute left-0 right-0 mt-1 rounded-[10px] border z-[100] max-h-[220px] overflow-y-auto custom-scrollbar ${
+    isLight
+      ? "bg-white border-black/12 shadow-[0_12px_30px_rgba(28,18,8,0.12)]"
+      : "bg-[#161616] border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+  }`;
+
+  const dropdownItemClass = `w-full text-left px-4 py-2 transition-colors text-[13.5px] border-b last:border-b-0 ${
+    isLight
+      ? "text-[#1c1208] border-black/5 hover:bg-[#cd3645]/10"
+      : "text-white border-white/5 hover:bg-[#d4a017]/10"
+  }`;
+
   return (
     <div className="space-y-3.5">
       {/* Hàng chọn Tỉnh/Thành phố & Phường/Xã */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
         {/* Dropdown Tỉnh/Thành phố */}
         <div className="space-y-1.5">
-          <label className="text-[12px] font-semibold text-white/50 tracking-wider">
-            PROVINCE / CITY (*)
+          <label className={labelClass}>
+            {lang === "en" ? "Province / City (*)" : "Tỉnh / Thành phố (*)"}
           </label>
           <div className="relative">
             <input
@@ -286,9 +312,13 @@ export default function AddressPickerVN({
                   setProvinceSearch(prov ? prov.name : "");
                 }, 250);
               }}
-              placeholder={loadingProvinces ? "Loading list..." : "Enter or select Province/City"}
+              placeholder={
+                loadingProvinces
+                  ? lang === "en" ? "Loading..." : "Đang tải danh sách..."
+                  : lang === "en" ? "Type or select Province/City" : "Nhập hoặc chọn Tỉnh/Thành phố"
+              }
               disabled={loadingProvinces}
-              className="w-full bg-white/[0.06] border border-white/10 rounded-[10px] py-2.5 px-4 pr-10 text-white text-[14px] outline-none transition-all duration-200 focus:border-[#d4a017] focus:ring-2 focus:ring-[#d4a017]/15 disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-white/20"
+              className={inputClass}
             />
             <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
               {loadingProvinces ? (
@@ -298,7 +328,7 @@ export default function AddressPickerVN({
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 20 20"
                   fill="currentColor"
-                  className="w-5 h-5 text-white/30"
+                  className={`w-5 h-5 ${isLight ? "text-[#8c7d6b]" : "text-white/30"}`}
                 >
                   <path
                     fillRule="evenodd"
@@ -311,7 +341,7 @@ export default function AddressPickerVN({
 
             {/* Province Search Results Dropdown */}
             {showProvinceDropdown && (
-              <div className="absolute left-0 right-0 mt-1 bg-[#161616] border border-white/10 rounded-[10px] shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-[100] max-h-[220px] overflow-y-auto custom-scrollbar">
+              <div className={dropdownMenuClass}>
                 {provinces
                   .filter((p) => p.name.toLowerCase().includes(provinceSearch.toLowerCase()))
                   .map((p) => (
@@ -326,13 +356,15 @@ export default function AddressPickerVN({
                         setShowProvinceDropdown(false);
                         setInitialized(true);
                       }}
-                      className="w-full text-left px-4 py-2 hover:bg-[#d4a017]/10 transition-colors text-white text-[13.5px] border-b border-white/5 last:border-b-0"
+                      className={dropdownItemClass}
                     >
                       {p.name}
                     </button>
                   ))}
                 {provinces.filter((p) => p.name.toLowerCase().includes(provinceSearch.toLowerCase())).length === 0 && (
-                  <div className="px-4 py-2.5 text-white/30 text-[13px] text-center">No results found</div>
+                  <div className={`px-4 py-2.5 text-[13px] text-center ${isLight ? "text-[#8c7d6b]" : "text-white/30"}`}>
+                    {lang === "en" ? "No results found" : "Không tìm thấy kết quả"}
+                  </div>
                 )}
               </div>
             )}
@@ -341,8 +373,8 @@ export default function AddressPickerVN({
 
         {/* Dropdown Phường/Xã */}
         <div className="space-y-1.5">
-          <label className="text-[12px] font-semibold text-white/50 tracking-wider">
-            WARD / COMMUNE (*)
+          <label className={labelClass}>
+            {lang === "en" ? "Ward / Commune (*)" : "Phường / Xã (*)"}
           </label>
           <div className="relative">
             <input
@@ -365,13 +397,13 @@ export default function AddressPickerVN({
               }}
               placeholder={
                 loadingWards
-                  ? "Loading list..."
+                  ? lang === "en" ? "Loading..." : "Đang tải danh sách..."
                   : !selectedProvince
-                    ? "Please select Province/City first"
-                    : "Enter or select Ward/Commune"
+                    ? lang === "en" ? "Select Province/City first" : "Vui lòng chọn Tỉnh/Thành phố trước"
+                    : lang === "en" ? "Type or select Ward/Commune" : "Nhập hoặc chọn Phường/Xã"
               }
               disabled={loadingWards || !selectedProvince}
-              className="w-full bg-white/[0.06] border border-white/10 rounded-[10px] py-2.5 px-4 pr-10 text-white text-[14px] outline-none transition-all duration-200 focus:border-[#d4a017] focus:ring-2 focus:ring-[#d4a017]/15 disabled:opacity-30 disabled:cursor-not-allowed placeholder:text-white/20"
+              className={inputClass}
             />
             <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
               {loadingWards ? (
@@ -381,7 +413,7 @@ export default function AddressPickerVN({
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 20 20"
                   fill="currentColor"
-                  className="w-5 h-5 text-white/30"
+                  className={`w-5 h-5 ${isLight ? "text-[#8c7d6b]" : "text-white/30"}`}
                 >
                   <path
                     fillRule="evenodd"
@@ -394,7 +426,7 @@ export default function AddressPickerVN({
 
             {/* Ward Search Results Dropdown */}
             {showWardDropdown && selectedProvince && (
-              <div className="absolute left-0 right-0 mt-1 bg-[#161616] border border-white/10 rounded-[10px] shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-[100] max-h-[220px] overflow-y-auto custom-scrollbar">
+              <div className={dropdownMenuClass}>
                 {wards
                   .filter((w) => w.name.toLowerCase().includes(wardSearch.toLowerCase()))
                   .map((w) => (
@@ -409,13 +441,15 @@ export default function AddressPickerVN({
                         setShowWardDropdown(false);
                         setInitialized(true);
                       }}
-                      className="w-full text-left px-4 py-2 hover:bg-[#d4a017]/10 transition-colors text-white text-[13.5px] border-b border-white/5 last:border-b-0"
+                      className={dropdownItemClass}
                     >
                       {w.name}
                     </button>
                   ))}
                 {wards.filter((w) => w.name.toLowerCase().includes(wardSearch.toLowerCase())).length === 0 && (
-                  <div className="px-4 py-2.5 text-white/30 text-[13px] text-center">No results found</div>
+                  <div className={`px-4 py-2.5 text-[13px] text-center ${isLight ? "text-[#8c7d6b]" : "text-white/30"}`}>
+                    {lang === "en" ? "No results found" : "Không tìm thấy kết quả"}
+                  </div>
                 )}
               </div>
             )}
@@ -425,21 +459,23 @@ export default function AddressPickerVN({
 
       {/* Input Số nhà, tên đường */}
       <div className="space-y-1.5 relative">
-        <label className="text-[12px] font-semibold text-white/50 tracking-wider">
-          STREET ADDRESS (*)
+        <label className={labelClass}>
+          {lang === "en" ? "Street Address (*)" : "Số nhà, tên đường (*)"}
         </label>
         <div className="relative w-full">
           <MapPin
             size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none"
+            className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
+              isLight ? "text-[#8c7d6b]" : "text-white/30"
+            }`}
           />
           <input
             type="text"
-            placeholder="Enter house number, alley, street name..."
+            placeholder={lang === "en" ? "Enter house number, alley, street name..." : "Nhập số nhà, ngõ/hẻm, tên đường..."}
             value={addressDetail}
             onChange={(e) => handleAddressDetailChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="w-full bg-white/[0.06] border border-white/10 rounded-[10px] py-2.5 pl-9 pr-4 text-white text-[14px] outline-none transition-all duration-200 placeholder:text-white/25 focus:border-[#d4a017] focus:ring-2 focus:ring-[#d4a017]/15"
+            className={`${inputClass} pl-9 pr-4`}
           />
         </div>
       </div>

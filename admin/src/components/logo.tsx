@@ -9,10 +9,10 @@ export function Logo({ isCollapsed }: { isCollapsed?: boolean }) {
         src="/images/logo-dark-text.png"
         alt="Pizza & Pasta Inn Logo"
         style={{
-          height: isCollapsed ? '36px' : '44px',
-          width: 'auto',
-          maxWidth: '100%',
-          objectFit: 'contain'
+          height: isCollapsed ? "34px" : "40px",
+          width: "auto",
+          maxWidth: isCollapsed ? "44px" : "180px",
+          objectFit: "contain",
         }}
         className={cn(
           "transition-all duration-300 dark:hidden",
@@ -24,10 +24,10 @@ export function Logo({ isCollapsed }: { isCollapsed?: boolean }) {
         src="/images/logo.png"
         alt="Pizza & Pasta Inn Logo"
         style={{
-          height: isCollapsed ? '36px' : '44px',
-          width: 'auto',
-          maxWidth: '100%',
-          objectFit: 'contain'
+          height: isCollapsed ? "34px" : "40px",
+          width: "auto",
+          maxWidth: isCollapsed ? "44px" : "180px",
+          objectFit: "contain",
         }}
         className={cn(
           "transition-all duration-300 hidden dark:block",

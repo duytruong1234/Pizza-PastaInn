@@ -101,6 +101,12 @@ export function Notification() {
   const prevOrderIdsRef = useRef<Set<number>>(new Set());
 
   const fetchRecentOrders = useCallback(async () => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("admin_token");
+      if (!token) return;
+      if (document.hidden && !isOpen) return;
+    }
+
     try {
       const res = await api.get("/api/admin/orders", {
         params: { limit: 10, page: 1 },
@@ -134,11 +140,10 @@ export function Notification() {
           setIsDotVisible(true);
         }
       }
-    } catch (err) {
-      // Silently fail - notifications are non-critical
-      console.error("Failed to fetch order notifications:", err);
+    } catch {
+      // Silently ignore transient network/polling errors so Next.js Dev Overlay is not triggered
     }
-  }, []);
+  }, [isOpen]);
 
   // Fetch on mount + poll every 10 seconds for near real-time
   useEffect(() => {

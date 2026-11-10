@@ -1,4 +1,8 @@
 import prisma from '../lib/prisma';
+// Dịch vụ quản lý đơn hàng
+import { DailyDishSaleService } from './dailyDishSaleService';
+import { ShippingService } from './shippingService';
+import { VoucherService } from './voucherService';
 // ── Kiểu dữ liệu cho request body tạo đơn hàng ─────────────────────────────
 
 interface ToppingInput {
@@ -58,6 +62,11 @@ export interface CreateOrderInput {
   shipping_distance_meters?: number;
   // Items
   items: OrderItemInput[];
+  // Mã giảm giá & Điểm tích lũy
+  voucher_code?: string | null;
+  redeem_points?: number;
+  // GĐ2 — mã khách vãng lai của hệ gợi ý (localStorage) để gán đơn cho phiên gợi ý
+  rec_guest_key?: string;
 }
 
 export class OrderService {
@@ -69,6 +78,86 @@ export class OrderService {
    * orders → order_items → order_item_toppings / order_item_combos / order_item_half
    */
   static async createOrder(input: CreateOrderInput) {
+    // Tự động tính và xác thực chi nhánh gần nhất + phí giao hàng trước khi mở transaction DB
+    if (input.order_type === 'delivery') {
+      try {
+        const calc = await ShippingService.calculateShipping(
+          input.customer_latitude ?? null,
+          input.customer_longitude ?? null,
+          input.customer_address ?? null
+        );
+        input.store_id = calc.store_id ?? input.store_id;
+        input.shipping_fee = calc.shipping_fee;
+        input.shipping_distance_meters = calc.distance_meters;
+        if (calc.customer_latitude != null && calc.customer_longitude != null) {
+          input.customer_latitude = calc.customer_latitude;
+          input.customer_longitude = calc.customer_longitude;
+        }
+      } catch (err: any) {
+        console.warn('[OrderService] Fallback to client shipping fields:', err?.message);
+      }
+    } else {
+      input.shipping_fee = 0;
+      input.shipping_distance_meters = undefined;
+    }
+
+    // Xác thực Voucher & Điểm tích lũy đổi thưởng để tính tổng discount_amount
+    let voucherDiscount = 0;
+    let validVoucherCode: string | null = null;
+    if (input.voucher_code && input.voucher_code.trim()) {
+      const vCheck = VoucherService.validateVoucher(
+        input.voucher_code,
+        input.total_price_dish || 0,
+        input.shipping_fee || 0
+      );
+      if (vCheck.valid) {
+        voucherDiscount = vCheck.discount_amount;
+        validVoucherCode = vCheck.voucher?.code || input.voucher_code.trim().toUpperCase();
+      }
+    }
+
+    let pointsDiscount = 0;
+    let pointsUsed = 0;
+    if (input.user_id && input.redeem_points && input.redeem_points > 0) {
+      try {
+        const loyalty = await VoucherService.getUserLoyaltySummary(input.user_id);
+        pointsUsed = Math.min(Math.floor(input.redeem_points), loyalty.available_points);
+        pointsDiscount = pointsUsed * (loyalty.point_value_vnd || 1000);
+      } catch {
+        pointsDiscount = 0;
+        pointsUsed = 0;
+      }
+    }
+
+    const totalDiscount =
+      voucherDiscount + pointsDiscount > 0
+        ? voucherDiscount + pointsDiscount
+        : input.discount_amount || 0;
+    input.discount_amount = Math.min(
+      totalDiscount,
+      (input.total_price_dish || 0) + (input.shipping_fee || 0)
+    );
+
+    const order = await OrderService.createOrderTx(input);
+    if (validVoucherCode) {
+      VoucherService.incrementVoucherUsage(validVoucherCode);
+    }
+    if (input.user_id && pointsUsed > 0) {
+      VoucherService.saveLoyaltyRedemption({
+        order_id: order.order_id,
+        user_id: input.user_id,
+        points_used: pointsUsed,
+        discount_amount: pointsDiscount,
+        created_at: new Date().toISOString(),
+      });
+    }
+    DailyDishSaleService.recordOrderSales(order.order_id, 1).catch(() => {});
+    // GĐ2 — gán đơn cho các món gợi ý khách đã thêm vào giỏ (chạy nền, không chặn đặt hàng)
+    // Trả về đơn hàng vừa tạo
+    return order;
+  }
+
+  private static async createOrderTx(input: CreateOrderInput) {
     return prisma.$transaction(async (tx) => {
       // 1. Xử lý user_address nếu có address mới
       let userAddressId = input.user_address_id;
@@ -119,10 +208,10 @@ export class OrderService {
         }
       }
 
-      // Recalculate shipping parameters at backend for security and accuracy (delivery only)
-      let storeId = input.store_id || null;
-      let shippingFee = 0; // Phí ship mặc định bằng 0 sau khi xóa tính năng khoảng cách
-      let distanceMeters = null;
+      // Sử dụng thông tin chi nhánh, khoảng cách và phí giao hàng đã được tính tự động
+      const storeId = input.store_id || null;
+      const shippingFee = input.order_type === 'delivery' ? (input.shipping_fee || 0) : 0;
+      const distanceMeters = input.order_type === 'delivery' ? (input.shipping_distance_meters ?? null) : null;
 
       // 4. Tạo đơn hàng
       const order = await tx.order.create({
@@ -134,7 +223,7 @@ export class OrderService {
           total_price_dish: input.total_price_dish,
           shipping_fee: shippingFee,
           discount_amount: input.discount_amount || 0,
-          total_order: input.total_price_dish + shippingFee - (input.discount_amount || 0),
+          total_order: Math.max(0, input.total_price_dish + shippingFee - (input.discount_amount || 0)),
           order_note: input.order_note || null,
           order_status: 'pending',
           order_type: input.order_type,
@@ -298,6 +387,8 @@ export class OrderService {
         }
       });
 
+      DailyDishSaleService.recordOrderSales(order_id, -1).catch(() => {});
+      VoucherService.refundOrderRedemption(order_id);
       return updatedOrder;
     });
   }
@@ -531,6 +622,28 @@ export class OrderService {
     return prisma.order.update({
       where: { order_id },
       data: updateData,
+    });
+  }
+
+  /**
+   * Đổi phương thức thanh toán cho đơn hàng đang chờ xử lý (ví dụ: đổi từ VietQR sang COD)
+   */
+  static async switchPaymentMethod(order_id: number, payment_method: 'cod' | 'vietqr') {
+    const existing = await prisma.order.findUnique({
+      where: { order_id },
+    });
+    if (!existing) {
+      throw new Error('Không tìm thấy đơn hàng');
+    }
+    if (existing.order_status === 'cancelled') {
+      throw new Error('Đơn hàng đã bị hủy, không thể đổi phương thức thanh toán');
+    }
+    if (existing.payment_status === 'paid') {
+      throw new Error('Đơn hàng đã thanh toán, không thể đổi phương thức thanh toán');
+    }
+    return prisma.order.update({
+      where: { order_id },
+      data: { payment_method },
     });
   }
 }

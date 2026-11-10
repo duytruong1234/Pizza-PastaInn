@@ -58,33 +58,42 @@ export function Sidebar() {
 
       <aside
         className={cn(
-          "relative border-r border-gray-200 bg-white transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-gray-dark shrink-0 overflow-hidden",
-          isMobile ? "fixed bottom-0 top-0 z-50" : "sticky top-0 h-screen self-start z-40",
-          isOpen ? (isCollapsed && !isMobile ? "w-[88px]" : "w-[260px]") : "w-0",
+          "relative shrink-0 border-r border-gray-200 bg-white transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-gray-dark",
+          isMobile
+            ? cn(
+                "fixed bottom-0 left-0 top-0 z-50 w-[260px] overflow-hidden",
+                isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full border-r-0"
+              )
+            : cn(
+                "sticky top-0 z-40 h-screen self-start",
+                isCollapsed ? "w-[80px]" : "w-[240px] xl:w-[260px]"
+              )
         )}
         aria-label="Main navigation"
-        aria-hidden={!isOpen}
-        inert={!isOpen}
+        aria-hidden={isMobile && !isOpen}
+        inert={isMobile && !isOpen}
       >
         {!isMobile && (
           <button
             onClick={toggleCollapse}
-            className="absolute -right-3.5 top-[30px] z-50 flex size-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm hover:bg-gray-50 hover:text-dark dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white transition-all"
-            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="absolute -right-3.5 top-[28px] z-50 flex size-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition-all hover:bg-gray-50 hover:text-dark dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white cursor-pointer"
+            title={isCollapsed ? "Mở rộng thanh bên" : "Thu gọn thanh bên"}
           >
             <ChevronUp className={cn("size-4 transition-transform", isCollapsed ? "rotate-90" : "-rotate-90")} />
           </button>
         )}
 
-        <div className={cn(
-          "flex h-full w-full flex-col py-6 transition-all duration-300",
-          isCollapsed && !isMobile ? "px-3 overflow-visible" : "px-5 overflow-hidden"
-        )}>
-          <div className="relative mb-3 flex min-h-[40px] items-center justify-center">
+        <div
+          className={cn(
+            "flex h-full w-full flex-col py-5 transition-all duration-300",
+            isCollapsed && !isMobile ? "px-2.5 overflow-visible" : "px-4 xl:px-5 overflow-hidden"
+          )}
+        >
+          <div className="relative mb-3 flex min-h-[40px] items-center justify-between gap-2">
             <Link
               href={"/"}
               onClick={() => isMobile && toggleSidebar()}
-              className={cn("block px-0 py-2.5 min-[850px]:py-0", !isCollapsed && "mr-auto")}
+              className={cn("block py-1", isCollapsed && !isMobile ? "mx-auto" : "mr-auto")}
             >
               <Logo isCollapsed={isCollapsed && !isMobile} />
             </Link>
@@ -92,30 +101,34 @@ export function Sidebar() {
             {isMobile && (
               <button
                 onClick={toggleSidebar}
-                className="absolute right-0"
+                className="shrink-0 rounded-lg p-1 text-gray-500 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-2"
               >
                 <span className="sr-only">Close Menu</span>
-                <ArrowLeftIcon className="size-7" />
+                <ArrowLeftIcon className="size-6" />
               </button>
             )}
           </div>
 
           {/* Navigation */}
-          <div className={cn(
-            "custom-scrollbar mt-3 flex-1 min-[850px]:mt-5",
-            isCollapsed && !isMobile ? "overflow-visible" : "overflow-y-hidden hover:overflow-y-auto"
-          )}>
+          <div
+            className={cn(
+              "custom-scrollbar mt-2 flex-1 min-[850px]:mt-4",
+              isCollapsed && !isMobile ? "overflow-visible" : "overflow-y-auto overflow-x-hidden"
+            )}
+          >
             {NAV_DATA.map((section) => (
-              <div key={section.label} className="mb-6">
-                <h2 className={cn(
-                  "mb-5 text-sm font-medium text-dark-4 transition-all duration-300 dark:text-dark-6",
-                  isCollapsed && !isMobile ? "opacity-0 h-0 mb-0 overflow-hidden" : "opacity-100"
-                )}>
+              <div key={section.label} className="mb-5">
+                <h2
+                  className={cn(
+                    "mb-3 text-xs font-semibold uppercase tracking-wider text-dark-4 transition-all duration-300 dark:text-dark-6",
+                    isCollapsed && !isMobile ? "opacity-0 h-0 mb-0 overflow-hidden" : "opacity-100"
+                  )}
+                >
                   {section.label}
                 </h2>
 
                 <nav role="navigation" aria-label={section.label}>
-                  <ul className="space-y-2">
+                  <ul className="space-y-1.5">
                     {section.items.map((item) => (
                       <li key={item.title} className="relative">
                         {item.items.length ? (
@@ -128,14 +141,16 @@ export function Sidebar() {
                               className={cn(isCollapsed && !isMobile && "justify-center px-0")}
                             >
                               <item.icon
-                                className="size-6 shrink-0"
+                                className="size-5 shrink-0"
                                 aria-hidden="true"
                               />
 
-                              <span className={cn(
-                                "transition-all duration-300 whitespace-nowrap overflow-hidden text-left",
-                                isCollapsed && !isMobile ? "w-0 opacity-0" : "w-auto opacity-100 flex-1"
-                              )}>
+                              <span
+                                className={cn(
+                                  "transition-all duration-300 whitespace-nowrap overflow-hidden text-left text-sm",
+                                  isCollapsed && !isMobile ? "w-0 opacity-0" : "w-auto opacity-100 flex-1"
+                                )}
+                              >
                                 {item.title}
                               </span>
 
@@ -152,7 +167,7 @@ export function Sidebar() {
                             {/* Flyout menu for collapsed state */}
                             {activeFlyout === item.title && isCollapsed && !isMobile && (
                               <ul
-                                className="absolute left-full top-0 ml-4 w-48 rounded-lg bg-white p-2 shadow-lg ring-1 ring-gray-200 dark:bg-gray-dark dark:ring-gray-800 z-[60]"
+                                className="absolute left-full top-0 ml-3 w-48 rounded-lg bg-white p-2 shadow-lg ring-1 ring-gray-200 dark:bg-gray-dark dark:ring-gray-800 z-[60]"
                                 role="menu"
                               >
                                 {item.items.map((subItem) => (
@@ -161,7 +176,7 @@ export function Sidebar() {
                                       as="link"
                                       href={subItem.url}
                                       isActive={pathname === subItem.url}
-                                      className="py-2.5 px-3"
+                                      className="py-2 px-3 text-sm"
                                       onClick={() => setActiveFlyout(null)}
                                     >
                                       <span>{subItem.title}</span>
@@ -174,7 +189,7 @@ export function Sidebar() {
                             {/* Inline menu for expanded state */}
                             {expandedItems.includes(item.title) && (!isCollapsed || isMobile) && (
                               <ul
-                                className="ml-9 mr-0 space-y-1.5 pb-[15px] pr-0 pt-2"
+                                className="ml-8 mr-0 space-y-1 pb-2 pr-0 pt-1.5"
                                 role="menu"
                               >
                                 {item.items.map((subItem) => (
@@ -184,7 +199,7 @@ export function Sidebar() {
                                       href={subItem.url}
                                       isActive={pathname === subItem.url}
                                     >
-                                      <span>{subItem.title}</span>
+                                      <span className="text-sm">{subItem.title}</span>
                                     </MenuItem>
                                   </li>
                                 ))}
@@ -197,27 +212,30 @@ export function Sidebar() {
                               "url" in item
                                 ? item.url + ""
                                 : "/" +
-                                item.title.toLowerCase().split(" ").join("-");
+                                  item.title.toLowerCase().split(" ").join("-");
 
                             return (
                               <MenuItem
                                 className={cn(
-                                  "flex items-center gap-3 py-3",
+                                  "flex items-center gap-3 py-2.5",
                                   isCollapsed && !isMobile && "justify-center px-0 gap-0"
                                 )}
                                 as="link"
                                 href={href}
                                 isActive={pathname === href}
+                                onClick={() => isMobile && setIsOpen(false)}
                               >
                                 <item.icon
-                                  className="size-6 shrink-0"
+                                  className="size-5 shrink-0"
                                   aria-hidden="true"
                                 />
 
-                                <span className={cn(
-                                  "transition-all duration-300 whitespace-nowrap overflow-hidden text-left",
+                                <span
+                                  className={cn(
+                                    "transition-all duration-300 whitespace-nowrap overflow-hidden text-left text-sm",
                                   isCollapsed && !isMobile ? "w-0 opacity-0" : "w-auto opacity-100 flex-1"
-                                )}>
+                                  )}
+                                >
                                   {item.title}
                                 </span>
                               </MenuItem>

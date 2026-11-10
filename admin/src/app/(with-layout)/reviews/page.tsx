@@ -253,6 +253,36 @@ export default function ReviewsPage() {
         </div>
       )}
 
+      {/* Summary Stats */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Tổng đánh giá</p>
+          <p className="mt-2 text-2xl font-black text-dark dark:text-white">{totalReviews} lượt</p>
+          <p className="mt-1 text-xs text-gray-400">Toàn bộ phản hồi của khách hàng về món ăn</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Đang hiển thị</p>
+          <p className="mt-2 text-2xl font-black text-emerald-600">
+            {reviews.filter((r) => r.is_visible).length} lượt
+          </p>
+          <p className="mt-1 text-xs text-gray-400">Đánh giá công khai trên trang thực đơn</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-primary">Đã phản hồi</p>
+          <p className="mt-2 text-2xl font-black text-primary">
+            {reviews.filter((r) => !!r.shop_reply).length} lượt
+          </p>
+          <p className="mt-1 text-xs text-gray-400">Cửa hàng đã trả lời đánh giá của khách</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-amber-600">Chờ phản hồi / Ẩn</p>
+          <p className="mt-2 text-2xl font-black text-amber-600">
+            {reviews.filter((r) => !r.shop_reply || !r.is_visible).length} lượt
+          </p>
+          <p className="mt-1 text-xs text-gray-400">Đánh giá chưa trả lời hoặc đang tạm ẩn</p>
+        </div>
+      </div>
+
       {/* Metrics Dashboard */}
       {!loading && totalReviews > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -278,7 +308,7 @@ export default function ReviewsPage() {
               const pct = getStarPercentage(count);
               return (
                 <div key={star} className="flex items-center gap-3 text-xs font-semibold">
-                  <span className="w-6 text-right font-black text-dark dark:text-white">{star}&#x2605;</span>
+                  <span className="w-10 text-right font-black text-dark dark:text-white">{star} sao</span>
                   <div className="flex-1 h-3 rounded-full bg-gray-150 dark:bg-zinc-800 overflow-hidden">
                     <div 
                       className="h-full bg-[#f5c043] rounded-full transition-all duration-500" 
@@ -327,11 +357,11 @@ export default function ReviewsPage() {
               className="w-full rounded-xl border border-stroke bg-white py-2.5 px-3 text-xs font-bold text-dark-4 outline-none focus:border-primary dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
             >
               <option value="all">Tất cả sao</option>
-              <option value="5">5&#x2605; Hoàn hảo</option>
-              <option value="4">4&#x2605; Rất tốt</option>
-              <option value="3">3&#x2605; Trung bình</option>
-              <option value="2">2&#x2605; Kém</option>
-              <option value="1">1&#x2605; Rất kém</option>
+              <option value="5">5 sao - Rất hài lòng</option>
+              <option value="4">4 sao - Tốt</option>
+              <option value="3">3 sao - Trung bình</option>
+              <option value="2">2 sao - Kém</option>
+              <option value="1">1 sao - Rất kém</option>
             </select>
           </div>
 

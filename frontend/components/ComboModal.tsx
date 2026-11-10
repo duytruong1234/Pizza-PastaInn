@@ -3,37 +3,75 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { formatPrice } from '@/lib/utils';
-import { X, Gift, ShoppingCart, Check, ChevronDown } from 'lucide-react';
+import { X, ShoppingCart, Check, ChevronDown, Minus, Plus } from 'lucide-react';
 import { useCartStore, CartItem } from '@/store/cartStore';
 import { useUI } from '@/components/UIProvider';
 import { API_BASE } from '@/lib/config';
 
-const CustomSelect = ({ value, options, onChange }: { value: any, options: { value: any, label: string }[], onChange: (val: any) => void }) => {
+const CustomSelect = ({
+  value,
+  options,
+  onChange,
+  isLight,
+}: {
+  value: any;
+  options: { value: any; label: string }[];
+  onChange: (val: any) => void;
+  isLight?: boolean;
+}) => {
   const [isOpen, setIsOpen] = useState(false);
-  const selectedOption = options.find(o => o.value === value);
+  const selectedOption = options.find((o) => o.value === value);
 
   return (
     <div className="relative">
       <div
-        className="w-full bg-white/10 border border-white/20 text-white rounded-lg p-2.5 flex items-center justify-between cursor-pointer hover:bg-white/15 transition-colors"
+        className={`w-full border rounded-lg p-2.5 flex items-center justify-between cursor-pointer transition-colors ${
+          isLight
+            ? 'bg-white border-[#dfd3bf] text-[#1c1208] hover:border-[#cd3645]'
+            : 'bg-white/10 border-white/20 text-white hover:bg-white/15'
+        }`}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="text-sm truncate">{selectedOption ? selectedOption.label : "Chọn..."}</span>
-        <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        <span className="text-sm font-medium truncate">
+          {selectedOption ? selectedOption.label : 'Chọn...'}
+        </span>
+        <ChevronDown
+          size={16}
+          className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+        />
       </div>
 
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute z-20 top-full left-0 right-0 mt-2 bg-[#8b2006] border border-white/20 rounded-lg shadow-2xl max-h-56 overflow-y-auto custom-scrollbar">
+          <div
+            className="fixed inset-0 z-10"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOpen(false);
+            }}
+          />
+          <div
+            className={`absolute z-20 top-full left-0 right-0 mt-2 border rounded-lg max-h-56 overflow-y-auto custom-scrollbar ${
+              isLight
+                ? 'bg-white border-[#dfd3bf] text-[#1c1208] shadow-xl'
+                : 'bg-[#8b2006] border-white/20 text-white shadow-2xl'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
             {options.map((option) => (
               <div
                 key={option.value}
-                className={`px-3 py-2.5 text-sm cursor-pointer transition-colors ${value === option.value
-                  ? 'bg-white/20 font-bold'
-                  : 'hover:bg-white/10'
-                  }`}
-                onClick={() => {
+                className={`px-3 py-2.5 text-sm cursor-pointer transition-colors ${
+                  value === option.value
+                    ? isLight
+                      ? 'bg-[#ee2828]/10 text-[#ee2828] font-bold'
+                      : 'bg-white/20 font-bold'
+                    : isLight
+                      ? 'hover:bg-stone-100'
+                      : 'hover:bg-white/10'
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
                   onChange(option.value);
                   setIsOpen(false);
                 }}
@@ -59,9 +97,20 @@ interface ComboModalProps {
   editCartItem?: CartItem | null;
 }
 
-export default function ComboModal({ isOpen, onClose, comboId, comboName, comboPrice, comboDescription, imageUrl, editCartItem }: ComboModalProps) {
+export default function ComboModal({
+  isOpen,
+  onClose,
+  comboId,
+  comboName,
+  comboPrice,
+  comboDescription,
+  imageUrl,
+  editCartItem,
+}: ComboModalProps) {
   const { addToCart, removeFromCart } = useCartStore();
-  const { toggleCart, isCartOpen } = useUI();
+  const { theme, lang, td, tc } = useUI();
+  const isLight = theme === 'light';
+  const isEn = lang === 'en';
 
   const [comboDetail, setComboDetail] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -84,6 +133,15 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
   const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  useEffect(() => {
     if (isOpen) {
       fetchComboDetail();
       fetchToppings();
@@ -102,8 +160,6 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
       setPizzaSizeSelections({});
       setPizzaCrustSelections({});
       setPastaCategorySelections({});
-      setSelectedToppings({});
-      setNote('');
     }
   }, [isOpen]);
 
@@ -113,7 +169,7 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
         fetch(`${API_BASE}/menu/toppings?type=pizza`),
         fetch(`${API_BASE}/menu/toppings?type=spaghetti`),
         fetch(`${API_BASE}/menu/crusts`),
-        fetch(`${API_BASE}/menu/dishes/65/prices`)
+        fetch(`${API_BASE}/menu/dishes/65/prices`),
       ]);
       const pizzaData = await pizzaRes.json();
       const spaData = await spaRes.json();
@@ -139,24 +195,32 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
         editCartItem.combo_selections.forEach((sel: any) => {
           if (sel.toppings && sel.toppings.length > 0) {
             resolvedToppings[sel.group_id] = sel.toppings.map((st: any) => {
-              const found = pToppings.find((t: any) => t.topping_id === st.topping_id)
-                || sToppings.find((t: any) => t.topping_id === st.topping_id);
-              return found || {
-                topping_id: st.topping_id,
-                topping_name: st.name || '',
-                price_topping: st.price || 0
-              };
+              const found =
+                pToppings.find((t: any) => t.topping_id === st.topping_id) ||
+                sToppings.find((t: any) => t.topping_id === st.topping_id);
+              return (
+                found || {
+                  topping_id: st.topping_id,
+                  topping_name: st.name || '',
+                  price_topping: st.price || 0,
+                }
+              );
             });
           }
         });
-        setSelectedToppings(prev => ({ ...prev, ...resolvedToppings }));
+        setSelectedToppings((prev) => ({ ...prev, ...resolvedToppings }));
       }
-    } catch (e) { }
+    } catch (e) {}
   };
 
   const getPastaCatMap = (items: any[]) => {
-    const map: Record<string, any[]> = { 'Risotto': [], 'Grantin': [], 'Spaghetti': [], 'Other': [] };
-    items.forEach(item => {
+    const map: Record<string, any[]> = {
+      Risotto: [],
+      Grantin: [],
+      Spaghetti: [],
+      Other: [],
+    };
+    items.forEach((item) => {
       const name = item.dish_price?.dish?.dish_name?.toLowerCase() || '';
       if (name.includes('risotto')) map['Risotto'].push(item);
       else if (name.includes('grantin') || name.includes('gratin')) map['Grantin'].push(item);
@@ -180,7 +244,6 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
         const initialPizzaHalf: Record<string, boolean> = {};
         const initialPizzaCrusts: Record<string, number> = {};
         const initialPastaCats: Record<string, string> = {};
-        const initialSelectedToppings: Record<string, any[]> = {};
 
         if (editCartItem && editCartItem.combo_selections) {
           editCartItem.combo_selections.forEach((sel: any) => {
@@ -189,11 +252,19 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
 
             const groupNameLower = group.group_name.toLowerCase();
             const isPizzaGroup = groupNameLower.includes('pizza');
-            const isPastaGroup = groupNameLower.includes('spaghetti') || groupNameLower.includes('grantin') || groupNameLower.includes('risotto') || groupNameLower.includes('gratin');
+            const isPastaGroup =
+              groupNameLower.includes('spaghetti') ||
+              groupNameLower.includes('grantin') ||
+              groupNameLower.includes('risotto') ||
+              groupNameLower.includes('gratin');
 
-            let matchItem = group.combo_items?.find((item: any) => item.dish_price_id === sel.dish_price_id);
+            let matchItem = group.combo_items?.find(
+              (item: any) => item.dish_price_id === sel.dish_price_id
+            );
             if (!matchItem && sel.is_half_half && sel.halves && sel.halves.length > 0) {
-              matchItem = group.combo_items?.find((item: any) => item.dish_price?.dish?.category_id);
+              matchItem = group.combo_items?.find(
+                (item: any) => item.dish_price?.dish?.category_id
+              );
             }
 
             if (matchItem) {
@@ -213,19 +284,22 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
               }
 
               if (matchItem?.dish_price) {
-                setPizzaSizeSelections(prev => ({ ...prev, [sel.group_id]: matchItem.dish_price.size_id || 0 }));
+                setPizzaSizeSelections((prev) => ({
+                  ...prev,
+                  [sel.group_id]: matchItem.dish_price.size_id || 0,
+                }));
                 initialPizzaCrusts[sel.group_id] = matchItem.dish_price.crust_id || 0;
               }
             } else if (isPastaGroup && matchItem) {
               const catMap = getPastaCatMap(group.combo_items);
-              const cat = ['Risotto', 'Grantin', 'Spaghetti'].find(c =>
-                catMap[c]?.some((i: any) => i.combo_item_id === matchItem.combo_item_id)
-              ) || 'Other';
+              const cat =
+                ['Risotto', 'Grantin', 'Spaghetti'].find((c) =>
+                  catMap[c]?.some((i: any) => i.combo_item_id === matchItem.combo_item_id)
+                ) || 'Other';
               initialPastaCats[sel.group_id] = cat;
             }
           });
 
-          // Fallback cho nhóm nào không có trong combo_selections của editCartItem
           json.data.groups?.forEach((group: any) => {
             if (!initialSelections[group.group_id] && group.combo_items?.length > 0) {
               initialSelections[group.group_id] = [String(group.combo_items[0].combo_item_id)];
@@ -236,25 +310,42 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
             if (group.combo_items?.length > 0) {
               const groupNameLower = group.group_name.toLowerCase();
               const isPizzaGroup = groupNameLower.includes('pizza');
-              const isPastaGroup = groupNameLower.includes('spaghetti') || groupNameLower.includes('grantin') || groupNameLower.includes('risotto') || groupNameLower.includes('gratin');
-              const isFixed = group.combo_items.length === 1 && group.min_select === group.max_select;
+              const isPastaGroup =
+                groupNameLower.includes('spaghetti') ||
+                groupNameLower.includes('grantin') ||
+                groupNameLower.includes('risotto') ||
+                groupNameLower.includes('gratin');
+              const isFixed =
+                group.combo_items.length === 1 && group.min_select === group.max_select;
 
               if (isFixed) {
                 initialSelections[group.group_id] = [String(group.combo_items[0].combo_item_id)];
               } else if (isPizzaGroup) {
-                const firstItem = group.combo_items[0];
+                const nonHalfItems = group.combo_items.filter(
+                  (i: any) => !i.dish_price?.dish?.dish_name?.toLowerCase().includes('half')
+                );
+                const firstItem = nonHalfItems[0] || group.combo_items[0];
                 initialPizzaDishes[group.group_id] = firstItem.dish_price.dish_id;
 
-                const secondItem = group.combo_items.find((i: any) => i.dish_price.dish_id !== firstItem.dish_price.dish_id) || firstItem;
+                const secondItem =
+                  nonHalfItems.find(
+                    (i: any) => i.dish_price.dish_id !== firstItem.dish_price.dish_id
+                  ) || firstItem;
                 initialPizzaDishes2[group.group_id] = secondItem.dish_price.dish_id;
                 initialPizzaHalf[group.group_id] = false;
 
-                setPizzaSizeSelections(prev => ({ ...prev, [group.group_id]: firstItem.dish_price.size_id || 0 }));
+                setPizzaSizeSelections((prev) => ({
+                  ...prev,
+                  [group.group_id]: firstItem.dish_price.size_id || 0,
+                }));
                 initialPizzaCrusts[group.group_id] = firstItem.dish_price.crust_id || 0;
                 initialSelections[group.group_id] = [String(firstItem.combo_item_id)];
               } else if (isPastaGroup) {
                 const catMap = getPastaCatMap(group.combo_items);
-                const firstCat = ['Risotto', 'Grantin', 'Spaghetti'].find(c => catMap[c] && catMap[c].length > 0) || 'Other';
+                const firstCat =
+                  ['Risotto', 'Grantin', 'Spaghetti'].find(
+                    (c) => catMap[c] && catMap[c].length > 0
+                  ) || 'Other';
                 initialPastaCats[group.group_id] = firstCat;
                 const firstItemInCat = catMap[firstCat]?.[0] || group.combo_items[0];
                 initialSelections[group.group_id] = [String(firstItemInCat.combo_item_id)];
@@ -282,14 +373,17 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
   if (!isOpen) return null;
 
   const handleSelection = (groupId: string, comboItemId: string) => {
-    setSelections(prev => ({ ...prev, [groupId]: [comboItemId] }));
+    setSelections((prev) => ({ ...prev, [groupId]: [comboItemId] }));
   };
 
   const handleToppingToggle = (groupId: string, topping: any) => {
-    setSelectedToppings(prev => {
+    setSelectedToppings((prev) => {
       const current = prev[groupId] || [];
-      if (current.find(t => t.topping_id === topping.topping_id)) {
-        return { ...prev, [groupId]: current.filter(t => t.topping_id !== topping.topping_id) };
+      if (current.find((t) => t.topping_id === topping.topping_id)) {
+        return {
+          ...prev,
+          [groupId]: current.filter((t) => t.topping_id !== topping.topping_id),
+        };
       } else {
         return { ...prev, [groupId]: [...current, topping] };
       }
@@ -304,16 +398,16 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
 
     group.combo_items.forEach((item: any) => {
       if (selectedItemIds.includes(String(item.combo_item_id))) {
-        let itemExtra = item.price_extra || 0;
+        const itemExtra = item.price_extra || 0;
 
         if (isHalf && dish2Id) {
-          const dish2Item = group.combo_items.find((i: any) =>
-            i.dish_price?.dish_id === dish2Id &&
-            i.dish_price?.size_id === item.dish_price?.size_id &&
-            i.dish_price?.crust_id === item.dish_price?.crust_id
+          const dish2Item = group.combo_items.find(
+            (i: any) =>
+              i.dish_price?.dish_id === dish2Id &&
+              i.dish_price?.size_id === item.dish_price?.size_id &&
+              i.dish_price?.crust_id === item.dish_price?.crust_id
           );
           const item2Extra = dish2Item?.price_extra || 0;
-          // Theo mặc định, lấy mức phụ thu cao hơn giữa 2 nửa (có thể đổi sang trung bình cộng nếu cần)
           extraItemsPrice += Math.max(itemExtra, item2Extra);
         } else {
           extraItemsPrice += itemExtra;
@@ -323,21 +417,21 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
   });
 
   let extraToppingsPrice = 0;
-  Object.values(selectedToppings).forEach(toppingsArray => {
-    toppingsArray.forEach(t => {
+  Object.values(selectedToppings).forEach((toppingsArray) => {
+    toppingsArray.forEach((t) => {
       extraToppingsPrice += t.price_topping || 0;
     });
   });
 
-  const totalPrice = ((comboDetail?.combo_price ?? comboPrice) + extraItemsPrice + extraToppingsPrice) * quantity;
+  const totalPrice =
+    ((comboDetail?.combo_price ?? comboPrice) + extraItemsPrice + extraToppingsPrice) *
+    quantity;
 
   const sortedGroups = [...(comboDetail?.groups || [])].sort((a: any, b: any) => {
     const desc = (comboDetail?.description || '').toLowerCase();
     if (!desc) return 0;
-    // Find the position of each group's key content in the description
     const getPos = (groupName: string) => {
       const parts = groupName.toLowerCase().split(/\s+/);
-      // Try to find any significant word from the group name in the description
       for (const part of parts) {
         if (part.length > 2) {
           const idx = desc.indexOf(part);
@@ -352,7 +446,6 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
   const handleAddToCart = async () => {
     const selectedItemNames: string[] = [];
     const structuredItems: any[] = [];
-    // Dữ liệu lựa chọn combo để lưu vào bảng cart_item_combos
     const comboSelectionsForDB: any[] = [];
 
     sortedGroups.forEach((group: any) => {
@@ -360,9 +453,12 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
       group.combo_items.forEach((item: any) => {
         if (selectedItemIds.includes(String(item.combo_item_id))) {
           const dishName = item.dish_price?.dish?.dish_name || '';
-          const selectedCrustId = pizzaCrustSelections[group.group_id] || item.dish_price?.crust_id;
-          const crustObj = crustsList.find(c => c.crust_id === selectedCrustId);
-          const crustName = crustObj ? crustObj.crust_name : item.dish_price?.crust?.crust_name;
+          const selectedCrustId =
+            pizzaCrustSelections[group.group_id] || item.dish_price?.crust_id;
+          const crustObj = crustsList.find((c) => c.crust_id === selectedCrustId);
+          const crustName = crustObj
+            ? crustObj.crust_name
+            : item.dish_price?.crust?.crust_name;
           const sizeName = item.dish_price?.size?.size_name;
 
           let label = '';
@@ -371,7 +467,9 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
           let finalDishName = dishName;
 
           if (isHalf && dish2Id) {
-            const dish2Name = group.combo_items.find((i: any) => i.dish_price?.dish_id === dish2Id)?.dish_price?.dish?.dish_name || '';
+            const dish2Name =
+              group.combo_items.find((i: any) => i.dish_price?.dish_id === dish2Id)
+                ?.dish_price?.dish?.dish_name || '';
             finalDishName = `[Half-Half] ${dishName} / ${dish2Name}`;
             label = finalDishName;
           } else {
@@ -383,15 +481,17 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
 
           const groupToppings = selectedToppings[group.group_id] || [];
           if (groupToppings.length > 0) {
-            label += ` + [${groupToppings.map(t => t.topping_name).join(', ')}]`;
+            label += ` + [${groupToppings.map((t) => t.topping_name).join(', ')}]`;
           }
 
           let qtyPrefix = '';
           if (group.max_select > 1 && group.combo_items.length === 1) {
             qtyPrefix = `${group.max_select} x `;
             label = `${qtyPrefix}${label}`;
-          } else if (comboName.toLowerCase().includes('happy family') && dishName.toLowerCase() === 'pepsi') {
-            // Ngoại lệ cho Combo Happy Family: tự động hiển thị 4 x khi thêm vào giỏ hàng
+          } else if (
+            comboName.toLowerCase().includes('happy family') &&
+            dishName.toLowerCase() === 'pepsi'
+          ) {
             qtyPrefix = '4 x ';
             label = `${qtyPrefix}${label}`;
           }
@@ -402,11 +502,13 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
             name: qtyPrefix + finalDishName,
             size: sizeName && sizeName !== 'Standard' ? sizeName : undefined,
             crust: crustName && crustName !== 'None' ? crustName : undefined,
-            toppings: groupToppings.map(t => ({ topping_id: t.topping_id, name: t.topping_name, price: t.price_topping || 0 }))
+            toppings: groupToppings.map((t) => ({
+              topping_id: t.topping_id,
+              name: t.topping_name,
+              price: t.price_topping || 0,
+            })),
           });
 
-          // Xây dựng dữ liệu combo_selection cho DB
-          // Nếu half-half: tìm dish_price_id của món Half-Half (dish_id=65) theo size_id + crust_id
           let finalDishPriceId = item.dish_price_id || '';
           if (isHalf && dish2Id) {
             const sizeId = item.dish_price?.size_id;
@@ -421,17 +523,21 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
             group_id: group.group_id,
             dish_price_id: finalDishPriceId,
             is_half_half: !!(isHalf && dish2Id),
-            toppings: groupToppings.map(t => ({
+            toppings: groupToppings.map((t) => ({
               topping_id: t.topping_id,
-              quantity: 1
-            }))
+              quantity: 1,
+            })),
           };
 
-          // Nếu pizza half-half trong combo
           if (isHalf && dish2Id) {
             comboSelection.halves = [
               { dish_id: item.dish_price?.dish_id || 0, name: dishName },
-              { dish_id: dish2Id, name: group.combo_items.find((i: any) => i.dish_price?.dish_id === dish2Id)?.dish_price?.dish?.dish_name || '' }
+              {
+                dish_id: dish2Id,
+                name:
+                  group.combo_items.find((i: any) => i.dish_price?.dish_id === dish2Id)
+                    ?.dish_price?.dish?.dish_name || '',
+              },
             ];
           }
 
@@ -452,80 +558,135 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
       price: (comboDetail?.combo_price ?? comboPrice) + extraItemsPrice + extraToppingsPrice,
       quantity,
       imageUrl,
-      // Dữ liệu lựa chọn combo để lưu vào DB (bảng cart_item_combos + cart_item_half + cart_item_topping)
       combo_selections: comboSelectionsForDB,
       options: {
         comboItems: structuredItems,
         notes: note,
-      }
+      },
     });
 
-    if (!isCartOpen) toggleCart();
     onClose();
   };
 
   const fixedGroups: any[] = [];
   const choiceGroups: any[] = [];
 
-
   sortedGroups.forEach((group: any) => {
-    // Không lọc theo dish_status nữa để hiển thị cả những món ẩn/hết hàng nhưng thuộc combo
     const activeItems = group.combo_items || [];
-    if (!activeItems || activeItems.length === 0) return; // Nếu nhóm không có món nào thì bỏ qua
+    if (!activeItems || activeItems.length === 0) return;
 
     const activeGroup = { ...group, combo_items: activeItems };
-    const isFixed = activeItems.length === 1 && activeGroup.min_select === activeGroup.max_select;
+    const isFixed =
+      activeItems.length === 1 && activeGroup.min_select === activeGroup.max_select;
 
     if (isFixed) fixedGroups.push(activeGroup);
     else choiceGroups.push(activeGroup);
   });
 
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#9f280a] text-white w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+  const sectionBorderClass = isLight ? 'border-[#e6dccb]' : 'border-white/20';
 
+  return createPortal(
+    <div
+      data-modal-portal="true"
+      className="fixed inset-0 z-[1200] flex items-center justify-center p-2 sm:p-4 bg-black/65 backdrop-blur-sm"
+      onClick={(e) => {
+        e.stopPropagation();
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+        className={`w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] transition-colors ${
+          isLight
+            ? 'bg-[#fbf8f2] text-[#1c1208] border border-[#dfd3bf]'
+            : 'bg-[#9f280a] text-white'
+        }`}
+      >
         {/* Header */}
-        <div className="p-5 md:p-6 relative shrink-0 bg-black/15">
+        <div
+          className={`p-5 md:p-6 relative shrink-0 ${
+            isLight ? 'bg-[#f4efe4]' : 'bg-black/15'
+          }`}
+        >
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center bg-black/40 hover:bg-black/60 rounded-full text-white transition-colors"
+            className={`absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full transition-colors cursor-pointer ${
+              isLight
+                ? 'bg-black/[0.06] hover:bg-black/[0.12] text-[#1c1208]'
+                : 'bg-black/40 hover:bg-black/60 text-white'
+            }`}
+            aria-label={isEn ? 'Close' : 'Đóng'}
           >
             <X size={18} />
           </button>
-          <h2 className="text-2xl md:text-3xl font-bold uppercase tracking-wide pr-8 mb-2">{comboName?.normalize('NFC')}</h2>
-          <div className="text-white/90 text-[15px] mb-3 flex items-baseline gap-2">
-            <span>Giá:</span>
-            <span className="text-2xl font-bold text-[#f0c14b] tracking-wide">
+          <h2 className="text-xl md:text-2xl font-extrabold uppercase tracking-wide pr-8 mb-1.5">
+            {comboName?.normalize('NFC')}
+          </h2>
+          <div className="text-[15px] mb-2 flex items-baseline gap-2">
+            <span className={isLight ? 'text-[#6e6254] font-medium' : 'text-white/90'}>
+              {isEn ? 'Price:' : 'Giá:'}
+            </span>
+            <span
+              className={`text-xl font-black tracking-wide ${
+                isLight ? 'text-[#cd3645]' : 'text-[#f0c14b]'
+              }`}
+            >
               {formatPrice(comboPrice)}
             </span>
           </div>
           {comboDescription && (
-            <p className="text-white/80 text-sm">{comboDescription?.normalize('NFC')}</p>
+            <p className={`text-sm ${isLight ? 'text-[#5c4d3c]' : 'text-white/80'}`}>
+              {tc(comboDescription?.normalize('NFC'))}
+            </p>
           )}
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar border-t border-white/20">
+        <div
+          className={`flex-1 overflow-y-auto p-5 md:p-6 custom-scrollbar border-t ${sectionBorderClass}`}
+        >
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <div
+                className={`w-8 h-8 border-2 rounded-full animate-spin ${
+                  isLight
+                    ? 'border-stone-300 border-t-[#cd3645]'
+                    : 'border-white/30 border-t-white'
+                }`}
+              />
             </div>
           ) : (
             <div className="max-w-2xl mx-auto flex flex-col gap-6">
-              {choiceGroups.map((group, index) => {
+              {choiceGroups.map((group) => {
                 const groupNameLower = group.group_name.toLowerCase();
                 const isPizzaGroup = groupNameLower.includes('pizza');
-                const isPastaGroup = groupNameLower.includes('spaghetti') || groupNameLower.includes('grantin') || groupNameLower.includes('risotto') || groupNameLower.includes('gratin');
+                const isPastaGroup =
+                  groupNameLower.includes('spaghetti') ||
+                  groupNameLower.includes('grantin') ||
+                  groupNameLower.includes('risotto') ||
+                  groupNameLower.includes('gratin');
 
-                const isDrink = groupNameLower.includes('pepsi') || groupNameLower.includes('coca') || groupNameLower.includes('nước') || groupNameLower.includes('drink');
+                const isDrink =
+                  groupNameLower.includes('pepsi') ||
+                  groupNameLower.includes('coca') ||
+                  groupNameLower.includes('nước') ||
+                  groupNameLower.includes('drink');
+
                 return (
                   <div key={group.group_id} className={isDrink ? 'order-3' : 'order-1'}>
-                    <h3 className="font-bold text-lg mb-1 border-b border-white/20 pb-1">{group.group_name}</h3>
-                    <p className="text-xs text-white/60 mb-4">
+                    <h3 className={`font-bold text-base mb-1 border-b pb-1.5 ${sectionBorderClass}`}>
+                      {tc(group.group_name)}
+                    </h3>
+                    <p
+                      className={`text-xs mb-4 ${
+                        isLight ? 'text-[#8c7d6b]' : 'text-white/60'
+                      }`}
+                    >
                       {group.min_select === group.max_select
-                        ? `Chọn ${group.min_select}`
-                        : `Chọn ${group.min_select} - ${group.max_select}`
-                      }
+                        ? isEn ? `Select ${group.min_select}` : `Chọn ${group.min_select}`
+                        : isEn ? `Select ${group.min_select} - ${group.max_select}` : `Chọn ${group.min_select} - ${group.max_select}`}
                     </p>
 
                     {isPizzaGroup ? (
@@ -534,7 +695,10 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                         group.combo_items.forEach((item: any) => {
                           const dishId = item.dish_price.dish_id;
                           if (!dishMap.has(dishId)) {
-                            dishMap.set(dishId, { dish: item.dish_price.dish, items: [] });
+                            dishMap.set(dishId, {
+                              dish: item.dish_price.dish,
+                              items: [],
+                            });
                           }
                           dishMap.get(dishId).items.push(item);
                         });
@@ -544,36 +708,42 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                         const selectedComboItemId = selections[group.group_id]?.[0];
 
                         const dishOptions = uniqueDishes
-                          .filter((ud: any) => !ud.dish.dish_name.toLowerCase().includes('half-half') && !ud.dish.dish_name.toLowerCase().includes('half half'))
+                          .filter(
+                            (ud: any) =>
+                              !ud.dish.dish_name.toLowerCase().includes('half-half') &&
+                              !ud.dish.dish_name.toLowerCase().includes('half half')
+                          )
                           .map((ud: any) => ({
                             value: ud.dish.dish_id,
-                            label: ud.dish.dish_name
+                            label: ud.dish.dish_name,
                           }));
 
                         const sizeMap = new Map();
                         const isHalf = pizzaHalfSelections[group.group_id] || false;
                         const dish2Id = pizzaDish2Selections[group.group_id];
-                        const currentDishData2 = (isHalf && dish2Id) ? dishMap.get(dish2Id) : null;
+                        const currentDishData2 =
+                          isHalf && dish2Id ? dishMap.get(dish2Id) : null;
 
                         currentDishData?.items.forEach((item1: any) => {
                           const sizeId = item1.dish_price.size_id || 0;
-                          const crustId = item1.dish_price.crust_id || 0;
 
                           if (isHalf && currentDishData2) {
-                            const hasMatch = currentDishData2.items.some((item2: any) =>
-                              (item2.dish_price.size_id || 0) === sizeId
+                            const hasMatch = currentDishData2.items.some(
+                              (item2: any) => (item2.dish_price.size_id || 0) === sizeId
                             );
-                            if (!hasMatch) return; // Nửa 2 không có size này thì bỏ qua
+                            if (!hasMatch) return;
                           }
 
                           if (!sizeMap.has(sizeId)) {
-                            sizeMap.set(sizeId, { size: item1.dish_price.size, items: [] });
+                            sizeMap.set(sizeId, {
+                              size: item1.dish_price.size,
+                              items: [],
+                            });
                           }
                           sizeMap.get(sizeId).items.push(item1);
                         });
                         const uniqueSizes = Array.from(sizeMap.values());
 
-                        // Lấy size đang chọn hoặc mặc định size đầu tiên nếu chưa chọn
                         const rawSelectedSizeId = pizzaSizeSelections[group.group_id];
                         let activeSizeData = sizeMap.get(rawSelectedSizeId);
                         if (!activeSizeData && uniqueSizes.length > 0) {
@@ -584,46 +754,98 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                         return (
                           <div>
                             {crustsList.length > 0 && (
-                              <div className="mb-6 pb-6 border-b border-white/10">
-                                <label className="block text-sm font-bold text-white mb-3">Đế bánh (*)</label>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                  {crustsList.filter(c => c.is_visible !== false && c.crust_name !== 'None').map(crust => {
-                                    const selectedCrustId = pizzaCrustSelections[group.group_id] || 0;
-                                    return (
-                                      <label key={crust.crust_id} className="flex items-center gap-3 cursor-pointer group" onClick={() => {
-                                        setPizzaCrustSelections(prev => ({ ...prev, [group.group_id]: crust.crust_id }));
-                                        const match = group.combo_items.find((i: any) => i.dish_price?.dish_id === selectedDishId && (i.dish_price?.size_id || 0) === activeSizeId && (i.dish_price?.crust_id || 0) === crust.crust_id);
-                                        if (match) handleSelection(group.group_id, String(match.combo_item_id));
-                                      }}>
-                                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${selectedCrustId === crust.crust_id ? 'border-white' : 'border-white/50 group-hover:border-white/80'}`}>
-                                          {selectedCrustId === crust.crust_id && <div className="w-2 h-2 bg-white rounded-full" />}
-                                        </div>
-                                        <span className="text-white text-sm">{crust.crust_name}</span>
-                                      </label>
-                                    );
-                                  })}
+                              <div className={`mb-5 pb-5 border-b ${sectionBorderClass}`}>
+                                <label className="block text-sm font-bold mb-3">
+                                  {isEn ? 'Crust (*)' : 'Đế bánh (*)'}
+                                </label>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
+                                  {crustsList
+                                    .filter(
+                                      (c) => c.is_visible !== false && c.crust_name !== 'None'
+                                    )
+                                    .map((crust) => {
+                                      const selectedCrustId =
+                                        pizzaCrustSelections[group.group_id] || 0;
+                                      const isSelected = selectedCrustId === crust.crust_id;
+                                      return (
+                                        <label
+                                          key={crust.crust_id}
+                                          className="flex items-center gap-2.5 cursor-pointer group select-none"
+                                          onClick={() => {
+                                            setPizzaCrustSelections((prev) => ({
+                                              ...prev,
+                                              [group.group_id]: crust.crust_id,
+                                            }));
+                                            const match = group.combo_items.find(
+                                              (i: any) =>
+                                                i.dish_price?.dish_id === selectedDishId &&
+                                                (i.dish_price?.size_id || 0) === activeSizeId &&
+                                                (i.dish_price?.crust_id || 0) === crust.crust_id
+                                            );
+                                            if (match)
+                                              handleSelection(
+                                                group.group_id,
+                                                String(match.combo_item_id)
+                                              );
+                                          }}
+                                        >
+                                          <div
+                                            className={`w-4.5 h-4.5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                                              isSelected
+                                                ? isLight
+                                                  ? 'border-[#ee2828] bg-[#ee2828] text-white'
+                                                  : 'border-white bg-white text-[#9f280a]'
+                                                : isLight
+                                                  ? 'border-stone-400 group-hover:border-stone-600'
+                                                  : 'border-white/55 group-hover:border-white'
+                                            }`}
+                                          >
+                                            {isSelected && <Check size={11} strokeWidth={3.2} />}
+                                          </div>
+                                          <span
+                                            className={`text-sm ${
+                                              isSelected ? 'font-bold' : 'font-medium'
+                                            }`}
+                                          >
+                                            {td(crust.crust_name)}
+                                          </span>
+                                        </label>
+                                      );
+                                    })}
                                 </div>
                               </div>
                             )}
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                               <div>
                                 <div className="flex justify-between items-center mb-2">
-                                  <label className="block text-sm font-bold text-white">Pizza (*)</label>
+                                  <label className="block text-sm font-bold">Pizza (*)</label>
                                   {dishOptions.length > 1 && (
                                     <label className="flex items-center gap-2 cursor-pointer group select-none">
-                                      <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isHalf ? 'bg-[#f0c14b] border-[#f0c14b]' : 'border-white/50 group-hover:border-white'}`}>
-                                        {isHalf && (
-                                          <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                          </svg>
-                                        )}
+                                      <div
+                                        className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                                          isHalf
+                                            ? isLight
+                                              ? 'bg-[#ee2828] border-[#ee2828] text-white'
+                                              : 'bg-[#f0c14b] border-[#f0c14b] text-black'
+                                            : isLight
+                                              ? 'border-stone-400 group-hover:border-stone-600'
+                                              : 'border-white/50 group-hover:border-white'
+                                        }`}
+                                      >
+                                        {isHalf && <Check size={11} strokeWidth={3} />}
                                       </div>
-                                      <span className="text-sm font-semibold text-white">Half-Half</span>
+                                      <span className="text-sm font-semibold">Half-Half</span>
                                       <input
                                         type="checkbox"
                                         className="hidden"
                                         checked={isHalf}
-                                        onChange={() => setPizzaHalfSelections(prev => ({ ...prev, [group.group_id]: !prev[group.group_id] }))}
+                                        onChange={() =>
+                                          setPizzaHalfSelections((prev) => ({
+                                            ...prev,
+                                            [group.group_id]: !prev[group.group_id],
+                                          }))
+                                        }
                                       />
                                     </label>
                                   )}
@@ -631,39 +853,84 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
 
                                 {!isHalf ? (
                                   <CustomSelect
+                                    isLight={isLight}
                                     value={selectedDishId}
                                     options={dishOptions}
                                     onChange={(newDishId) => {
-                                      setPizzaDishSelections(prev => ({ ...prev, [group.group_id]: newDishId }));
+                                      setPizzaDishSelections((prev) => ({
+                                        ...prev,
+                                        [group.group_id]: newDishId,
+                                      }));
                                       const items = dishMap.get(newDishId).items;
                                       const firstSizeId = items[0].dish_price.size_id || 0;
-                                      setPizzaSizeSelections(prev => ({ ...prev, [group.group_id]: firstSizeId }));
-                                      handleSelection(group.group_id, String(items[0].combo_item_id));
+                                      setPizzaSizeSelections((prev) => ({
+                                        ...prev,
+                                        [group.group_id]: firstSizeId,
+                                      }));
+                                      handleSelection(
+                                        group.group_id,
+                                        String(items[0].combo_item_id)
+                                      );
                                     }}
                                   />
                                 ) : (
-                                  <div className="space-y-3 p-3 bg-black/20 rounded-lg border border-white/10">
+                                  <div
+                                    className={`space-y-3 p-3 rounded-lg border ${
+                                      isLight
+                                        ? 'bg-[#f4efe4] border-[#dfd3bf]'
+                                        : 'bg-black/20 border-white/10'
+                                    }`}
+                                  >
                                     <div>
-                                      <label className="block text-xs text-white/80 mb-1 font-semibold">Nửa 1:</label>
+                                      <label
+                                        className={`block text-xs mb-1 font-semibold ${
+                                          isLight ? 'text-[#5c4d3c]' : 'text-white/80'
+                                        }`}
+                                      >
+                                        {isEn ? 'Half 1:' : 'Nửa 1:'}
+                                      </label>
                                       <CustomSelect
+                                        isLight={isLight}
                                         value={selectedDishId}
                                         options={dishOptions}
                                         onChange={(newDishId) => {
-                                          setPizzaDishSelections(prev => ({ ...prev, [group.group_id]: newDishId }));
+                                          setPizzaDishSelections((prev) => ({
+                                            ...prev,
+                                            [group.group_id]: newDishId,
+                                          }));
                                           const items = dishMap.get(newDishId).items;
                                           const firstSizeId = items[0].dish_price.size_id || 0;
-                                          setPizzaSizeSelections(prev => ({ ...prev, [group.group_id]: firstSizeId }));
-                                          handleSelection(group.group_id, String(items[0].combo_item_id));
+                                          setPizzaSizeSelections((prev) => ({
+                                            ...prev,
+                                            [group.group_id]: firstSizeId,
+                                          }));
+                                          handleSelection(
+                                            group.group_id,
+                                            String(items[0].combo_item_id)
+                                          );
                                         }}
                                       />
                                     </div>
                                     <div>
-                                      <label className="block text-xs text-white/80 mb-1 font-semibold">Nửa 2:</label>
+                                      <label
+                                        className={`block text-xs mb-1 font-semibold ${
+                                          isLight ? 'text-[#5c4d3c]' : 'text-white/80'
+                                        }`}
+                                      >
+                                        {isEn ? 'Half 2:' : 'Nửa 2:'}
+                                      </label>
                                       <CustomSelect
-                                        value={pizzaDish2Selections[group.group_id] || dishOptions[0]?.value}
+                                        isLight={isLight}
+                                        value={
+                                          pizzaDish2Selections[group.group_id] ||
+                                          dishOptions[0]?.value
+                                        }
                                         options={dishOptions}
                                         onChange={(newDishId) => {
-                                          setPizzaDish2Selections(prev => ({ ...prev, [group.group_id]: newDishId }));
+                                          setPizzaDish2Selections((prev) => ({
+                                            ...prev,
+                                            [group.group_id]: newDishId,
+                                          }));
                                         }}
                                       />
                                     </div>
@@ -673,62 +940,113 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
 
                               {uniqueSizes.length > 1 && (
                                 <div>
-                                  <label className="block text-sm font-bold text-white mb-2">Cỡ (*)</label>
-                                  <div className="flex gap-3">
+                                  <label className="block text-sm font-bold mb-2">
+                                    {isEn ? 'Size (*)' : 'Cỡ (*)'}
+                                  </label>
+                                  <div className="flex flex-wrap gap-2.5">
                                     {uniqueSizes.map((szData: any) => {
                                       const sId = szData.size?.size_id || 0;
+                                      const isSelected = activeSizeId === sId;
                                       return (
                                         <button
                                           key={sId}
-                                          className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${activeSizeId === sId
-                                            ? 'bg-white text-[#9f280a]'
-                                            : 'bg-black/20 text-white hover:bg-black/30'
-                                            }`}
+                                          type="button"
+                                          className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors cursor-pointer ${
+                                            isSelected
+                                              ? isLight
+                                                ? 'bg-[#ee2828] text-white shadow-sm'
+                                                : 'bg-white text-[#9f280a]'
+                                              : isLight
+                                                ? 'bg-black/[0.06] text-[#1c1208] hover:bg-black/[0.12]'
+                                                : 'bg-black/20 text-white hover:bg-black/30'
+                                          }`}
                                           onClick={() => {
-                                            setPizzaSizeSelections(prev => ({ ...prev, [group.group_id]: sId }));
+                                            setPizzaSizeSelections((prev) => ({
+                                              ...prev,
+                                              [group.group_id]: sId,
+                                            }));
                                             if (szData.items.length > 0) {
-                                              handleSelection(group.group_id, String(szData.items[0].combo_item_id));
+                                              handleSelection(
+                                                group.group_id,
+                                                String(szData.items[0].combo_item_id)
+                                              );
                                             }
                                           }}
                                         >
-                                          {szData.size ? szData.size.size_name : 'Tiêu chuẩn'}
+                                          {szData.size ? td(szData.size.size_name) : isEn ? 'Standard' : 'Tiêu chuẩn'}
                                         </button>
                                       );
                                     })}
                                   </div>
                                 </div>
                               )}
-
-
                             </div>
 
                             {(() => {
-                              const selectedItemForSize = activeSizeData?.items.find((item: any) => String(item.combo_item_id) === selectedComboItemId);
-                              const selectedSizeIdTopping = selectedItemForSize?.dish_price?.size_id;
-                              const availableToppings = pizzaToppingsList.filter(t => !t.size_id || t.size_id === selectedSizeIdTopping);
+                              const selectedItemForSize = activeSizeData?.items.find(
+                                (item: any) => String(item.combo_item_id) === selectedComboItemId
+                              );
+                              const selectedSizeIdTopping =
+                                selectedItemForSize?.dish_price?.size_id;
+                              const availableToppings = pizzaToppingsList.filter(
+                                (t) => !t.size_id || t.size_id === selectedSizeIdTopping
+                              );
 
                               if (availableToppings.length === 0) return null;
                               return (
-                                <div className="mt-6">
-                                  <label className="block text-sm font-bold text-white mb-3">Thêm Topping</label>
-                                  <div className="space-y-3">
-                                    {availableToppings.map(topping => {
-                                      const isSelected = (selectedToppings[group.group_id] || []).some(t => t.topping_id === topping.topping_id);
+                                <div className="mt-5">
+                                  <label className="block text-sm font-bold mb-2.5">
+                                    {isEn ? 'Extra Toppings' : 'Thêm Topping'}
+                                  </label>
+                                  <div className="space-y-2.5">
+                                    {availableToppings.map((topping) => {
+                                      const isSelected = (
+                                        selectedToppings[group.group_id] || []
+                                      ).some((t) => t.topping_id === topping.topping_id);
                                       return (
-                                        <label key={topping.topping_id} className="flex items-center justify-between cursor-pointer group" onClick={() => handleToppingToggle(group.group_id, topping)}>
+                                        <label
+                                          key={topping.topping_id}
+                                          className="flex items-center justify-between cursor-pointer group select-none"
+                                          onClick={() =>
+                                            handleToppingToggle(group.group_id, topping)
+                                          }
+                                        >
                                           <div className="flex items-center gap-3">
-                                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${isSelected ? 'border-white bg-white' : 'border-white/50 group-hover:border-white/80'}`}>
-                                              {isSelected && <Check size={10} className="text-[#9f280a]" />}
+                                            <div
+                                              className={`w-4.5 h-4.5 rounded border-2 flex items-center justify-center transition-colors ${
+                                                isSelected
+                                                  ? isLight
+                                                    ? 'border-[#ee2828] bg-[#ee2828] text-white'
+                                                    : 'border-white bg-white text-[#9f280a]'
+                                                  : isLight
+                                                    ? 'border-stone-400 group-hover:border-stone-600'
+                                                    : 'border-white/50 group-hover:border-white/80'
+                                              }`}
+                                            >
+                                              {isSelected && <Check size={11} strokeWidth={3} />}
                                             </div>
-                                            <span className="text-white text-sm">
-                                              {topping.topping_name}
+                                            <span className="text-sm">
+                                              {td(topping.topping_name)}
                                               {(() => {
-                                                const matchingItem = currentDishData?.items.find((item: any) => item.dish_price?.size_id === topping.size_id);
-                                                return matchingItem?.dish_price?.size ? ` - Size ${matchingItem.dish_price.size.size_name}` : '';
+                                                const matchingItem =
+                                                  currentDishData?.items.find(
+                                                    (item: any) =>
+                                                      item.dish_price?.size_id ===
+                                                      topping.size_id
+                                                  );
+                                                return matchingItem?.dish_price?.size
+                                                  ? ` - ${isEn ? 'Size' : 'Cỡ'} ${td(matchingItem.dish_price.size.size_name)}`
+                                                  : '';
                                               })()}
                                             </span>
                                           </div>
-                                          <span className="text-white font-bold text-sm">{formatPrice(topping.price_topping)}</span>
+                                          <span
+                                            className={`font-bold text-sm ${
+                                              isLight ? 'text-[#cd3645]' : 'text-[#f0c14b]'
+                                            }`}
+                                          >
+                                            +{formatPrice(topping.price_topping)}
+                                          </span>
                                         </label>
                                       );
                                     })}
@@ -750,60 +1068,119 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                           <div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                               <div>
-                                <label className="block text-sm font-bold text-white mb-2">Thể loại</label>
-                                <div className="space-y-3">
-                                  {['Risotto', 'Grantin', 'Spaghetti'].filter(c => catMap[c] && catMap[c].length > 0).map(cat => (
-                                    <label key={cat} className="flex items-center gap-3 cursor-pointer group" onClick={() => {
-                                      setPastaCategorySelections(prev => ({ ...prev, [group.group_id]: cat }));
-                                      const newItems = catMap[cat];
-                                      if (newItems.length > 0) {
-                                        handleSelection(group.group_id, String(newItems[0].combo_item_id));
-                                      }
-                                    }}>
-                                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedCat === cat ? 'border-white' : 'border-white/50 group-hover:border-white/80'}`}>
-                                        {selectedCat === cat && <div className="w-2 h-2 bg-white rounded-full" />}
-                                      </div>
-                                      <span className="text-white text-sm">{cat}</span>
-                                    </label>
-                                  ))}
+                                <label className="block text-sm font-bold mb-2">
+                                  {isEn ? 'Category' : 'Thể loại'}
+                                </label>
+                                <div className="space-y-2.5">
+                                  {['Risotto', 'Grantin', 'Spaghetti']
+                                    .filter((c) => catMap[c] && catMap[c].length > 0)
+                                    .map((cat) => {
+                                      const isSelected = selectedCat === cat;
+                                      return (
+                                        <label
+                                          key={cat}
+                                          className="flex items-center gap-3 cursor-pointer group select-none"
+                                          onClick={() => {
+                                            setPastaCategorySelections((prev) => ({
+                                              ...prev,
+                                              [group.group_id]: cat,
+                                            }));
+                                            const newItems = catMap[cat];
+                                            if (newItems.length > 0) {
+                                              handleSelection(
+                                                group.group_id,
+                                                String(newItems[0].combo_item_id)
+                                              );
+                                            }
+                                          }}
+                                        >
+                                          <div
+                                            className={`w-4.5 h-4.5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                              isSelected
+                                                ? isLight
+                                                  ? 'border-[#ee2828] bg-[#ee2828] text-white'
+                                                  : 'border-white bg-white text-[#9f280a]'
+                                                : isLight
+                                                  ? 'border-stone-400 group-hover:border-stone-600'
+                                                  : 'border-white/50 group-hover:border-white/80'
+                                            }`}
+                                          >
+                                            {isSelected && <Check size={11} strokeWidth={3} />}
+                                          </div>
+                                          <span
+                                            className={`text-sm ${
+                                              isSelected ? 'font-bold' : 'font-medium'
+                                            }`}
+                                          >
+                                            {td(cat === 'Grantin' ? 'Gratin' : cat)}
+                                          </span>
+                                        </label>
+                                      );
+                                    })}
                                 </div>
                               </div>
                               <div>
-                                <label className="block text-sm font-bold text-white mb-2">Lựa chọn</label>
+                                <label className="block text-sm font-bold mb-2">
+                                  {isEn ? 'Selection' : 'Lựa chọn'}
+                                </label>
                                 <CustomSelect
+                                  isLight={isLight}
                                   value={selectedComboItemId}
                                   options={itemsInCat.map((item: any) => ({
                                     value: String(item.combo_item_id),
-                                    label: item.dish_price.dish.dish_name
+                                    label: td(item.dish_price.dish.dish_name),
                                   }))}
-                                  onChange={(newComboItemId) => handleSelection(group.group_id, String(newComboItemId))}
+                                  onChange={(newComboItemId) =>
+                                    handleSelection(group.group_id, String(newComboItemId))
+                                  }
                                 />
                               </div>
                             </div>
 
                             {(() => {
-                              const selectedItem = itemsInCat.find((i: any) => String(i.combo_item_id) === selectedComboItemId);
-                              const selectedSizeIdTopping = selectedItem?.dish_price?.size_id;
-
-                              // Hiện tất cả topping is_for_spaghetti từ API
                               const availableToppings = spaghettiToppingsList;
-
                               if (availableToppings.length === 0) return null;
                               return (
-                                <div className="mt-6">
-                                  <label className="block text-sm font-bold text-white mb-3">Thêm Topping</label>
-                                  <div className="space-y-3">
-                                    {availableToppings.map(topping => {
-                                      const isSelected = (selectedToppings[group.group_id] || []).some(t => t.topping_id === topping.topping_id);
+                                <div className="mt-5">
+                                  <label className="block text-sm font-bold mb-2.5">
+                                    {isEn ? 'Extra Toppings' : 'Thêm Topping'}
+                                  </label>
+                                  <div className="space-y-2.5">
+                                    {availableToppings.map((topping) => {
+                                      const isSelected = (
+                                        selectedToppings[group.group_id] || []
+                                      ).some((t) => t.topping_id === topping.topping_id);
                                       return (
-                                        <label key={topping.topping_id} className="flex items-center justify-between cursor-pointer group" onClick={() => handleToppingToggle(group.group_id, topping)}>
+                                        <label
+                                          key={topping.topping_id}
+                                          className="flex items-center justify-between cursor-pointer group select-none"
+                                          onClick={() =>
+                                            handleToppingToggle(group.group_id, topping)
+                                          }
+                                        >
                                           <div className="flex items-center gap-3">
-                                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${isSelected ? 'border-white bg-white' : 'border-white/50 group-hover:border-white/80'}`}>
-                                              {isSelected && <Check size={10} className="text-[#9f280a]" />}
+                                            <div
+                                              className={`w-4.5 h-4.5 rounded border-2 flex items-center justify-center transition-colors ${
+                                                isSelected
+                                                  ? isLight
+                                                    ? 'border-[#ee2828] bg-[#ee2828] text-white'
+                                                    : 'border-white bg-white text-[#9f280a]'
+                                                  : isLight
+                                                    ? 'border-stone-400 group-hover:border-stone-600'
+                                                    : 'border-white/50 group-hover:border-white/80'
+                                              }`}
+                                            >
+                                              {isSelected && <Check size={11} strokeWidth={3} />}
                                             </div>
-                                            <span className="text-white text-sm">{topping.topping_name}</span>
+                                            <span className="text-sm">{td(topping.topping_name)}</span>
                                           </div>
-                                          <span className="text-white font-bold text-sm">{formatPrice(topping.price_topping)}</span>
+                                          <span
+                                            className={`font-bold text-sm ${
+                                              isLight ? 'text-[#cd3645]' : 'text-[#f0c14b]'
+                                            }`}
+                                          >
+                                            +{formatPrice(topping.price_topping)}
+                                          </span>
                                         </label>
                                       );
                                     })}
@@ -818,19 +1195,46 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
                       (() => {
                         const selectedComboItemId = selections[group.group_id]?.[0];
                         return (
-                          <div className="space-y-3">
+                          <div className="space-y-2.5">
                             {group.combo_items.map((item: any) => {
-                              let displayDishName = item.dish_price.dish.dish_name;
-                              if (comboName.toLowerCase().includes('happy family') && displayDishName.toLowerCase() === 'pepsi') {
+                              let displayDishName = td(item.dish_price.dish.dish_name);
+                              if (
+                                comboName.toLowerCase().includes('happy family') &&
+                                displayDishName.toLowerCase() === 'pepsi'
+                              ) {
                                 displayDishName = '4 x ' + displayDishName;
                               }
+                              const isSelected =
+                                selectedComboItemId === String(item.combo_item_id);
                               return (
-                                <label key={item.combo_item_id} className="flex items-center justify-between cursor-pointer group" onClick={() => handleSelection(group.group_id, String(item.combo_item_id))}>
+                                <label
+                                  key={item.combo_item_id}
+                                  className="flex items-center justify-between cursor-pointer group select-none"
+                                  onClick={() =>
+                                    handleSelection(group.group_id, String(item.combo_item_id))
+                                  }
+                                >
                                   <div className="flex items-center gap-3">
-                                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedComboItemId === String(item.combo_item_id) ? 'border-white' : 'border-white/50 group-hover:border-white/80'}`}>
-                                      {selectedComboItemId === String(item.combo_item_id) && <div className="w-2 h-2 bg-white rounded-full" />}
+                                    <div
+                                      className={`w-4.5 h-4.5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                        isSelected
+                                          ? isLight
+                                            ? 'border-[#ee2828] bg-[#ee2828] text-white'
+                                            : 'border-white bg-white text-[#9f280a]'
+                                          : isLight
+                                            ? 'border-stone-400 group-hover:border-stone-600'
+                                            : 'border-white/50 group-hover:border-white/80'
+                                      }`}
+                                    >
+                                      {isSelected && <Check size={11} strokeWidth={3} />}
                                     </div>
-                                    <span className="text-white text-sm">{displayDishName}</span>
+                                    <span
+                                      className={`text-sm ${
+                                        isSelected ? 'font-bold' : 'font-medium'
+                                      }`}
+                                    >
+                                      {displayDishName}
+                                    </span>
                                   </div>
                                 </label>
                               );
@@ -846,38 +1250,81 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
               {/* Fixed items */}
               <div className="order-2">
                 {fixedGroups.length > 0 && (
-                  <div className="mb-6">
-                    <h3 className="font-bold text-lg mb-2 border-b border-white/20 pb-1">Đã bao gồm trong Combo</h3>
-                    <ul className="list-disc pl-5 space-y-1 mt-3">
-                      {fixedGroups.map(g => {
+                  <div>
+                    <h3 className={`font-bold text-base mb-2 border-b pb-1.5 ${sectionBorderClass}`}>
+                      {isEn ? 'Included in Combo' : 'Đã bao gồm trong Combo'}
+                    </h3>
+                    <ul className="list-disc pl-5 space-y-1.5 mt-3">
+                      {fixedGroups.map((g) => {
                         const groupNameLower = g.group_name.toLowerCase();
                         const isPizza = groupNameLower.includes('pizza');
-                        const isPasta = groupNameLower.includes('spaghetti') || groupNameLower.includes('grantin') || groupNameLower.includes('risotto') || groupNameLower.includes('gratin');
-                        const selectedSizeIdTopping = g.combo_items[0]?.dish_price?.size_id;
+                        const isPasta =
+                          groupNameLower.includes('spaghetti') ||
+                          groupNameLower.includes('grantin') ||
+                          groupNameLower.includes('risotto') ||
+                          groupNameLower.includes('gratin');
+                        const selectedSizeIdTopping =
+                          g.combo_items[0]?.dish_price?.size_id;
 
                         let availableToppings: any[] = [];
                         if (isPizza) {
-                          availableToppings = pizzaToppingsList.filter(t => !t.size_id || t.size_id === selectedSizeIdTopping);
+                          availableToppings = pizzaToppingsList.filter(
+                            (t) => !t.size_id || t.size_id === selectedSizeIdTopping
+                          );
                         } else if (isPasta) {
-                          // Hiện tất cả topping is_for_spaghetti từ API
                           availableToppings = [...spaghettiToppingsList];
                         }
 
                         return (
-                          <li key={g.group_id} className="text-white text-sm mb-3">
-                            <span className="font-semibold leading-relaxed">{g.group_name}</span>
+                          <li key={g.group_id} className="text-sm mb-3">
+                            <span className="font-semibold leading-relaxed">
+                              {tc(g.group_name)}
+                            </span>
                             {availableToppings.length > 0 && (
                               <div className="mt-2 ml-4">
-                                <label className="block text-xs font-bold text-white/70 mb-2">Thêm Topping:</label>
+                                <label
+                                  className={`block text-xs font-bold mb-2 ${
+                                    isLight ? 'text-[#5c4d3c]' : 'text-white/70'
+                                  }`}
+                                >
+                                  {isEn ? 'Extra Toppings:' : 'Thêm Topping:'}
+                                </label>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                  {availableToppings.map(topping => {
-                                    const isSelected = (selectedToppings[g.group_id] || []).some(t => t.topping_id === topping.topping_id);
+                                  {availableToppings.map((topping) => {
+                                    const isSelected = (
+                                      selectedToppings[g.group_id] || []
+                                    ).some((t) => t.topping_id === topping.topping_id);
                                     return (
-                                      <label key={topping.topping_id} className="flex items-center gap-3 cursor-pointer group" onClick={() => handleToppingToggle(g.group_id, topping)}>
-                                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-white bg-white' : 'border-white/50 group-hover:border-white/80'}`}>
-                                          {isSelected && <Check size={10} className="text-[#9f280a]" />}
+                                      <label
+                                        key={topping.topping_id}
+                                        className="flex items-center gap-2.5 cursor-pointer group select-none"
+                                        onClick={() =>
+                                          handleToppingToggle(g.group_id, topping)
+                                        }
+                                      >
+                                        <div
+                                          className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${
+                                            isSelected
+                                              ? isLight
+                                                ? 'border-[#ee2828] bg-[#ee2828] text-white'
+                                                : 'border-white bg-white text-[#9f280a]'
+                                              : isLight
+                                                ? 'border-stone-400 group-hover:border-stone-600'
+                                                : 'border-white/50 group-hover:border-white/80'
+                                          }`}
+                                        >
+                                          {isSelected && <Check size={10} strokeWidth={3} />}
                                         </div>
-                                        <span className="text-white text-xs">{topping.topping_name} <span className="font-bold text-[#f0c14b] ml-1">+{formatPrice(topping.price_topping)}</span></span>
+                                        <span className="text-xs">
+                                          {td(topping.topping_name)}{' '}
+                                          <span
+                                            className={`font-bold ml-1 ${
+                                              isLight ? 'text-[#cd3645]' : 'text-[#f0c14b]'
+                                            }`}
+                                          >
+                                            +{formatPrice(topping.price_topping)}
+                                          </span>
+                                        </span>
                                       </label>
                                     );
                                   })}
@@ -893,13 +1340,19 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
               </div>
 
               <div className="order-4">
-                <h3 className="font-bold text-lg mb-3 border-b border-white/20 pb-1">Ghi chú</h3>
+                <h3 className={`font-bold text-base mb-2.5 border-b pb-1.5 ${sectionBorderClass}`}>
+                  {isEn ? 'Special Instructions' : 'Ghi chú'}
+                </h3>
                 <input
                   type="text"
-                  placeholder="Ghi chú cho đơn hàng của bạn..."
+                  placeholder={isEn ? 'Notes for your order...' : 'Ghi chú cho đơn hàng của bạn...'}
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  className="w-full bg-white text-black rounded-lg p-3 outline-none text-sm mt-2"
+                  className={`w-full rounded-lg p-3 outline-none text-sm border transition-all ${
+                    isLight
+                      ? 'bg-white text-[#1c1208] placeholder:text-stone-400 border-[#dfd3bf] focus:border-[#ee2828]'
+                      : 'bg-white text-black placeholder:text-gray-400 border-transparent focus:ring-2 focus:ring-yellow-400'
+                  }`}
                 />
               </div>
             </div>
@@ -907,35 +1360,59 @@ export default function ComboModal({ isOpen, onClose, comboId, comboName, comboP
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-white/20 flex flex-col items-center gap-4 shrink-0">
-          <div className="flex items-center justify-center bg-white text-black rounded-xl overflow-hidden font-bold h-10 w-20 shadow-md">
+        <div
+          className={`p-4 sm:px-6 border-t flex items-center justify-between gap-3 shrink-0 ${
+            isLight
+              ? 'border-[#e6dccb] bg-[#f4efe4]/60'
+              : 'border-white/20 bg-black/15'
+          }`}
+        >
+          <div
+            className={`flex items-center justify-between rounded-xl overflow-hidden font-bold h-12 w-28 shrink-0 shadow-sm border ${
+              isLight
+                ? 'bg-white text-[#1c1208] border-[#dfd3bf]'
+                : 'bg-white text-black border-transparent'
+            }`}
+          >
             <button
-              onClick={() => setQuantity(q => Math.max(1, q - 1))}
-              className="flex-1 h-full hover:bg-gray-200 transition-colors flex items-center justify-center text-xl"
+              type="button"
+              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+              className="flex-1 h-full hover:bg-stone-100 transition-colors flex items-center justify-center cursor-pointer"
+              aria-label={isEn ? 'Decrease quantity' : 'Giảm số lượng'}
             >
-              -
+              <Minus size={16} strokeWidth={2.5} />
             </button>
-            <span className="w-8 text-center text-lg">{quantity}</span>
+            <span className="w-8 text-center text-base">{quantity}</span>
             <button
-              onClick={() => setQuantity(q => q + 1)}
-              className="flex-1 h-full hover:bg-gray-200 transition-colors flex items-center justify-center text-xl"
+              type="button"
+              onClick={() => setQuantity((q) => q + 1)}
+              className="flex-1 h-full hover:bg-stone-100 transition-colors flex items-center justify-center cursor-pointer"
+              aria-label={isEn ? 'Increase quantity' : 'Tăng số lượng'}
             >
-              +
+              <Plus size={16} strokeWidth={2.5} />
             </button>
           </div>
 
           <button
+            type="button"
             onClick={handleAddToCart}
-            className="w-auto px-8 sm:px-12 bg-[#f0c14b] hover:bg-[#e2b036] text-black font-bold h-12 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2.5 text-base"
+            className="flex-1 bg-[#f0c14b] hover:bg-[#e2b036] text-black font-extrabold h-12 px-6 rounded-xl transition-all shadow-md flex items-center justify-center gap-2.5 text-sm sm:text-base cursor-pointer active:scale-[0.99]"
           >
-            <ShoppingCart size={20} />
-            {editCartItem ? "Cập nhật giỏ" : "Thêm vào giỏ"} : {formatPrice(totalPrice)}
+            <ShoppingCart size={18} strokeWidth={2.4} />
+            <span>
+              {editCartItem
+                ? isEn
+                  ? 'Update Cart'
+                  : 'Cập nhật giỏ'
+                : isEn
+                  ? 'Add to Cart'
+                  : 'Thêm vào giỏ'}{' '}
+              • {formatPrice(totalPrice)}
+            </span>
           </button>
         </div>
-
       </div>
     </div>,
     document.body
   );
 }
-

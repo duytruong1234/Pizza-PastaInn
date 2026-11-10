@@ -119,12 +119,15 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
         createPortal(
           <div
             ref={backdropRef}
+            data-modal-portal="true"
             className={`fixed inset-0 z-[999999] grid place-items-center bg-black/50 backdrop-blur-sm transition-opacity duration-200 ${visible ? "opacity-100" : "opacity-0"}`}
             onClick={(e) => {
+              e.stopPropagation();
               if (e.target === backdropRef.current) close(false);
             }}
           >
             <div
+              onClick={(e) => e.stopPropagation()}
               className={`w-full max-w-md rounded-2xl border border-stroke bg-white p-6 shadow-2xl transition-all duration-200 dark:border-dark-3 dark:bg-gray-dark ${
                 visible
                   ? "scale-100 opacity-100 translate-y-0"

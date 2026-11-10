@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { useCartStore, CartItem } from './cartStore';
 import { useAuthStore } from './authStore';
+// Đã loại bỏ getRecGuestKey
 import { API_BASE } from '../lib/config';
 
 // ── Kiểu dữ liệu cho Order ─────────────────────────────────────────────────
@@ -32,6 +33,11 @@ export type OrderFormData = {
   order_note: string;
   // Payment
   payment_method: PaymentMethod;
+  // Voucher & Loyalty
+  voucher_code?: string;
+  voucher_discount?: number;
+  redeem_points?: number;
+  points_discount?: number;
 };
 
 export type CheckoutStep = 'info' | 'payment' | 'success' | 'failure';
@@ -39,9 +45,13 @@ export type CheckoutStep = 'info' | 'payment' | 'success' | 'failure';
 export type OrderResult = {
   order_id: number;
   order_status: string;
+  payment_status?: string;
+  shipping_fee?: number;
+  discount_amount?: number;
   total_order: number;
   payment_method: string;
   order_type: string;
+  store_id?: number | null;
   created_at: string;
 };
 
@@ -61,6 +71,7 @@ type OrderStore = {
   resetForm: () => void;
   submitOrder: (bypassVietQRStep?: boolean) => Promise<boolean>;
   cancelActiveOrder: () => Promise<boolean>;
+  switchActiveOrderToCod: () => Promise<boolean>;
 };
 
 const initialFormData: OrderFormData = {
@@ -81,6 +92,10 @@ const initialFormData: OrderFormData = {
   scheduled_time: '',
   order_note: '',
   payment_method: 'cod',
+  voucher_code: '',
+  voucher_discount: 0,
+  redeem_points: 0,
+  points_discount: 0,
 };
 
 const API_URL = `${API_BASE}/orders`;
@@ -205,7 +220,11 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
       }));
 
       const totalPrice = cartStore.totalPrice();
-      const shippingFee = 0; // Phí ship mặc định bằng 0 sau khi xóa tính năng khoảng cách
+      const shippingFee = formData.order_type === 'delivery' ? (formData.shipping_fee || 0) : 0;
+      const discountAmount = Math.min(
+        totalPrice + shippingFee,
+        (formData.voucher_discount || 0) + (formData.points_discount || 0)
+      );
 
       // Xử lý pickup_time
       let pickup_time: string | undefined;
@@ -222,8 +241,8 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
         payment_method: formData.payment_method,
         total_price_dish: totalPrice,
         shipping_fee: shippingFee,
-        discount_amount: 0,
-        total_order: totalPrice + shippingFee,
+        discount_amount: discountAmount,
+        total_order: Math.max(0, totalPrice + shippingFee - discountAmount),
         order_note: formData.order_note || '',
         order_type: formData.order_type,
         pickup_time,
@@ -234,7 +253,9 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
         store_id: formData.store_id,
         customer_latitude: formData.customer_lat || null,
         customer_longitude: formData.customer_lon || null,
-        shipping_distance_meters: null,
+        shipping_distance_meters: formData.order_type === 'delivery' ? (formData.distance || null) : null,
+        voucher_code: formData.voucher_code || null,
+        redeem_points: formData.redeem_points || 0,
         items,
       };
 
@@ -253,14 +274,22 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
         // Xóa giỏ hàng local
         await cartStore.clearCart();
 
-        const nextStep = 'success';
+        // Nếu chọn VietQR: Mở ngay màn hình quét mã QR trên web ('payment')
+        // Nếu chọn COD: Chuyển sang màn hình theo dõi đơn hàng ('success')
+        const nextStep: CheckoutStep =
+          formData.payment_method === 'vietqr' && !bypassVietQRStep ? 'payment' : 'success';
+
         set({
           orderResult: {
             order_id: data.data.order_id,
             order_status: data.data.order_status,
+            payment_status: data.data.payment_status || 'pending',
+            shipping_fee: data.data.shipping_fee ?? shippingFee,
+            discount_amount: data.data.discount_amount ?? discountAmount,
             total_order: data.data.total_order,
             payment_method: data.data.payment_method,
             order_type: data.data.order_type,
+            store_id: data.data.store_id ?? formData.store_id,
             created_at: data.data.created_at,
           },
           cartBackup: backupItems,
@@ -312,6 +341,35 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
       return false;
     } catch (err) {
       console.error('Cancel active order error:', err);
+      return false;
+    }
+  },
+
+  switchActiveOrderToCod: async () => {
+    const { orderResult, formData } = get();
+    if (!orderResult?.order_id) return false;
+
+    try {
+      const res = await fetch(`${API_BASE}/orders/${orderResult.order_id}/payment-method`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payment_method: 'cod' }),
+      });
+
+      if (res.ok) {
+        set({
+          formData: { ...formData, payment_method: 'cod' },
+          orderResult: {
+            ...orderResult,
+            payment_method: 'cod',
+          },
+          step: 'success',
+        });
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Switch payment method to COD error:', err);
       return false;
     }
   },

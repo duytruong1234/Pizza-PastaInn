@@ -1,18 +1,39 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --menu-bg: #0a0a0a;
+  --menu-img-opacity: 0.5;
+  --menu-overlay: rgba(0, 0, 0, 0.40);
+  --menu-heading: #ffffff;
+  --menu-heading-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  --menu-subheading: #d1d5db;
+  --menu-divider: rgba(255, 255, 255, 0.12);
 }
 
 .dark {
   --background: #0a0a0a;
   --foreground: #ededed;
+  --menu-bg: #0a0a0a;
+  --menu-img-opacity: 0.5;
+  --menu-overlay: rgba(0, 0, 0, 0.40);
+  --menu-heading: #ffffff;
+  --menu-heading-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  --menu-subheading: #d1d5db;
+  --menu-divider: rgba(255, 255, 255, 0.12);
 }
 
 .light {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f9fafb;
+  --foreground: #18181b;
+  --menu-bg: #f9fafb;
+  --menu-img-opacity: 0.85;
+  --menu-overlay: rgba(255, 255, 255, 0.52);
+  --menu-heading: #18181b;
+  --menu-heading-shadow: 0 1px 10px rgba(255, 255, 255, 0.9);
+  --menu-subheading: #3f3f46;
+  --menu-divider: rgba(24, 24, 27, 0.15);
 }
 
 @theme inline {
@@ -29,13 +50,6 @@
   --color-pizza-sidebar: #1c1208;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 /* Custom scrollbar helper - hides scrollbar visually but keeps scrolling active */
 html,
 body,
@@ -45,6 +59,7 @@ body,
   /* IE and Edge */
   scrollbar-width: none !important;
   /* Firefox */
+  -webkit-overflow-scrolling: touch;
 }
 
 html::-webkit-scrollbar,
@@ -57,9 +72,83 @@ body::-webkit-scrollbar,
   height: 0 !important;
 }
 
+/* Thanh cuộn mảnh, hiện đại cho modal (không nền trắng, không mũi tên) */
+.quiz-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.light .quiz-scrollbar {
+  scrollbar-color: rgba(24, 24, 27, 0.2) transparent;
+}
+
+.quiz-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.quiz-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 8px 0;
+}
+
+.quiz-scrollbar::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.quiz-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 9999px;
+}
+
+.quiz-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+.light .quiz-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(24, 24, 27, 0.18);
+}
+
+.light .quiz-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(24, 24, 27, 0.32);
+}
+
+#main-scroll-container {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.menu-page-bg {
+  background-color: var(--menu-bg);
+  transition: background-color 0.25s ease;
+}
+
+.menu-bg-image {
+  opacity: var(--menu-img-opacity);
+  transition: opacity 0.25s ease;
+}
+
+.menu-backdrop-overlay {
+  background-color: var(--menu-overlay);
+  transition: background-color 0.25s ease;
+}
+
+.menu-section-heading {
+  color: var(--menu-heading);
+  text-shadow: var(--menu-heading-shadow);
+  transition: color 0.25s ease;
+}
+
+.menu-section-divider {
+  border-color: var(--menu-divider);
 }
 
 /* Custom keyframes and animation classes for premium floating widgets */

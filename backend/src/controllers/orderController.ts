@@ -144,5 +144,32 @@ export class OrderController {
       return sendError(res, error.message || 'Lỗi khi hủy đơn hàng', 500);
     }
   }
+
+  /**
+   * Đổi phương thức thanh toán cho đơn hàng (ví dụ: đổi từ VietQR sang COD)
+   * PATCH /api/orders/:id/payment-method
+   */
+  static async switchPaymentMethod(req: Request, res: Response) {
+    try {
+      const order_id = parseInt(String(req.params.id));
+      if (!order_id || isNaN(order_id)) {
+        return sendError(res, 'order_id không hợp lệ', 400);
+      }
+
+      const { payment_method } = req.body;
+      if (payment_method !== 'cod' && payment_method !== 'vietqr') {
+        return sendError(res, 'Phương thức thanh toán không hợp lệ', 400);
+      }
+
+      const order = await OrderService.switchPaymentMethod(order_id, payment_method);
+      return sendSuccess(res, {
+        data: order,
+        message: 'Đã cập nhật phương thức thanh toán thành công.',
+      });
+    } catch (error: any) {
+      console.error('Order switch payment method error:', error);
+      return sendError(res, error.message || 'Lỗi khi đổi phương thức thanh toán', 500);
+    }
+  }
 }
 

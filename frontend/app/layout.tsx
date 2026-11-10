@@ -5,16 +5,17 @@ import "./globals.css";
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
   variable: "--font-inter",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "PizzaGenie",
-  description: "Delicious Pizza & Pasta - PizzaGenie",
+  title: "Pizza & Pasta Inn — Thực đơn Pizza & Mì Ý chuẩn vị",
+  description: "Đặt bánh Pizza nướng củi, Mì Ý, Gratin và Combo giao nhanh tận nơi tại Pizza & Pasta Inn.",
 };
 
 import { UIProvider } from "@/components/UIProvider";
 import QuickDock from "@/components/QuickDock";
-import ChatbotWidget from "@/components/ChatbotWidget";
+import SmartQuizModal from "@/components/SmartQuizModal";
 
 export default function RootLayout({
   children,
@@ -23,14 +24,15 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
-      className={`${inter.variable} h-full antialiased`}
+      lang="vi"
+      suppressHydrationWarning
+      className={`${inter.variable} dark h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans">
+      <body className="min-h-full flex flex-col font-sans overflow-x-hidden">
         <UIProvider>
           {children}
           <QuickDock />
-          <ChatbotWidget />
+          <SmartQuizModal />
         </UIProvider>
       </body>
     </html>

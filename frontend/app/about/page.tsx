@@ -3,98 +3,113 @@
 import HeaderClient from '@/components/HeaderClient';
 import Footer from '@/components/Footer';
 import Image from 'next/image';
-import { MapPin, Phone } from 'lucide-react';
+import { MapPin, Phone, Clock } from 'lucide-react';
 import { useUI } from '@/components/UIProvider';
 
 export default function AboutPage() {
-  const { theme } = useUI();
+  const { theme, lang } = useUI();
+  const isDark = theme === 'dark';
+  const isEn = lang === 'en';
 
   return (
-    <div className={`min-h-screen font-sans flex flex-col transition-colors duration-300 ${theme === 'dark' ? 'bg-[#0a0a0a] text-white' : 'bg-gray-50 text-gray-800'}`}>
-      <header className="bg-[#121424]/95 backdrop-blur-md text-white sticky top-0 z-50 border-b border-white/[0.1] shadow-[0_4px_30px_rgba(0,0,0,0.5)] transition-all duration-300">
-        <HeaderClient storeName="Pizza&PastaInn" />
-      </header>
+    <div className={`min-h-screen font-sans flex flex-col transition-colors duration-300 ${isDark ? 'bg-[#0e0c0a] text-white' : 'bg-[#f6f6f7] text-zinc-900'}`}>
+      <HeaderClient storeName="Pizza&PastaInn" />
 
       {/* SECTION 1: HERO SECTION */}
-      <section className="relative h-[500px] md:h-[600px] w-full flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[460px] md:min-h-[520px] w-full flex items-center justify-center overflow-hidden bg-[#120e0c]">
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <Image
             src="https://images.unsplash.com/photo-1590947132387-155cc02f3212?q=80&w=1920&auto=format&fit=crop"
-            alt="Pizza stretching cheese pull background"
+            alt="Pizza & Pasta Inn Hero Background"
             fill
-            className="object-cover opacity-35"
+            className="object-cover opacity-50 scale-105"
             priority
           />
-          {/* Gradient Overlays */}
-          <div className={`absolute inset-0 bg-gradient-to-t via-transparent ${theme === 'dark' ? 'from-[#0a0a0a] to-black/60' : 'from-gray-50 to-black/30'}`}></div>
-          <div className="absolute inset-0 bg-black/40"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/60 to-black/85" />
         </div>
 
         {/* Hero Content */}
-        <div className="relative z-10 max-w-4xl mx-auto px-6 text-center pt-4">
-          <h1 className="text-5xl md:text-7xl font-black tracking-tight uppercase select-none">
+        <div className="relative z-10 max-w-4xl mx-auto px-6 py-14 text-center">
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight uppercase select-none drop-shadow-lg">
             <span className="text-white block mb-1">PIZZA & PASTA</span>
             <span className="text-[#f5c043] block">INN</span>
           </h1>
 
-          <div className="flex flex-col items-center mt-3 mb-2">
+          <div className="flex flex-col items-center mt-3 mb-3">
             <span className="text-zinc-300 font-bold text-xs md:text-sm tracking-[0.25em] uppercase">
-              PIZZA • SPAGHETTI • RISOTTO/GRANTIN • SALAD
+              PIZZA • SPAGHETTI • RISOTTO / GRATIN • SALAD
             </span>
           </div>
 
-          <p className="text-zinc-200 text-base md:text-lg leading-relaxed max-w-3xl mx-auto font-medium">
-            Welcome to <strong className="text-white font-bold">Pizza & Pasta Inn</strong>. We are always ready to serve you hot, freshly baked pizzas, traditional spaghetti rich in sauce, creamy oven-baked pasta and Italian rice dishes, along with refreshing salads mixed with olive oil vinegar dressing and our signature mayo sauce — an exclusive recipe that delivers an explosion of flavor.
+          <p className="text-zinc-200 text-sm sm:text-base md:text-lg leading-relaxed max-w-2xl mx-auto font-medium">
+            {isEn ? (
+              <>
+                Welcome to <strong className="text-white font-bold">Pizza & Pasta Inn</strong>. We serve oven-baked pizzas, traditional Italian spaghetti, creamy oven-baked risotto and gratin, and fresh salads tossed with olive oil and our signature house mayo dressing.
+              </>
+            ) : (
+              <>
+                Chào mừng bạn đến với <strong className="text-white font-bold">Pizza & Pasta Inn</strong>. Chúng tôi phục vụ các món pizza nướng lò nóng hổi, mì Ý truyền thống, cơm Ý đút lò cùng các món salad rau củ tươi trộn dầu ô liu và sốt mayo pha chế riêng của quán.
+              </>
+            )}
           </p>
         </div>
       </section>
 
-      {/* SECTION 2: JOURNEY OF CULINARY EXCELLENCE */}
-      <section className={`py-20 md:py-28 transition-colors duration-300 ${theme === 'dark' ? 'bg-[#0a0a0a]' : 'bg-white'}`}>
+      {/* SECTION 2: CÂU CHUYỆN ẨM THỰC */}
+      <section className={`py-16 md:py-24 transition-colors duration-300 ${isDark ? 'bg-[#0e0c0a]' : 'bg-white'}`}>
         <div className="max-w-6xl mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-12 items-center">
-            
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-14 items-center">
+
             {/* Left Content */}
-            <div className="flex flex-col space-y-6">
-              <div className="space-y-2">
-                <span className={`text-xs font-black tracking-[0.2em] uppercase block ${theme === 'dark' ? 'text-[#f5c043]' : 'text-[#007a3f]'}`}>
-                  OUR MENU STORY
+            <div className="flex flex-col space-y-5 text-left">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight uppercase leading-tight">
+                <span className={`block ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                  {isEn ? 'OUR KITCHEN STORY' : 'CÂU CHUYỆN BẾP'}
                 </span>
-                <h2 className="text-3xl md:text-4xl font-extrabold tracking-wide uppercase leading-tight">
-                  <span className={`block ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>JOURNEY OF</span>
-                  <span className={`block ${theme === 'dark' ? 'text-[#f5c043]' : 'text-[#007a3f]'}`}>CULINARY EXCELLENCE</span>
-                </h2>
-              </div>
-              
-              <div className={`space-y-5 text-[14.5px] leading-relaxed font-medium ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
+                <span className={`block ${isDark ? 'text-[#f5c043]' : 'text-[#007a3f]'}`}>
+                  {isEn ? 'TRADITIONAL ITALIAN FLAVORS' : 'HƯƠNG VỊ Ý TRUYỀN THỐNG'}
+                </span>
+              </h2>
+
+              <div className={`space-y-4 text-[14.5px] leading-relaxed font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-600'}`}>
                 <p>
-                  At <strong className={theme === 'dark' ? 'text-white font-bold' : 'text-gray-800 font-bold'}>Pizza & Pasta Inn</strong>, our kitchen is filled with passion for creating delicious, high-quality dishes. From oven-baked pizzas topped with stretchy melted cheese, we proudly bring you a diverse menu carefully crafted down to the smallest details.
+                  {isEn ? (
+                    <>
+                      At <strong className={isDark ? 'text-white font-bold' : 'text-zinc-900 font-bold'}>Pizza & Pasta Inn</strong>, we focus on fresh daily ingredients and traditional preparation methods. From pizzas topped with melted Mozzarella straight out of the oven, every dish is carefully prepared before serving our guests.
+                    </>
+                  ) : (
+                    <>
+                      Tại <strong className={isDark ? 'text-white font-bold' : 'text-zinc-900 font-bold'}>Pizza & Pasta Inn</strong>, chúng tôi chú trọng vào nguyên liệu tươi mỗi ngày và cách chế biến giữ đúng vị truyền thống. Từ những chiếc pizza phủ phô mai Mozzarella nóng hổi vừa ra lò, mỗi món ăn đều được chuẩn bị kỹ lưỡng trước khi phục vụ thực khách.
+                    </>
+                  )}
                 </p>
                 <p>
-                  From long strands of Spaghetti richly coated in flavorful sauce, creamy Italian rice cooked to perfection, to fresh salads blended with premium vinegar, pure olive oil, and our signature mayo sauce made from the restaurant's secret recipe — every dish served to your table is made to bring you complete satisfaction.
+                  {isEn
+                    ? 'Our menu brings together tomato and cream-based Spaghetti, oven-baked Risotto and Gratin, and crisp daily salads tossed with olive oil, balsamic vinegar, and our house-made mayo dressing.'
+                    : 'Thực đơn của quán kết hợp đa dạng từ mì Spaghetti sốt cà chua và sốt kem, cơm Ý Risotto và Gratin đút lò, cho đến các phần salad rau củ tươi trộn cùng dầu ô liu, giấm và sốt mayo đặc trưng của quán.'}
                 </p>
               </div>
             </div>
 
             {/* Right Overlapping Images */}
-            <div className="relative w-full max-w-md lg:max-w-none mx-auto h-[350px] md:h-[450px] mt-10 lg:mt-0">
-              {/* Back Grayscale Image */}
-              <div className={`relative w-[82%] h-[82%] rounded-2xl overflow-hidden shadow-2xl border ${theme === 'dark' ? 'border-zinc-900' : 'border-gray-200'}`}>
+            <div className="relative w-full max-w-md lg:max-w-none mx-auto h-[340px] md:h-[430px]">
+              <div className={`relative w-[82%] h-[82%] rounded-3xl overflow-hidden shadow-2xl border ${isDark ? 'border-white/10' : 'border-zinc-200'}`}>
                 <Image
                   src="https://images.unsplash.com/photo-1579751626657-72bc17010498?q=80&w=800&auto=format&fit=crop"
-                  alt="Traditional pizza baking"
+                  alt="Pizza truyền thống nướng lò"
                   fill
-                  className="object-cover grayscale brightness-75 contrast-125"
+                  sizes="(max-width: 1024px) 80vw, 440px"
+                  className="object-cover"
                 />
               </div>
 
-              {/* Front Colored Overlapping Image */}
-              <div className={`absolute right-0 bottom-0 w-[55%] h-[65%] rounded-2xl overflow-hidden shadow-2xl border-4 ${theme === 'dark' ? 'border-[#0a0a0a]' : 'border-white'}`}>
+              <div className={`absolute right-0 bottom-0 w-[56%] h-[64%] rounded-3xl overflow-hidden shadow-2xl border-4 ${isDark ? 'border-[#0e0c0a]' : 'border-white'}`}>
                 <Image
                   src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=600&auto=format&fit=crop"
-                  alt="Pizza & Pasta Inn cozy interior dining"
+                  alt="Không gian ấm cúng tại Pizza & Pasta Inn"
                   fill
+                  sizes="(max-width: 1024px) 56vw, 320px"
                   className="object-cover"
                 />
               </div>
@@ -104,217 +119,212 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* SECTION 3: OUR SPECIALTIES / MENU HIGHLIGHTS */}
-      <section className={`py-20 md:py-28 border-y transition-colors duration-300 ${theme === 'dark' ? 'bg-[#0c0c0c] border-zinc-900/50' : 'bg-gray-100/50 border-gray-200'}`}>
+      {/* SECTION 3: 4 ĐIỂM NHẤN TRONG THỰC ĐƠN */}
+      <section className={`py-16 md:py-24 border-y transition-colors duration-300 ${isDark ? 'bg-[#14110f] border-white/[0.07]' : 'bg-zinc-100/80 border-zinc-200'}`}>
         <div className="max-w-6xl mx-auto px-6">
-          
+
           {/* Section Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-4">
-            <div className="space-y-1">
-              <span className={`text-xs font-black tracking-[0.2em] uppercase block ${theme === 'dark' ? 'text-[#f5c043]' : 'text-[#007a3f]'}`}>
-                OUR SPECIALTIES
-              </span>
-              <h2 className={`text-3xl md:text-4xl font-extrabold tracking-wide uppercase leading-tight ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
-                FOUR MAIN HIGHLIGHTS OF OUR MENU
-              </h2>
-            </div>
-            <span className={`text-xs font-bold tracking-[0.2em] uppercase font-sans ${theme === 'dark' ? 'text-[#f5c043]' : 'text-[#007a3f]'}`}>
-              PIZZA & PASTA INN MENU
-            </span>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
+            <h2 className={`text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight uppercase leading-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+              {isEn ? '4 MENU HIGHLIGHTS' : '4 ĐIỂM NHẤN TRONG THỰC ĐƠN'}
+            </h2>
           </div>
 
-          {/* Specialties Column Grid with dividing borders */}
-          <div className={`grid grid-cols-1 md:grid-cols-4 border rounded-3xl overflow-hidden divide-y md:divide-y-0 md:divide-x ${
-            theme === 'dark' 
-              ? 'border-zinc-900 bg-[#0d0d0d]/30 divide-zinc-900' 
-              : 'border-gray-200 bg-white divide-gray-200'
-          }`}>
-            
-            {/* Specialty 1 */}
-            <div className="p-8 md:p-6 lg:p-8 flex flex-col space-y-3.5 text-left">
-              <span className={`text-xs font-black tracking-widest block ${theme === 'dark' ? 'text-[#f5c043]' : 'text-[#007a3f]'}`}>
-                01/
-              </span>
-              <h3 className={`text-lg font-black tracking-widest uppercase ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
-                PIZZA
-              </h3>
-              <p className={`text-xs md:text-[13px] leading-relaxed font-medium ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
-                Our pizza dough is handcrafted and paired with high-temperature oven baking techniques, creating a perfectly golden and crispy crust on the outside while keeping it soft and moist on the inside.
-              </p>
-            </div>
-
-            {/* Specialty 2 */}
-            <div className="p-8 md:p-6 lg:p-8 flex flex-col space-y-3.5 text-left">
-              <span className={`text-xs font-black tracking-widest block ${theme === 'dark' ? 'text-[#f5c043]' : 'text-[#007a3f]'}`}>
-                02/
-              </span>
-              <h3 className={`text-lg font-black tracking-widest uppercase ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
-                SPAGHETTI
-              </h3>
-              <p className={`text-xs md:text-[13px] leading-relaxed font-medium ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
-                Traditional Spaghetti is cooked to the perfect al dente texture and beautifully combined with rich, flavorful sauces to create an irresistibly satisfying taste and texture.
-              </p>
-            </div>
-
-            {/* Specialty 3 */}
-            <div className="p-8 md:p-6 lg:p-8 flex flex-col space-y-3.5 text-left">
-              <span className={`text-xs font-black tracking-widest block ${theme === 'dark' ? 'text-[#f5c043]' : 'text-[#007a3f]'}`}>
-                03/
-              </span>
-              <h3 className={`text-lg font-black tracking-widest uppercase ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
-                RISOTTO /GRANTIN
-              </h3>
-              <p className={`text-xs md:text-[13px] leading-relaxed font-medium ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
-                Italian rice and baked pasta are blended with rich, creamy sauce and topped with golden baked cheese, creating a bold and unforgettable flavor.
-              </p>
-            </div>
-
-            {/* Specialty 4 */}
-            <div className="p-8 md:p-6 lg:p-8 flex flex-col space-y-3.5 text-left">
-              <span className={`text-xs font-black tracking-widest block ${theme === 'dark' ? 'text-[#f5c043]' : 'text-[#007a3f]'}`}>
-                04/
-              </span>
-              <h3 className={`text-lg font-black tracking-widest uppercase ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
-                SALAD
-              </h3>
-              <p className={`text-xs md:text-[13px] leading-relaxed font-medium ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
-                Fresh, crisp vegetables are combined with vinegar, olive oil, and our signature mayo sauce — the restaurant's exclusive secret recipe that perfectly balances every flavor.
-              </p>
-            </div>
-
+          {/* Specialties Column Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {[
+              {
+                num: '01',
+                title: isEn ? 'OVEN-BAKED PIZZA' : 'PIZZA NƯỚNG LÒ',
+                desc: isEn
+                  ? 'Hand-stretched dough baked at high temperatures for a crisp golden crust outside and soft texture inside.'
+                  : 'Đế bánh được cán thủ công và nướng ở nhiệt độ cao, giữ được lớp vỏ giòn bên ngoài và độ mềm xốp bên trong.',
+              },
+              {
+                num: '02',
+                title: 'SPAGHETTI',
+                desc: isEn
+                  ? 'Traditional Italian pasta cooked al dente and tossed with minced beef sauce, fresh cream, or seafood.'
+                  : 'Mì Ý luộc vừa chín tới (al dente), kết hợp cùng sốt bò bằm, sốt kem tươi hoặc hải sản tươi.',
+              },
+              {
+                num: '03',
+                title: 'RISOTTO / GRATIN',
+                desc: isEn
+                  ? 'Italian rice and macaroni baked with creamy sauce and topped with golden-brown Mozzarella cheese.'
+                  : 'Cơm Ý và nui đút lò nấu cùng sốt kem và phô mai Mozzarella nướng vàng mặt.',
+              },
+              {
+                num: '04',
+                title: isEn ? 'FRESH SALAD' : 'SALAD RAU CỦ',
+                desc: isEn
+                  ? 'Daily fresh vegetables served with olive oil, balsamic vinegar, or our house-blended mayonnaise dressing.'
+                  : 'Rau củ tươi theo ngày dùng kèm dầu ô liu, giấm hoặc sốt mayo pha chế riêng của quán.',
+              },
+            ].map((item) => (
+              <div
+                key={item.num}
+                className={`p-6 md:p-7 rounded-3xl border flex flex-col space-y-3 text-left transition-all duration-200 ${
+                  isDark
+                    ? 'bg-[#1a1613] border-white/[0.08] hover:border-[#f5c043]/40'
+                    : 'bg-white border-zinc-200 hover:border-[#007a3f]/40 shadow-sm'
+                }`}
+              >
+                <span className={`text-xs font-black tracking-widest ${isDark ? 'text-[#f5c043]' : 'text-[#007a3f]'}`}>
+                  {item.num}
+                </span>
+                <h3 className={`text-base font-black tracking-wider uppercase pt-1 ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                  {item.title}
+                </h3>
+                <p className={`text-xs md:text-[13.5px] leading-relaxed font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                  {item.desc}
+                </p>
+              </div>
+            ))}
           </div>
 
         </div>
       </section>
 
-      {/* SECTION 4: SERVICE PROMISE & OUR BRANCHES */}
-      <section className={`py-20 transition-colors duration-300 ${theme === 'dark' ? 'bg-[#0a0a0a]' : 'bg-white'}`}>
+      {/* SECTION 4: CAM KẾT PHỤC VỤ & HỆ THỐNG CHI NHÁNH */}
+      <section className={`py-16 md:py-24 transition-colors duration-300 ${isDark ? 'bg-[#0e0c0a]' : 'bg-white'}`}>
         <div className="max-w-6xl mx-auto px-6">
-          
+
           {/* Quote Block */}
-          <div className="text-center mb-24 relative max-w-4xl mx-auto">
-            <span className={`text-7xl md:text-8xl font-serif leading-none select-none block -mb-4 md:-mb-8 ${theme === 'dark' ? 'text-[#f5c043]/30' : 'text-[#007a3f]/20'}`}>“</span>
-            <blockquote className={`text-xl md:text-3xl font-extrabold italic leading-relaxed max-w-3xl mx-auto px-4 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
-              &ldquo;Come to Pizza & Pasta Inn, where you can enjoy hot, delicious, and flavorful dishes in a warm and friendly atmosphere&rdquo;
+          <div className={`text-center mb-20 p-8 md:p-12 rounded-3xl border max-w-4xl mx-auto ${
+            isDark ? 'bg-[#161311] border-white/[0.08]' : 'bg-zinc-50 border-zinc-200'
+          }`}>
+            <blockquote className={`text-lg sm:text-xl md:text-2xl font-extrabold italic leading-relaxed max-w-3xl mx-auto ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+              &ldquo;
+              {isEn
+                ? 'Visit Pizza & Pasta Inn to enjoy hot, flavorful Italian dishes in a warm and welcoming atmosphere.'
+                : 'Đến với Pizza & Pasta Inn để thưởng thức những món ăn nóng hổi, thơm ngon và đậm đà hương vị trong không gian ấm áp, thân thiện.'}
+              &rdquo;
             </blockquote>
-            <div className="flex items-center justify-center gap-4 mt-6">
-              <div className={`w-8 h-px ${theme === 'dark' ? 'bg-zinc-800' : 'bg-gray-300'}`}></div>
-              <span className={`font-bold text-xs tracking-[0.25em] uppercase ${theme === 'dark' ? 'text-[#f5c043]' : 'text-[#007a3f]'}`}>
-                OUR SERVICE PROMISE
-              </span>
-              <div className={`w-8 h-px ${theme === 'dark' ? 'bg-zinc-800' : 'bg-gray-300'}`}></div>
-            </div>
           </div>
 
           {/* Branches Section Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-4">
-            <div className="space-y-1">
-              <span className={`text-xs font-black tracking-[0.2em] uppercase block ${theme === 'dark' ? 'text-[#f5c043]' : 'text-[#007a3f]'}`}>
-                LOCATE US
-              </span>
-              <h2 className={`text-3xl md:text-4xl font-extrabold tracking-wide uppercase ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
-                OUR BRANCHES
-              </h2>
-            </div>
-            <p className={`max-w-sm text-sm leading-relaxed text-left md:text-right font-medium ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}`}>
-              Visit us at one of our two prime locations in Ho Chi Minh City for an authentic taste of Italy.
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
+            <h2 className={`text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight uppercase ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+              {isEn ? 'OUR BRANCHES' : 'HỆ THỐNG CHI NHÁNH'}
+            </h2>
+            <p className={`max-w-md text-xs md:text-sm leading-relaxed text-left md:text-right font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+              {isEn
+                ? 'Visit either of our two locations in Ho Chi Minh City to enjoy our full menu.'
+                : 'Ghé thăm một trong hai chi nhánh của chúng tôi tại TP. Hồ Chí Minh để trải nghiệm hương vị ẩm thực Ý trọn vẹn nhất.'}
             </p>
           </div>
 
           {/* Branches Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            
+
             {/* Branch 1 Card */}
             <div className={`border rounded-3xl overflow-hidden shadow-lg group transition-all duration-300 relative flex flex-col ${
-              theme === 'dark' ? 'bg-[#121212] border-zinc-900 hover:border-[#f5c043]/30' : 'bg-white border-gray-200 hover:border-[#007a3f]/30'
+              isDark ? 'bg-[#161311] border-white/[0.08] hover:border-[#f5c043]/40' : 'bg-white border-zinc-200 hover:border-[#007a3f]/40'
             }`}>
               <div className="relative h-[220px] w-full overflow-hidden">
                 <Image
                   src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=600&auto=format&fit=crop"
-                  alt="District 5 Branch restaurant dining room"
+                  alt="Chi nhánh Quận 5"
                   fill
+                  sizes="(max-width: 768px) 100vw, 500px"
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <div className={`absolute inset-0 bg-gradient-to-t to-transparent opacity-60 ${theme === 'dark' ? 'from-[#121212]' : 'from-white'}`}></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                <h3 className="absolute bottom-4 left-5 text-white font-black text-lg uppercase tracking-wide drop-shadow">
+                  {isEn ? 'District 5 Branch' : 'Chi nhánh Quận 5'}
+                </h3>
               </div>
-              
-              <div className="p-6 pb-8 flex-1 flex flex-col justify-between text-left">
-                <div className="space-y-4">
-                  <h3 className={`text-lg font-black tracking-widest uppercase ${theme === 'dark' ? 'text-[#f5c043]' : 'text-[#007a3f]'}`}>
-                    DISTRICT 5 BRANCH
-                  </h3>
-                  
-                  <div className="space-y-3.5">
-                    <div className="flex items-start gap-3">
-                      <MapPin size={18} className="text-[#64748B] mt-0.5 flex-shrink-0" />
-                      <span className={`text-[13.5px] leading-relaxed font-medium max-w-[85%] ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
-                        21 Dao Tan Street, An Dong Ward, Ho Chi Minh City, Vietnam
-                      </span>
-                    </div>
-                    
-                    <div className={`text-[12.5px] font-bold tracking-wider uppercase ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}`}>
-                      OPEN: 10:00 AM — 10:00 PM
-                    </div>
+
+              <div className="p-6 flex-1 flex flex-col justify-between text-left gap-5">
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <MapPin size={18} className="text-[#ee2828] mt-0.5 flex-shrink-0" />
+                    <span className={`text-sm leading-relaxed font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                      {isEn
+                        ? '21 Dao Tan, An Dong Ward, District 5, Ho Chi Minh City'
+                        : '21 Đào Tấn, Phường An Đông, Quận 5, TP. Hồ Chí Minh'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Clock size={17} className="text-[#f5c043] flex-shrink-0" />
+                    <span className={`text-xs font-bold tracking-wider uppercase ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                      {isEn ? 'Opening Hours:' : 'Giờ mở cửa:'} <strong className={isDark ? 'text-white' : 'text-zinc-900'}>10:00 — 22:00</strong>
+                    </span>
                   </div>
                 </div>
 
-                {/* Hotline Button */}
-                <a 
-                  href="tel:02839240343" 
-                  className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg absolute bottom-6 right-6 cursor-pointer ${
-                    theme === 'dark' ? 'bg-[#f5c043] text-black hover:bg-[#e5b33c] hover:scale-110' : 'bg-[#007a3f] text-white hover:bg-[#006030] hover:scale-110'
-                  }`}
-                  title="Gọi Hotline"
-                >
-                  <Phone size={18} className="fill-current stroke-[2]" />
-                </a>
+                <div className={`flex items-center justify-between pt-3 border-t ${isDark ? 'border-white/10' : 'border-zinc-100'}`}>
+                  <span className={`text-xs font-bold ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                    Hotline: <strong className={isDark ? 'text-white' : 'text-zinc-900'}>028 3924 0343</strong>
+                  </span>
+                  <a
+                    href="tel:02839240343"
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-extrabold uppercase tracking-wider transition-all shadow ${
+                      isDark ? 'bg-[#f5c043] text-zinc-950 hover:bg-[#eab308]' : 'bg-[#007a3f] text-white hover:bg-[#006332]'
+                    }`}
+                    title="Hotline"
+                  >
+                    <Phone size={14} />
+                    <span>{isEn ? 'Call Now' : 'Gọi ngay'}</span>
+                  </a>
+                </div>
               </div>
             </div>
 
             {/* Branch 2 Card */}
             <div className={`border rounded-3xl overflow-hidden shadow-lg group transition-all duration-300 relative flex flex-col ${
-              theme === 'dark' ? 'bg-[#121212] border-zinc-900 hover:border-[#f5c043]/30' : 'bg-white border-gray-200 hover:border-[#007a3f]/30'
+              isDark ? 'bg-[#161311] border-white/[0.08] hover:border-[#f5c043]/40' : 'bg-white border-zinc-200 hover:border-[#007a3f]/40'
             }`}>
               <div className="relative h-[220px] w-full overflow-hidden">
                 <Image
                   src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=600&auto=format&fit=crop"
-                  alt="District 7 Branch bar seating and upscale atmosphere"
+                  alt="Chi nhánh Quận 7"
                   fill
+                  sizes="(max-width: 768px) 100vw, 500px"
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <div className={`absolute inset-0 bg-gradient-to-t to-transparent opacity-60 ${theme === 'dark' ? 'from-[#121212]' : 'from-white'}`}></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                <h3 className="absolute bottom-4 left-5 text-white font-black text-lg uppercase tracking-wide drop-shadow">
+                  {isEn ? 'District 7 Branch' : 'Chi nhánh Quận 7'}
+                </h3>
               </div>
-              
-              <div className="p-6 pb-8 flex-1 flex flex-col justify-between text-left">
-                <div className="space-y-4">
-                  <h3 className={`text-lg font-black tracking-widest uppercase ${theme === 'dark' ? 'text-[#f5c043]' : 'text-[#007a3f]'}`}>
-                    DISTRICT 7 BRANCH
-                  </h3>
-                  
-                  <div className="space-y-3.5">
-                    <div className="flex items-start gap-3">
-                      <MapPin size={18} className="text-[#64748B] mt-0.5 flex-shrink-0" />
-                      <span className={`text-[13.5px] leading-relaxed font-medium max-w-[85%] ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
-                        C001 Pham Thai Buong Street, Tan Hung Ward, Ho Chi Minh City, Vietnam
-                      </span>
-                    </div>
-                    
-                    <div className={`text-[12.5px] font-bold tracking-wider uppercase ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}`}>
-                      OPEN: 09:00 AM — 09:00 PM
-                    </div>
+
+              <div className="p-6 flex-1 flex flex-col justify-between text-left gap-5">
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <MapPin size={18} className="text-[#ee2828] mt-0.5 flex-shrink-0" />
+                    <span className={`text-sm leading-relaxed font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                      {isEn
+                        ? 'C001 Pham Thai Buong, Tan Hung Ward, District 7, Ho Chi Minh City'
+                        : 'C001 Phạm Thái Bường, Phường Tân Hưng, Quận 7, TP. Hồ Chí Minh'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Clock size={17} className="text-[#f5c043] flex-shrink-0" />
+                    <span className={`text-xs font-bold tracking-wider uppercase ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                      {isEn ? 'Opening Hours:' : 'Giờ mở cửa:'} <strong className={isDark ? 'text-white' : 'text-zinc-900'}>09:00 — 21:00</strong>
+                    </span>
                   </div>
                 </div>
 
-                {/* Hotline Button */}
-                <a 
-                  href="tel:02854121197" 
-                  className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg absolute bottom-6 right-6 cursor-pointer ${
-                    theme === 'dark' ? 'bg-[#f5c043] text-black hover:bg-[#e5b33c] hover:scale-110' : 'bg-[#007a3f] text-white hover:bg-[#006030] hover:scale-110'
-                  }`}
-                  title="Gọi Hotline"
-                >
-                  <Phone size={18} className="fill-current stroke-[2]" />
-                </a>
+                <div className={`flex items-center justify-between pt-3 border-t ${isDark ? 'border-white/10' : 'border-zinc-100'}`}>
+                  <span className={`text-xs font-bold ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                    Hotline: <strong className={isDark ? 'text-white' : 'text-zinc-900'}>028 5412 1197</strong>
+                  </span>
+                  <a
+                    href="tel:02854121197"
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-extrabold uppercase tracking-wider transition-all shadow ${
+                      isDark ? 'bg-[#f5c043] text-zinc-950 hover:bg-[#eab308]' : 'bg-[#007a3f] text-white hover:bg-[#006332]'
+                    }`}
+                    title="Hotline"
+                  >
+                    <Phone size={14} />
+                    <span>{isEn ? 'Call Now' : 'Gọi ngay'}</span>
+                  </a>
+                </div>
               </div>
             </div>
 
@@ -322,10 +332,8 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* FOOTER CONTAINER */}
-      <div className={`px-6 transition-colors duration-300 ${theme === 'dark' ? 'bg-[#0a0a0a]' : 'bg-gray-100 border-t border-gray-200'}`}>
-        <Footer />
-      </div>
+      {/* FOOTER */}
+      <Footer />
     </div>
   );
 }

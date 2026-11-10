@@ -48,13 +48,16 @@ app.use(express.urlencoded({ extended: true }));
 
 // Serve uploaded files
 import path from 'path';
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
-
-// ─── Upload route ────────────────────────────────────────────────────────────
 import multer from 'multer';
 import fs from 'fs';
 
-const uploadsDir = path.join(__dirname, '..', 'uploads', 'dishes');
+const uploadsRootDir = fs.existsSync(path.resolve(process.cwd(), 'uploads'))
+  ? path.resolve(process.cwd(), 'uploads')
+  : path.join(__dirname, '..', 'uploads');
+app.use('/uploads', express.static(uploadsRootDir));
+
+// ─── Upload route ────────────────────────────────────────────────────────────
+const uploadsDir = path.join(uploadsRootDir, 'dishes');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
@@ -114,6 +117,14 @@ app.use('/api/policies', policyRoutes);
 import storeRoutes from './routes/store';
 app.use('/api/stores', storeRoutes);
 
+// Shipping routes (tính khoảng cách & phí giao hàng tự động)
+import shippingRoutes from './routes/shipping';
+app.use('/api/shipping', shippingRoutes);
+
+// Voucher & Loyalty routes (mã giảm giá & tích điểm thành viên)
+import voucherRoutes from './routes/voucher';
+app.use('/api/vouchers', voucherRoutes);
+
 // Cart routes
 import cartRoutes from './routes/cart';
 app.use('/api/cart', cartRoutes);
@@ -134,10 +145,6 @@ app.use('/api/reviews', reviewRoutes);
 // Recommendation routes (gợi ý món ăn)
 import recommendationRoutes from './routes/recommendation';
 app.use('/api/recommendations', recommendationRoutes);
-
-// Chatbot AI routes (gợi ý món ăn bằng AI)
-import chatbotRoutes from './routes/chatbot';
-app.use('/api/chatbot', chatbotRoutes);
 
 // Chat routes
 import chatRoutes from './routes/chat';

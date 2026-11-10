@@ -55,6 +55,7 @@ export type CartItem = {
 type CartStore = {
   cart_id: number | null;
   items: CartItem[];
+  lastAddedAt: number;
   addToCart: (item: Omit<CartItem, 'id'>) => Promise<void>;
   removeFromCart: (id: string) => Promise<void>;
   updateQuantity: (id: string, quantity: number) => Promise<void>;
@@ -71,13 +72,15 @@ export const useCartStore = create<CartStore>()(
     (set, get) => ({
       cart_id: null,
       items: [],
+      lastAddedAt: 0,
 
       // ── Thêm sản phẩm vào giỏ hàng ─────────────────────────────────────────
       addToCart: async (item) => {
-        const newItem: CartItem = { ...item, id: Date.now().toString() };
+        const now = Date.now();
+        const newItem: CartItem = { ...item, id: now.toString() };
 
-        // Cập nhật UI ngay lập tức
-        set((state) => ({ items: [...state.items, newItem] }));
+        // Cập nhật UI ngay lập tức + đánh dấu thời điểm thêm món để kích hoạt animation badge
+        set((state) => ({ items: [...state.items, newItem], lastAddedAt: now }));
 
         // Gọi API đồng bộ với Database
         try {
@@ -334,6 +337,10 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: 'cart-storage', // tên key trong localStorage
+      partialize: (state) => ({
+        cart_id: state.cart_id,
+        items: state.items,
+      }),
     }
   )
 );

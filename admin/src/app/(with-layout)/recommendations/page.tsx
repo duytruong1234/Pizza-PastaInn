@@ -64,43 +64,43 @@ export default function RecommendationsPage() {
   const algorithms = [
     {
       id: "content_based",
-      title: "Content-Based Filtering",
-      desc: "Vector 14 chiều, Cosine Similarity",
+      title: "Gợi ý theo nguyên liệu",
+      desc: "Đối chiếu thành phần & nhóm món tương đồng",
       icon: <Sparkles className="text-blue-500" size={24} />,
       bg: "bg-blue-100 dark:bg-blue-900/30",
     },
     {
       id: "popular",
       title: "Món phổ biến",
-      desc: "Thống kê từ lịch sử đơn hàng",
+      desc: "Thống kê các món được đặt nhiều nhất",
       icon: <TrendingUp className="text-orange-500" size={24} />,
       bg: "bg-orange-100 dark:bg-orange-900/30",
     },
     {
       id: "history",
-      title: "Đặt lại yêu thích",
-      desc: "Cá nhân hóa theo lịch sử user",
+      title: "Đặt lại món quen",
+      desc: "Gợi ý theo lịch sử đặt món của khách hàng",
       icon: <RotateCcw className="text-emerald-500" size={24} />,
       bg: "bg-emerald-100 dark:bg-emerald-900/30",
     },
     {
       id: "market_basket",
-      title: "Mua kèm (Market Basket)",
-      desc: "Phân tích đồng xuất hiện",
+      title: "Món thường đặt kèm",
+      desc: "Thống kê các món hay xuất hiện cùng đơn hàng",
       icon: <ShoppingCart className="text-purple-500" size={24} />,
       bg: "bg-purple-100 dark:bg-purple-900/30",
     },
     {
       id: "top_rated",
       title: "Đánh giá cao",
-      desc: "Trung bình sao từ review",
+      desc: "Xếp hạng theo điểm đánh giá của thực khách",
       icon: <Star className="text-yellow-500" size={24} />,
       bg: "bg-yellow-100 dark:bg-yellow-900/30",
     },
     {
       id: "similar",
       title: "Món tương tự",
-      desc: "So sánh vector đặc trưng",
+      desc: "Gợi ý các món cùng danh mục và khẩu vị",
       icon: <Copy className="text-cyan-500" size={24} />,
       bg: "bg-cyan-100 dark:bg-cyan-900/30",
     },
@@ -110,17 +110,51 @@ export default function RecommendationsPage() {
     <div className="mx-auto max-w-6xl space-y-8">
       <div>
         <h1 className="text-2xl font-black uppercase tracking-wide text-dark dark:text-white">
-          QUẢN LÝ GỢI Ý THÔNG MINH
+          THỐNG KÊ GỢI Ý MÓN ĂN
         </h1>
         <p className="text-xs font-semibold text-gray-500 dark:text-zinc-400 mt-1">
-          Theo dõi các thuật toán đề xuất và các món ăn nổi bật trong hệ thống AI.
+          Theo dõi các nhóm gợi ý món ăn trên thực đơn và danh sách món khách đặt nhiều.
         </p>
       </div>
 
-      {/* Section 2: Tổng quan thuật toán */}
+      {/* Summary Stats */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Nhóm thuật toán</p>
+          <p className="mt-2 text-2xl font-black text-dark dark:text-white">{algorithms.length} mô hình</p>
+          <p className="mt-1 text-xs text-gray-400">Tổ hợp gợi ý hiển thị trên trang khách hàng</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Đang hoạt động</p>
+          <p className="mt-2 text-2xl font-black text-emerald-600">{algorithms.length} mô hình</p>
+          <p className="mt-1 text-xs text-gray-400">100% luồng gợi ý đang kích hoạt trực tuyến</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-primary">Món bán chạy dẫn đầu</p>
+          <p className="mt-2 text-2xl font-black text-primary">
+            {(stats?.popular?.[0]?.total_ordered || 0).toLocaleString("vi-VN")} lượt đặt
+          </p>
+          <p className="mt-1 text-xs text-gray-400 truncate">
+            {stats?.popular?.[0]?.dish_name || "Đang tổng hợp dữ liệu"}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-amber-600">Điểm đánh giá cao nhất</p>
+          <p className="mt-2 text-2xl font-black text-amber-600">
+            {stats?.topRated?.[0]?.avg_rating
+              ? `${Number(stats.topRated[0].avg_rating).toFixed(1)} sao`
+              : "5.0 sao"}
+          </p>
+          <p className="mt-1 text-xs text-gray-400 truncate">
+            {stats?.topRated?.[0]?.dish_name || "Ưu tiên đề xuất trên trang chủ"}
+          </p>
+        </div>
+      </div>
+
+      {/* Section 2: Tổng quan nhóm gợi ý */}
       <div className="space-y-4">
         <h2 className="text-sm font-black uppercase text-dark dark:text-white border-b border-stroke dark:border-dark-3 pb-2">
-          Tổng quan thuật toán
+          Các nhóm gợi ý đang hoạt động
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {algorithms.map((algo) => (

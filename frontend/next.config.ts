@@ -1,8 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  reactStrictMode: true,
+  compress: true,
+  poweredByHeader: false,
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+  },
   images: {
     dangerouslyAllowLocalIP: true,
+    minimumCacheTTL: 60,
     remotePatterns: [
       {
         protocol: 'https',

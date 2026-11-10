@@ -81,6 +81,29 @@ export default function CombosPage() {
     api.get("/api/admin/dishes").then(r => setDishes(r.data.data)).catch(() => { });
     api.get("/api/admin/sizes").then(r => setAllSizes((r.data.data || []).map((s: any) => s.size_name))).catch(() => { });
     api.get("/api/admin/crusts").then(r => setAllCrusts((r.data.data || []).map((c: any) => c.crust_name))).catch(() => { });
+    // Nhận combo nháp được tạo từ trang "Phân tích mua cùng" (Apriori)
+    try {
+      const raw = sessionStorage.getItem("comboDraft");
+      if (raw) {
+        sessionStorage.removeItem("comboDraft");
+        const draft = JSON.parse(raw);
+        setEditId(null);
+        setAddErrors({});
+        setAddForm({
+          combo_name: draft.combo_name || "",
+          combo_price: Number(draft.combo_price) || 0,
+          description: draft.description || "",
+          is_active: false,
+          category_id: null,
+          image_combo: null,
+          groups: Array.isArray(draft.groups) ? draft.groups : [],
+        });
+        setShowAddModal(true);
+        toast.info("Đã điền sẵn combo nháp từ Phân tích mua cùng. Chọn danh mục, ảnh rồi lưu.");
+      }
+    } catch {
+      sessionStorage.removeItem("comboDraft");
+    }
   }, []);
 
   const dishOptions = useMemo(() => {
@@ -253,7 +276,7 @@ export default function CombosPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-dark dark:text-white">QUẢN LÝ COMBO</h1>
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500">Tổng cộng: {combos.length} combo</span>
@@ -265,6 +288,36 @@ export default function CombosPage() {
             label="Thêm combo"
             icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5"><path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" /></svg>}
           />
+        </div>
+      </div>
+
+      {/* Summary Stats */}
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Tổng gói combo</p>
+          <p className="mt-2 text-2xl font-black text-dark dark:text-white">{combos.length} combo</p>
+          <p className="mt-1 text-xs text-gray-400">Các gói combo tiết kiệm trên hệ thống</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Đang mở bán</p>
+          <p className="mt-2 text-2xl font-black text-emerald-600">
+            {combos.filter((c) => c.is_active).length} combo
+          </p>
+          <p className="mt-1 text-xs text-gray-400">Khách hàng có thể chọn mua trực tiếp</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-primary">Tổng nhóm món chọn</p>
+          <p className="mt-2 text-2xl font-black text-primary">
+            {combos.reduce((s, c) => s + (c.groups?.length || 0), 0)} nhóm
+          </p>
+          <p className="mt-1 text-xs text-gray-400">Số bước lựa chọn món thành phần trong combo</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-amber-600">Tạm ngưng / Ẩn</p>
+          <p className="mt-2 text-2xl font-black text-amber-600">
+            {combos.filter((c) => !c.is_active).length} combo
+          </p>
+          <p className="mt-1 text-xs text-gray-400">Gói combo đang tạm khóa hoặc hết hạn</p>
         </div>
       </div>
 
@@ -364,7 +417,7 @@ export default function CombosPage() {
       <Modal isOpen={!!viewCombo} setIsOpen={(val) => !val && setViewCombo(null)} title="CHI TIẾT COMBO" className="max-w-3xl">
         {viewCombo && (
           <div className="space-y-6">
-            <div className="flex gap-5 rounded-xl border border-stroke bg-gray-50/50 p-5 dark:border-dark-3 dark:bg-dark-2/20">
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 rounded-xl border border-stroke bg-gray-50/50 p-4 sm:p-5 dark:border-dark-3 dark:bg-dark-2/20">
               <div className="shrink-0">
                 {viewCombo.image_combo ? (
                   <img src={getImageUrl(viewCombo.image_combo)!} alt={viewCombo.combo_name} className="h-28 w-28 rounded-2xl border border-stroke object-cover shadow-sm dark:border-dark-3" />

@@ -173,7 +173,7 @@ export default function CategoriesPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-dark dark:text-white">
           QUẢN LÝ DANH MỤC
         </h1>
@@ -191,6 +191,36 @@ export default function CategoriesPage() {
               </svg>
             }
           />
+        </div>
+      </div>
+
+      {/* Summary Stats */}
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Tổng danh mục</p>
+          <p className="mt-2 text-2xl font-black text-dark dark:text-white">{categories.length} danh mục</p>
+          <p className="mt-1 text-xs text-gray-400">Phân loại thực đơn trên hệ thống</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Đang có sản phẩm</p>
+          <p className="mt-2 text-2xl font-black text-emerald-600">
+            {categories.filter((c) => (c._count?.dishes || 0) + (c._count?.combos || 0) > 0).length} danh mục
+          </p>
+          <p className="mt-1 text-xs text-gray-400">Danh mục đã gắn món ăn hoặc combo</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-primary">Tổng món theo danh mục</p>
+          <p className="mt-2 text-2xl font-black text-primary">
+            {categories.reduce((s, c) => s + (c._count?.dishes || 0) + (c._count?.combos || 0), 0)} sản phẩm
+          </p>
+          <p className="mt-1 text-xs text-gray-400">Tổng số món ăn & combo thuộc các nhóm</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-amber-600">Danh mục trống</p>
+          <p className="mt-2 text-2xl font-black text-amber-600">
+            {categories.filter((c) => (c._count?.dishes || 0) + (c._count?.combos || 0) === 0).length} danh mục
+          </p>
+          <p className="mt-1 text-xs text-gray-400">Chưa có món ăn hoặc combo nào bên trong</p>
         </div>
       </div>
 

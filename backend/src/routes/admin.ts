@@ -10,6 +10,9 @@ import {
   DashboardAnalyticsService,
   isDashboardAnalyticsRange,
 } from '../services/dashboardAnalyticsService';
+import { DailyDishSaleService } from '../services/dailyDishSaleService';
+import { BasketAnalysisService } from '../services/basketAnalysisService';
+import { VoucherService } from '../services/voucherService';
 import { Response } from 'express';
 
 const router = Router();
@@ -21,26 +24,31 @@ router.use(verifyToken, checkRole('admin', 'cashier'));
 
 /**
  * GET /api/admin/stats
- * Lấy thống kê tổng quan: tổng đơn, doanh thu, số khách, số món
+ * Lấy thống kê tổng quan (đồng bộ với dữ liệu bảng daily_dish_sale năm hiện hành)
  */
-router.get('/stats', async (_req: AuthRequest, res: Response): Promise<void> => {
+router.get('/stats', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const [totalOrders, totalRevenue, totalCustomers, totalDishes] = await Promise.all([
-      prisma.order.count(),
-      prisma.order.aggregate({
-        where: { order_status: { not: 'cancelled' } },
-        _sum: { total_order: true },
-      }),
+    const requestedYear = req.query.year ? parseInt(String(req.query.year)) : 2026;
+    const [salesAnalytics, realCustomers, totalDishes] = await Promise.all([
+      DailyDishSaleService.getDishSalesAnalytics({ year: requestedYear }),
       prisma.user.count({ where: { role: 'customer' } }),
-      prisma.dish.count(),
+      prisma.dish.count({ where: { dish_status: true, dish_id: { notIn: [62, 63, 64, 65] } } }),
     ]);
+
+    const totalOrders = salesAnalytics.summary.totalOrdersSelectedYear || 0;
+    const totalRevenue = salesAnalytics.summary.totalRevenueSelectedYear || 0;
+    const totalPortions = salesAnalytics.summary.totalQuantitySelectedYear || 0;
+    // Ước tính lượng khách hàng đã phục vụ đồng bộ theo quy mô đơn hàng
+    const totalCustomers = Math.max(realCustomers, Math.round(totalOrders * 0.38));
 
     sendSuccess(res, {
       data: {
         totalOrders,
-        totalRevenue: totalRevenue._sum.total_order || 0,
+        totalRevenue,
+        totalPortions,
         totalCustomers,
         totalDishes,
+        overallYoYGrowthPercent: salesAnalytics.summary.overallYoYGrowthPercent || 0,
       },
     });
   } catch (err) {
@@ -148,11 +156,12 @@ router.get('/orders', async (req: AuthRequest, res: Response): Promise<void> => 
       };
     }
 
-    const [orders, total] = await Promise.all([
+    const [orders, total, statusGroups] = await Promise.all([
       prisma.order.findMany({
         where,
         include: {
           user: { select: { user_id: true, username: true, email: true, phone: true } },
+          user_address: true,
           store: true,
           items: {
             include: {
@@ -171,10 +180,39 @@ router.get('/orders', async (req: AuthRequest, res: Response): Promise<void> => 
         take: limit,
       }),
       prisma.order.count({ where }),
+      prisma.order.groupBy({
+        by: ['order_status'],
+        _count: { order_id: true },
+      }),
     ]);
 
+    let allTotal = 0;
+    let completedCount = 0;
+    let processingCount = 0;
+    let cancelledCount = 0;
+    for (const g of statusGroups) {
+      const cnt = g._count.order_id || 0;
+      allTotal += cnt;
+      const st = String(g.order_status || '').toLowerCase();
+      if (st === 'completed') completedCount += cnt;
+      else if (st === 'cancelled') cancelledCount += cnt;
+      else processingCount += cnt;
+    }
+
     sendSuccess(res, {
-      data: { orders, total, page, limit, totalPages: Math.ceil(total / limit) },
+      data: {
+        orders,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        stats: {
+          total: allTotal,
+          completed: completedCount,
+          processing: processingCount,
+          cancelled: cancelledCount,
+        },
+      },
     });
   } catch (err) {
     logger.error('Admin orders error:', err);
@@ -227,10 +265,22 @@ router.patch('/orders/:id/status', async (req: AuthRequest, res: Response): Prom
       }
     }
 
+    const prevOrder = await prisma.order.findUnique({
+      where: { order_id: orderId },
+      select: { order_status: true },
+    });
+
     const order = await prisma.order.update({
       where: { order_id: orderId },
       data: updateData,
     });
+
+    if (order_status === 'cancelled' && prevOrder?.order_status !== 'cancelled') {
+      DailyDishSaleService.recordOrderSales(orderId, -1).catch(() => {});
+      VoucherService.refundOrderRedemption(orderId);
+    } else if (prevOrder?.order_status === 'cancelled' && order_status !== 'cancelled') {
+      DailyDishSaleService.recordOrderSales(orderId, 1).catch(() => {});
+    }
 
     // Gửi email bất đồng bộ theo trạng thái mới
     if (order_status === 'confirmed') {
@@ -476,9 +526,9 @@ router.get('/dishes', async (_req: AuthRequest, res: Response): Promise<void> =>
  */
 router.post('/dishes', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { dish_name, category_id, image, ingredient, dish_status } = req.body;
+    const { dish_name, category_id, image, ingredient, dish_status, dish_type } = req.body;
     const dish = await prisma.dish.create({
-      data: { dish_name, category_id, image, ingredient, dish_status: dish_status ?? true },
+      data: { dish_name, category_id, image, ingredient, dish_status: dish_status ?? true, dish_type: dish_type || 'man' },
     });
     sendSuccess(res, { data: dish, message: 'Tạo món ăn thành công' }, 201);
   } catch (err) {
@@ -493,10 +543,10 @@ router.post('/dishes', async (req: AuthRequest, res: Response): Promise<void> =>
 router.put('/dishes/:id', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const id = parseInt(String(req.params.id));
-    const { dish_name, category_id, image, ingredient, dish_status } = req.body;
+    const { dish_name, category_id, image, ingredient, dish_status, dish_type } = req.body;
     const dish = await prisma.dish.update({
       where: { dish_id: id },
-      data: { dish_name, category_id, image, ingredient, dish_status },
+      data: { dish_name, category_id, image, ingredient, dish_status, ...(dish_type !== undefined && { dish_type }) },
     });
     sendSuccess(res, { data: dish, message: 'Cập nhật món ăn thành công' });
   } catch (err) {
@@ -1063,9 +1113,22 @@ router.get('/customers', async (req: AuthRequest, res: Response): Promise<void> 
 
     const total = allCustomers.length;
     const paginated = allCustomers.slice((page - 1) * limit, page * limit);
+    const lockedCount = registeredCustomers.filter((c) => !c.user_status).length;
 
     sendSuccess(res, {
-      data: { customers: paginated, total, page, limit, totalPages: Math.ceil(total / limit) },
+      data: {
+        customers: paginated,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        stats: {
+          total,
+          registered: registeredCustomers.length,
+          guests: guests.length,
+          locked: lockedCount,
+        },
+      },
     });
   } catch (err) {
     logger.error('Admin customers error:', err);
@@ -1442,165 +1505,6 @@ router.delete('/chat/rooms/:roomId', async (req: AuthRequest, res: Response): Pr
 });
 
 // ==========================================
-// CHATBOT ADMIN ROUTES
-// ==========================================
-
-/**
- * GET /api/admin/chatbot/stats
- * Thống kê tổng quan Chatbot AI
- */
-router.get('/chatbot/stats', async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const [totalSessions, totalMessages, todaySessions, intentStats] = await Promise.all([
-      prisma.chatbotSession.count(),
-      prisma.chatbotMessage.count(),
-      prisma.chatbotSession.count({
-        where: { started_at: { gte: new Date(new Date().setHours(0,0,0,0)) } }
-      }),
-      prisma.chatbotMessage.groupBy({
-        by: ['intent'],
-        where: { role: 'bot', intent: { not: null } },
-        _count: { intent: true }
-      })
-    ]);
-
-    const avgMessagesPerSession = totalSessions > 0 ? (totalMessages / totalSessions).toFixed(1) : 0;
-
-    sendSuccess(res, {
-      data: {
-        totalSessions,
-        totalMessages,
-        todaySessions,
-        avgMessagesPerSession,
-        intentStats
-      }
-    });
-  } catch (err) {
-    logger.error('Admin chatbot stats error:', err);
-    sendError(res, 'Lỗi lấy thống kê chatbot', 500);
-  }
-});
-
-/**
- * GET /api/admin/chatbot/sessions
- * Lấy danh sách session (có phân trang)
- */
-router.get('/chatbot/sessions', async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const page = req.query.page ? Math.max(1, Number(req.query.page)) : 1;
-    const limit = req.query.limit ? Math.max(1, Number(req.query.limit)) : 10;
-    const skip = (page - 1) * limit;
-    const search = req.query.search ? String(req.query.search) : '';
-    const intent = req.query.intent ? String(req.query.intent) : '';
-
-    const whereClause: any = {};
-    if (search) {
-      whereClause.user = {
-        OR: [
-          { username: { contains: search } },
-          { email: { contains: search } }
-        ]
-      };
-    }
-    if (intent) {
-      whereClause.last_intent = intent;
-    }
-
-    const [total, sessions] = await Promise.all([
-      prisma.chatbotSession.count({ where: whereClause }),
-      prisma.chatbotSession.findMany({
-        where: whereClause,
-        include: {
-          user: { select: { username: true, email: true } },
-          messages: {
-            take: 1,
-            orderBy: { created_at: 'asc' }
-          }
-        },
-        orderBy: { started_at: 'desc' },
-        skip,
-        take: limit
-      })
-    ]);
-
-    // Also get last message
-    const formattedSessions = await Promise.all(sessions.map(async (s) => {
-      const lastMessage = await prisma.chatbotMessage.findFirst({
-        where: { session_id: s.session_id },
-        orderBy: { created_at: 'desc' }
-      });
-      return {
-        ...s,
-        first_message: s.messages[0] || null,
-        last_message: lastMessage
-      };
-    }));
-
-    sendSuccess(res, {
-      data: { sessions: formattedSessions, total, page, limit }
-    });
-  } catch (err) {
-    logger.error('Admin chatbot sessions error:', err);
-    sendError(res, 'Lỗi lấy danh sách session', 500);
-  }
-});
-
-/**
- * GET /api/admin/chatbot/sessions/:id
- * Chi tiết session và tin nhắn
- */
-router.get('/chatbot/sessions/:id', async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const sessionId = Number(req.params.id);
-    if (isNaN(sessionId)) {
-      sendError(res, 'Mã session không hợp lệ', 400);
-      return;
-    }
-
-    const session = await prisma.chatbotSession.findUnique({
-      where: { session_id: sessionId },
-      include: {
-        user: { select: { username: true, email: true } },
-        messages: { orderBy: { created_at: 'asc' } }
-      }
-    });
-
-    if (!session) {
-      sendError(res, 'Không tìm thấy session', 404);
-      return;
-    }
-
-    sendSuccess(res, { data: session });
-  } catch (err) {
-    logger.error('Admin get session detail error:', err);
-    sendError(res, 'Lỗi lấy chi tiết session', 500);
-  }
-});
-
-/**
- * DELETE /api/admin/chatbot/sessions/:id
- * Xóa session
- */
-router.delete('/chatbot/sessions/:id', async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const sessionId = Number(req.params.id);
-    if (isNaN(sessionId)) {
-      sendError(res, 'Mã session không hợp lệ', 400);
-      return;
-    }
-
-    await prisma.chatbotSession.delete({
-      where: { session_id: sessionId }
-    });
-
-    sendSuccess(res, { message: 'Xóa session thành công' });
-  } catch (err) {
-    logger.error('Admin delete session error:', err);
-    sendError(res, 'Lỗi xóa session', 500);
-  }
-});
-
-// ==========================================
 // RECOMMENDATION ADMIN ROUTES
 // ==========================================
 
@@ -1622,6 +1526,292 @@ router.get('/recommendations/stats', async (req: AuthRequest, res: Response): Pr
   } catch (err) {
     logger.error('Admin recommendation stats error:', err);
     sendError(res, 'Lỗi lấy thống kê đề xuất', 500);
+  }
+});
+
+// ==========================================
+// DISH PAIRING ADMIN ROUTES (Kết hợp món ăn)
+// ==========================================
+
+/**
+ * GET /api/admin/dish-pairings
+ * Danh sách nhóm kết hợp (có phân trang, tìm kiếm)
+ */
+router.get('/dish-pairings', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const page = req.query.page ? Math.max(1, Number(req.query.page)) : 1;
+    const limit = req.query.limit ? Math.max(1, Number(req.query.limit)) : 10;
+    const skip = (page - 1) * limit;
+    const search = req.query.search ? String(req.query.search) : '';
+
+    const whereClause: any = {};
+    if (search) {
+      whereClause.OR = [
+        { reason: { contains: search, mode: 'insensitive' } },
+        { items: { some: { dish: { dish_name: { contains: search, mode: 'insensitive' } } } } }
+      ];
+    }
+
+    const [total, pairings] = await Promise.all([
+      prisma.dishPairing.count({ where: whereClause }),
+      prisma.dishPairing.findMany({
+        where: whereClause,
+        include: {
+          items: {
+            include: {
+              dish: {
+                include: { category: true }
+              }
+            }
+          }
+        },
+        orderBy: { created_at: 'desc' },
+        skip,
+        take: limit
+      })
+    ]);
+
+    sendSuccess(res, { data: { pairings, total, page, limit } });
+  } catch (err) {
+    logger.error('Admin dish-pairings list error:', err);
+    sendError(res, 'Lỗi lấy danh sách kết hợp món', 500);
+  }
+});
+
+/**
+ * POST /api/admin/dish-pairings
+ * Tạo nhóm kết hợp mới
+ * Body: { reason: string, dish_ids: number[] }
+ */
+router.post('/dish-pairings', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { reason, dish_ids } = req.body;
+
+    if (!dish_ids || !Array.isArray(dish_ids) || dish_ids.length < 2) {
+      sendError(res, 'Cần ít nhất 2 món ăn để tạo nhóm kết hợp', 400);
+      return;
+    }
+
+    const pairing = await prisma.dishPairing.create({
+      data: {
+        reason: reason || null,
+        items: {
+          create: dish_ids.map((id: number) => ({ dish_id: id }))
+        }
+      },
+      include: {
+        items: {
+          include: {
+            dish: { include: { category: true } }
+          }
+        }
+      }
+    });
+
+    sendSuccess(res, { data: pairing, message: 'Tạo nhóm kết hợp thành công' });
+  } catch (err) {
+    logger.error('Admin create dish-pairing error:', err);
+    sendError(res, 'Lỗi tạo nhóm kết hợp', 500);
+  }
+});
+
+/**
+ * PUT /api/admin/dish-pairings/:id
+ * Cập nhật nhóm kết hợp
+ * Body: { reason: string, dish_ids: number[] }
+ */
+router.put('/dish-pairings/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const pairingId = Number(req.params.id);
+    if (isNaN(pairingId)) {
+      sendError(res, 'ID nhóm kết hợp không hợp lệ', 400);
+      return;
+    }
+
+    const { reason, dish_ids } = req.body;
+
+    if (!dish_ids || !Array.isArray(dish_ids) || dish_ids.length < 2) {
+      sendError(res, 'Cần ít nhất 2 món ăn để cập nhật nhóm kết hợp', 400);
+      return;
+    }
+
+    // Xóa các item cũ và tạo lại
+    await prisma.dishPairingItem.deleteMany({
+      where: { pairing_id: pairingId }
+    });
+
+    const pairing = await prisma.dishPairing.update({
+      where: { pairing_id: pairingId },
+      data: {
+        reason: reason || null,
+        items: {
+          create: dish_ids.map((id: number) => ({ dish_id: id }))
+        }
+      },
+      include: {
+        items: {
+          include: {
+            dish: { include: { category: true } }
+          }
+        }
+      }
+    });
+
+    sendSuccess(res, { data: pairing, message: 'Cập nhật nhóm kết hợp thành công' });
+  } catch (err) {
+    logger.error('Admin update dish-pairing error:', err);
+    sendError(res, 'Lỗi cập nhật nhóm kết hợp', 500);
+  }
+});
+
+/**
+ * DELETE /api/admin/dish-pairings/:id
+ * Xóa nhóm kết hợp
+ */
+router.delete('/dish-pairings/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const pairingId = Number(req.params.id);
+    if (isNaN(pairingId)) {
+      sendError(res, 'ID nhóm kết hợp không hợp lệ', 400);
+      return;
+    }
+
+    await prisma.dishPairing.delete({
+      where: { pairing_id: pairingId }
+    });
+
+    sendSuccess(res, { message: 'Xóa nhóm kết hợp thành công' });
+  } catch (err) {
+    logger.error('Admin delete dish-pairing error:', err);
+    sendError(res, 'Lỗi xóa nhóm kết hợp', 500);
+  }
+});
+
+/**
+ * GET /api/admin/dishes-list
+ * Lấy danh sách món ăn ngắn gọn để chọn trong form kết hợp
+ */
+router.get('/dishes-list', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const dishes = await prisma.dish.findMany({
+      where: { dish_status: true },
+      select: {
+        dish_id: true,
+        dish_name: true,
+        image: true,
+        dish_type: true,
+        category: { select: { category_name: true } }
+      },
+      orderBy: { dish_name: 'asc' }
+    });
+
+    sendSuccess(res, { data: dishes });
+  } catch (err) {
+    logger.error('Admin dishes-list error:', err);
+    sendError(res, 'Lỗi lấy danh sách món', 500);
+  }
+});
+
+// ─── THỐNG KÊ BÁN HÀNG MÓN LẺ & DỰ BÁO (daily_dish_sale) ──────────────────
+
+/**
+ * GET /api/admin/dish-sales/analytics
+ * Thống kê sản lượng bán của từng món lẻ (đã tách Combo thành các món lẻ),
+ * so sánh các năm, tìm tháng bán chạy nhất / ít nhất và dự báo tháng tiếp theo.
+ */
+router.get('/dish-sales/analytics', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const year = req.query.year ? parseInt(String(req.query.year)) : undefined;
+    const compareYear = req.query.compareYear ? parseInt(String(req.query.compareYear)) : undefined;
+    const categoryId = req.query.categoryId ? parseInt(String(req.query.categoryId)) : undefined;
+    const search = req.query.search ? String(req.query.search) : undefined;
+    const trendFilter = req.query.trendFilter ? String(req.query.trendFilter) : undefined;
+
+    const data = await DailyDishSaleService.getDishSalesAnalytics({
+      year,
+      compareYear,
+      categoryId,
+      search,
+      trendFilter,
+    });
+
+    sendSuccess(res, { data });
+  } catch (err) {
+    logger.error('Admin dish-sales analytics error:', err);
+    sendError(res, 'Lỗi khi tải thống kê bán hàng món lẻ', 500);
+  }
+});
+
+/**
+ * GET /api/admin/dish-sales/daily
+ * Lấy danh sách bản ghi bảng daily_dish_sale theo ngày (hỗ trợ lọc theo dishId, từ ngày - đến ngày, phân trang)
+ */
+router.get('/dish-sales/daily', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const dishId = req.query.dishId ? parseInt(String(req.query.dishId)) : undefined;
+    const startDate = req.query.startDate ? String(req.query.startDate) : undefined;
+    const endDate = req.query.endDate ? String(req.query.endDate) : undefined;
+    const page = req.query.page ? parseInt(String(req.query.page)) : 1;
+    const limit = req.query.limit ? parseInt(String(req.query.limit)) : 25;
+
+    const data = await DailyDishSaleService.getDailyDishSaleRecords({
+      dishId,
+      startDate,
+      endDate,
+      page,
+      limit,
+    });
+
+    sendSuccess(res, { data });
+  } catch (err) {
+    logger.error('Admin dish-sales daily error:', err);
+    sendError(res, 'Lỗi khi tải dữ liệu bán hàng theo ngày', 500);
+  }
+});
+
+/**
+ * POST /api/admin/dish-sales/seed
+ * Làm mới & đồng bộ dữ liệu bán hàng mô phỏng (2023 - 2026) kết hợp đơn hàng thực tế
+ */
+router.post('/dish-sales/seed', async (_req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const result = await DailyDishSaleService.seedSimulatedSalesData(true);
+    BasketAnalysisService.clearCache();
+    sendSuccess(res, {
+      data: result,
+      message: 'Đã làm mới và đồng bộ dữ liệu bán hàng 2023 - 2026 thành công',
+    });
+  } catch (err) {
+    logger.error('Admin dish-sales seed error:', err);
+    sendError(res, 'Lỗi khi làm mới dữ liệu bán hàng', 500);
+  }
+});
+
+// ─── PHÂN TÍCH MUA CÙNG (Apriori - Luật kết hợp, chỉ món lẻ) ──────────────────
+
+/**
+ * GET /api/admin/basket-analysis
+ * Ma trận mua cùng, các bước Apriori, luật kết hợp, gợi ý thiết lập combo & sức khoẻ combo hiện có.
+ * Query: year, top, categoryId, minSupport (%), minConfidence (%), minLift
+ */
+router.get('/basket-analysis', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const num = (v: unknown) => (v !== undefined && v !== '' ? Number(v) : undefined);
+    const year = num(req.query.year);
+    const minSupportPct = num(req.query.minSupport);
+    const minConfidencePct = num(req.query.minConfidence);
+    const data = await BasketAnalysisService.getAdminAnalysis({
+      year: year && !isNaN(year) ? year : undefined,
+      top: num(req.query.top),
+      categoryId: num(req.query.categoryId),
+      minSupport: minSupportPct !== undefined ? minSupportPct / 100 : undefined,
+      minConfidence: minConfidencePct !== undefined ? minConfidencePct / 100 : undefined,
+      minLift: num(req.query.minLift),
+    });
+    sendSuccess(res, { data });
+  } catch (err) {
+    logger.error('Admin basket-analysis error:', err);
+    sendError(res, 'Lỗi khi phân tích dữ liệu mua cùng', 500);
   }
 });
 

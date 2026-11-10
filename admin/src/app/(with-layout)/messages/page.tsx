@@ -1,6 +1,6 @@
 "use client";
 
-import { api, API_URL } from "@/lib/api";
+import { api, API_URL, getApiErrorMessage } from "@/lib/api";
 import { useEffect, useState, useRef, useMemo } from "react";
 import {
   Search, Send, Paperclip, MoreVertical, X, Check,
@@ -90,7 +90,7 @@ export default function MessagesPage() {
         }
       }
     } catch (err) {
-      console.error("Error loading chat room list:", err);
+      if (!silent) console.warn("Error loading chat room list:", getApiErrorMessage(err));
       if (!silent) toast.error("Tải danh sách phòng chat thất bại");
     } finally {
       if (!silent) setLoadingRooms(false);
@@ -106,7 +106,7 @@ export default function MessagesPage() {
         setMessages(res.data.data);
       }
     } catch (err) {
-      console.error("Error loading messages:", err);
+      if (!silent) console.warn("Error loading messages:", getApiErrorMessage(err));
       if (!silent) toast.error("Tải lịch sử tin nhắn thất bại");
     } finally {
       if (!silent) setLoadingMessages(false);
@@ -143,7 +143,7 @@ export default function MessagesPage() {
         prev.map((r) => r.room_id === roomId ? { ...r, unreadCount: 0 } : r)
       );
     } catch (err) {
-      console.error("Error marking as read:", err);
+      console.warn("Error marking as read:", getApiErrorMessage(err));
     }
   };
 
@@ -201,7 +201,7 @@ export default function MessagesPage() {
         toast.error("Xóa cuộc hội thoại thất bại");
       }
     } catch (err) {
-      console.error("Error deleting conversation:", err);
+      console.warn("Error deleting conversation:", getApiErrorMessage(err));
       toast.error("Lỗi kết nối đến máy chủ");
     }
   };
@@ -229,7 +229,7 @@ export default function MessagesPage() {
         fetchRooms(true);
       }
     } catch (err) {
-      console.error("Error sending response:", err);
+      console.warn("Error sending response:", getApiErrorMessage(err));
       toast.error("Gửi tin nhắn thất bại");
     }
   };
@@ -254,7 +254,7 @@ export default function MessagesPage() {
         setPreviewImages((prev) => [...prev, fullUrl]);
       }
     } catch (err) {
-      console.error("Error uploading image:", err);
+      console.warn("Error uploading image:", getApiErrorMessage(err));
       toast.error("Tải ảnh lên thất bại");
     } finally {
       setIsUploading(false);
@@ -275,7 +275,7 @@ export default function MessagesPage() {
         fetchRooms(true);
       }
     } catch (err) {
-      console.error("Error updating room status:", err);
+      console.warn("Error updating room status:", getApiErrorMessage(err));
       toast.error("Thay đổi trạng thái phòng chat thất bại");
     }
   };
@@ -300,11 +300,41 @@ export default function MessagesPage() {
         </h1>
       </div>
 
+      {/* Summary Stats */}
+      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 shrink-0">
+        <div className="rounded-2xl border border-stroke bg-white p-4 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Tổng hội thoại</p>
+          <p className="mt-1.5 text-2xl font-black text-dark dark:text-white">{rooms.length} phòng</p>
+          <p className="mt-0.5 text-xs text-gray-400">Toàn bộ phiên trò chuyện với khách hàng</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-4 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Đang hoạt động</p>
+          <p className="mt-1.5 text-2xl font-black text-emerald-600">
+            {rooms.filter((r) => r.room_status !== "closed").length} phòng
+          </p>
+          <p className="mt-0.5 text-xs text-gray-400">Phiên hỗ trợ đang mở trực tuyến</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-4 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-primary">Khách thành viên</p>
+          <p className="mt-1.5 text-2xl font-black text-primary">
+            {rooms.filter((r) => !!r.customer_id).length} phòng
+          </p>
+          <p className="mt-0.5 text-xs text-gray-400">Khách đã đăng nhập tài khoản hệ thống</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-4 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-amber-600">Tin nhắn chưa đọc</p>
+          <p className="mt-1.5 text-2xl font-black text-amber-600">
+            {rooms.reduce((s, r) => s + (r.unreadCount || 0), 0)} tin
+          </p>
+          <p className="mt-0.5 text-xs text-gray-400">Tin nhắn mới từ khách đang chờ phản hồi</p>
+        </div>
+      </div>
+
       {/* Main chat window box container */}
       <div className="flex flex-1 overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white shadow-sm dark:border-dark-3 dark:bg-gray-dark">
 
         {/* ── CỘT TRÁI (DANH SÁCH CUỘC HỘI THOẠI - MATCHING MOCKUP 100%) ───────── */}
-        <div className="flex w-[320px] flex-col border-r border-[#cbd5e1] dark:border-dark-3 shrink-0">
+        <div className={`${activeRoomId ? "hidden md:flex" : "flex"} w-full md:w-[270px] xl:w-[320px] flex-col border-r border-[#cbd5e1] dark:border-dark-3 shrink-0`}>
 
           {/* Header danh sách: "Active Conversations" */}
           <div className="p-5 pb-3 flex items-center justify-between select-none">
@@ -421,12 +451,19 @@ export default function MessagesPage() {
         </div>
 
         {/* ── CỘT PHẢI (HỘI THOẠI CHI TIẾT - MATCHING MOCKUP 100%) ───────────────── */}
-        <div className="flex-1 flex flex-col bg-white dark:bg-[#1a202c]">
+        <div className={`${activeRoomId ? "flex" : "hidden md:flex"} flex-1 min-w-0 flex-col bg-white dark:bg-[#1a202c]`}>
           {activeRoom ? (
             <>
               {/* Header chi tiết hội thoại */}
               <div className="bg-white border-b border-[#cbd5e1] px-6 py-4 flex items-center justify-between dark:bg-gray-dark dark:border-dark-3 shrink-0 select-none">
                 <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setActiveRoomId(null)}
+                    className="md:hidden rounded-lg border border-stroke px-2.5 py-1 text-xs font-bold text-dark dark:border-dark-3 dark:text-white"
+                  >
+                    Danh sách
+                  </button>
                   <div className="h-10 w-10 rounded-full bg-[#f1f5f9] text-[#1c2434] font-black text-[12px] flex items-center justify-center border border-[#e2e8f0]">
                     {(activeRoom.guest_name || activeRoom.customer?.username || "K").substring(0, 2).toUpperCase()}
                   </div>

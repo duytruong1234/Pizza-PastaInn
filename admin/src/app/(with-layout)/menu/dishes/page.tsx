@@ -20,6 +20,7 @@ interface Dish {
   image: string | null;
   ingredient: string | null;
   dish_status: boolean;
+  dish_type?: string;
   category_id: number | null;
   category?: { category_name: string };
   prices: Array<{
@@ -39,6 +40,7 @@ interface FlattenedDish {
   image: string | null;
   ingredient: string | null;
   dish_status: boolean;
+  dish_type?: string;
   category_id: number | null;
   category_name: string;
   size_id: number | null;
@@ -72,6 +74,7 @@ export default function DishesPage() {
     image: "" as string | null,
     ingredient: "",
     dish_status: true,
+    dish_type: "man",
     category_id: null as number | null,
     size_id: null as number | null,
     crust_id: null as number | null,
@@ -99,6 +102,7 @@ export default function DishesPage() {
     image: "" as string | null,
     ingredient: "",
     dish_status: true,
+    dish_type: "man",
     category_id: null as number | null,
     size_id: null as number | null,
     crust_id: null as number | null,
@@ -143,6 +147,7 @@ export default function DishesPage() {
       image: dish.image || "",
       ingredient: dish.ingredient || "",
       dish_status: dish.dish_status,
+      dish_type: dish.dish_type || "man",
       category_id: dish.category_id,
       size_id: dish.size_id,
       crust_id: dish.crust_id,
@@ -189,6 +194,7 @@ export default function DishesPage() {
         image: editForm.image || null,
         ingredient: editForm.ingredient.trim() || null,
         dish_status: editForm.dish_status,
+        dish_type: editForm.dish_type || "man",
         category_id: editForm.category_id,
       });
       // Update dish price variant (size, crust, price)
@@ -262,6 +268,7 @@ export default function DishesPage() {
         image: addForm.image || null,
         ingredient: addForm.ingredient.trim() || null,
         dish_status: addForm.dish_status,
+        dish_type: addForm.dish_type || "man",
         category_id: addForm.category_id,
       });
       const newDishId = dishRes.data.data.dish_id;
@@ -278,7 +285,7 @@ export default function DishesPage() {
       }
       toast.success("Thêm món ăn thành công");
       setShowAddModal(false);
-      setAddForm({ dish_name: "", image: null, ingredient: "", dish_status: true, category_id: null, size_id: null, crust_id: null, dish_price: 0, dish_price_id: "" });
+      setAddForm({ dish_name: "", image: null, ingredient: "", dish_status: true, dish_type: "man", category_id: null, size_id: null, crust_id: null, dish_price: 0, dish_price_id: "" });
       setAddErrors({});
       fetchDishes();
     } catch {
@@ -305,6 +312,7 @@ export default function DishesPage() {
           image: dish.image,
           ingredient: dish.ingredient,
           dish_status: dish.dish_status ?? true,
+          dish_type: (dish as any).dish_type || "man",
           category_id: dish.category_id,
           category_name: dish.category?.category_name || "N/A",
           size_id: null, crust_id: null,
@@ -320,6 +328,7 @@ export default function DishesPage() {
             image: dish.image,
             ingredient: dish.ingredient,
             dish_status: dish.dish_status ?? true,
+            dish_type: (dish as any).dish_type || "man",
             category_id: dish.category_id,
             category_name: dish.category?.category_name || "N/A",
             size_id: price.size_id ?? null,
@@ -366,7 +375,7 @@ export default function DishesPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-dark dark:text-white">QUẢN LÝ MÓN ĂN</h1>
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500">Tổng cộng: {flattenedDishes.length} món ăn</span>
@@ -378,6 +387,34 @@ export default function DishesPage() {
             label="Thêm món ăn"
             icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5"><path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" /></svg>}
           />
+        </div>
+      </div>
+
+      {/* Summary Stats */}
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Tổng món ăn</p>
+          <p className="mt-2 text-2xl font-black text-dark dark:text-white">{dishes.length} món</p>
+          <p className="mt-1 text-xs text-gray-400">Danh sách món ăn gốc trong thực đơn</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Đang mở bán</p>
+          <p className="mt-2 text-2xl font-black text-emerald-600">
+            {dishes.filter((d) => d.dish_status !== false).length} món
+          </p>
+          <p className="mt-1 text-xs text-gray-400">Hiển thị và cho phép khách đặt hàng</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-primary">Biến thể giá & cỡ</p>
+          <p className="mt-2 text-2xl font-black text-primary">{flattenedDishes.length} mức giá</p>
+          <p className="mt-1 text-xs text-gray-400">Tổng số cấu hình kích thước của các món</p>
+        </div>
+        <div className="rounded-2xl border border-stroke bg-white p-5 shadow-xs dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-xs font-bold uppercase tracking-wider text-amber-600">Tạm ngưng bán</p>
+          <p className="mt-2 text-2xl font-black text-amber-600">
+            {dishes.filter((d) => d.dish_status === false).length} món
+          </p>
+          <p className="mt-1 text-xs text-gray-400">Món đang tạm khóa hoặc hết nguyên liệu</p>
         </div>
       </div>
 
@@ -469,30 +506,31 @@ export default function DishesPage() {
 
         <div className="overflow-hidden rounded-xl border border-stroke dark:border-dark-3">
           <div className="max-w-full overflow-x-auto">
-            <table className="w-full text-left">
+            <table className="w-full text-left text-xs sm:text-sm">
               <thead className="bg-primary text-white">
                 <tr>
-                <th className="rounded-tl-lg py-4 pl-4 pr-3 text-sm font-semibold uppercase tracking-wide">Mã món ăn</th>
-                <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Tên món ăn</th>
-                <th className="px-4 py-4 text-center text-sm font-semibold uppercase tracking-wide">Hình ảnh</th>
-                <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Danh mục</th>
-                <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Kích thước</th>
-                <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Đế bánh</th>
-                <th className="px-4 py-4 text-sm font-semibold uppercase tracking-wide">Giá (đ)</th>
-                <th className="px-4 py-4 text-center text-sm font-semibold uppercase tracking-wide">Trạng thái</th>
-                <th className="rounded-tr-lg py-4 pl-3 pr-4 text-center text-sm font-semibold uppercase tracking-wide">Thao tác</th>
+                <th className="rounded-tl-lg py-3 pl-3 pr-2 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Mã món</th>
+                <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Tên món ăn</th>
+                <th className="px-2.5 py-3 text-center text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Ảnh</th>
+                <th className="px-2.5 py-3 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Danh mục</th>
+                <th className="px-2.5 py-3 text-center text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Loại</th>
+                <th className="px-2.5 py-3 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Cỡ</th>
+                <th className="px-2.5 py-3 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Đế bánh</th>
+                <th className="px-2.5 py-3 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Giá (đ)</th>
+                <th className="px-2.5 py-3 text-center text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Trạng thái</th>
+                <th className="rounded-tr-lg py-3 pl-2 pr-3 text-center text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={9} className="px-4 py-12 text-center"><div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></td></tr>
+                <tr><td colSpan={10} className="px-4 py-12 text-center"><div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></td></tr>
               ) : paginatedData.length === 0 ? (
-                <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400">Không có món ăn nào</td></tr>
+                <tr><td colSpan={10} className="px-4 py-12 text-center text-gray-400">Không có món ăn nào</td></tr>
               ) : (
                 paginatedData.map((dish, idx) => (
                   <tr key={`${dish.dish_price_id}-${idx}`} className="border-b border-stroke last:border-0 dark:border-dark-3">
-                    <td className="py-4 pl-4 pr-3 text-sm text-dark dark:text-white">{dish.dish_price_id}</td>
-                    <td className="px-4 py-4 font-medium text-dark dark:text-white">{dish.dish_name}</td>
+                    <td className="py-3 pl-3 pr-2 text-xs sm:text-sm text-dark dark:text-white whitespace-nowrap">{dish.dish_price_id}</td>
+                    <td className="max-w-[180px] xl:max-w-[240px] truncate px-3 py-3 font-medium text-dark dark:text-white" title={dish.dish_name}>{dish.dish_name}</td>
                     <td className="px-4 py-4 text-center">
                       <div className="flex justify-center">
                         {dish.image ? (
@@ -502,10 +540,15 @@ export default function DishesPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-sm">{dish.category_name}</td>
-                    <td className="px-4 py-4 text-sm">{dish.size_name}</td>
-                    <td className="px-4 py-4 text-sm">{dish.crust_name}</td>
-                    <td className="px-4 py-4 text-sm font-medium text-primary">{formatPrice(dish.dish_price)}</td>
+                    <td className="px-2.5 py-3 text-xs sm:text-sm whitespace-nowrap">{dish.category_name}</td>
+                    <td className="px-4 py-4 text-center">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${dish.dish_type === 'chay' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'}`}>
+                        {dish.dish_type === 'chay' ? 'Món chay' : 'Món mặn'}
+                      </span>
+                    </td>
+                    <td className="px-2.5 py-3 text-xs sm:text-sm whitespace-nowrap">{dish.size_name}</td>
+                    <td className="px-2.5 py-3 text-xs sm:text-sm whitespace-nowrap">{dish.crust_name}</td>
+                    <td className="px-2.5 py-3 text-xs sm:text-sm font-medium text-primary whitespace-nowrap">{formatPrice(dish.dish_price)}</td>
                     <td className="px-4 py-4 text-center">
                       <Badge variant={dish.dish_status ? "outlineSuccess" : "outlineDanger"}>
                         {dish.dish_status ? 'Đang bán' : 'Ngưng bán'}
@@ -558,6 +601,12 @@ export default function DishesPage() {
                 <p><span className="font-semibold text-gray-500">Mã món ăn:</span> <span className="ml-1 font-mono text-xs">{viewDish.dish_price_id}</span></p>
                 <p><span className="font-semibold text-gray-500">Tên món ăn:</span> <span className="ml-1 font-medium text-base">{viewDish.dish_name}</span></p>
                 <p><span className="font-semibold text-gray-500">Danh mục:</span> <span className="ml-1">{viewDish.category_name}</span></p>
+                <p>
+                  <span className="font-semibold text-gray-500">Loại món:</span>
+                  <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${viewDish.dish_type === 'chay' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'}`}>
+                    {viewDish.dish_type === 'chay' ? 'Món chay (Chay)' : 'Món mặn (Mặn)'}
+                  </span>
+                </p>
                 <p>
                   <span className="font-semibold text-gray-500">Trạng thái:</span>
                   <Badge variant={viewDish.dish_status ? "success" : "danger"} className="ml-2">
@@ -644,8 +693,8 @@ export default function DishesPage() {
 
               </div>
 
-              {/* Row 3: Category + Status */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Row 3: Category + Dish Type + Status */}
+              <div className="grid grid-cols-3 gap-4">
                 <Select
                   label="DANH MỤC (*)"
                   value={editForm.category_id ?? ""}
@@ -653,6 +702,15 @@ export default function DishesPage() {
                   items={categories.map((c) => ({ value: c.category_id, label: c.category_name }))}
                   placeholder="-- Chọn danh mục --"
                   error={editErrors.category_id}
+                />
+                <Select
+                  label="LOẠI MÓN (*)"
+                  value={editForm.dish_type || "man"}
+                  onChange={(e) => setEditForm((f) => ({ ...f, dish_type: e.target.value }))}
+                  items={[
+                    { value: "man", label: "Món mặn" },
+                    { value: "chay", label: "Món chay" },
+                  ]}
                 />
                 <Select
                   label="TRẠNG THÁI (*)"
@@ -764,7 +822,7 @@ export default function DishesPage() {
 
       {/* ── MODAL THÊM MÓN ĂN ── */}
       <Modal isOpen={showAddModal} setIsOpen={setShowAddModal} className="relative max-w-[600px] p-6 sm:p-8">
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-xl font-bold text-dark dark:text-white">THÊM MÓN ĂN MỚI</h3>
           <button
             onClick={() => setShowAddModal(false)}
@@ -810,8 +868,9 @@ export default function DishesPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <Select label="DANH MỤC (*)" value={addForm.category_id ?? ""} onChange={(e) => { setAddForm((f) => ({ ...f, category_id: e.target.value ? Number(e.target.value) : null })); setAddErrors((p) => ({ ...p, category_id: "" })); }} items={categories.map((c) => ({ value: c.category_id, label: c.category_name }))} placeholder="-- Chọn danh mục --" error={addErrors.category_id} />
+            <Select label="LOẠI MÓN (*)" value={addForm.dish_type || "man"} onChange={(e) => setAddForm((f) => ({ ...f, dish_type: e.target.value }))} items={[{ value: "man", label: "Món mặn" }, { value: "chay", label: "Món chay" }]} />
             <Select label="TRẠNG THÁI (*)" value={addForm.dish_status ? "1" : "0"} onChange={(e) => setAddForm((f) => ({ ...f, dish_status: e.target.value === "1" }))} items={[{ value: "1", label: "Đang bán" }, { value: "0", label: "Ngưng bán" }]} />
           </div>
 

@@ -1,17 +1,6 @@
-// Dashboard chính — trang tổng quan Pizza&PastaInn Admin
-import { Suspense } from "react";
+// Dashboard chính — trang Phân tích Pizza&PastaInn Admin (đồng bộ bảng daily_dish_sale 2023 - 2026)
 import { DashboardAnalytics } from "./_components/dashboard-analytics";
-import { OverviewCardsGroup } from "./_components/overview-cards";
-import { OverviewCardsSkeleton } from "./_components/overview-cards/skeleton";
 
 export default function Home() {
-  return (
-    <>
-      <Suspense fallback={<OverviewCardsSkeleton />}>
-        <OverviewCardsGroup />
-      </Suspense>
-
-      <DashboardAnalytics />
-    </>
-  );
+  return <DashboardAnalytics />;
 }

@@ -55,9 +55,12 @@ model Dish {
   image       String?
   ingredient  String?
   dish_status Boolean?
+  dish_type   String      @default("man") @db.VarChar(10)
   prices      DishPrice[]
   category    Category?   @relation(fields: [category_id], references: [category_id], onDelete: NoAction, onUpdate: NoAction)
   order_item_halves OrderItemHalf[]
+  pairing_items DishPairingItem[]
+  daily_sales   DailyDishSale[]
 
   @@map("dishes")
 }
@@ -148,7 +151,6 @@ model User {
   addresses     UserAddress[]
   chat_rooms    ChatRoom[]
   messages      Message[]
-  chatbot_sessions ChatbotSession[]
 
   @@map("users")
 }
@@ -449,7 +451,7 @@ model PolicySection {
 
 model PolicySubItem {
   id            Int            @id @default(autoincrement())
-  section_id    Int?
+  section_id    Int?           @db.Integer
   item_number   String?        @db.VarChar(50)
   content       String         @db.Text
   display_order Int?           @default(0)
@@ -458,31 +460,34 @@ model PolicySubItem {
   @@map("policy_sub_item")
 }
 
-model ChatbotSession {
-  session_id     Int              @id @default(autoincrement())
-  user_id        Int?
-  guest_id       String?          @db.VarChar(100)
-  started_at     DateTime         @default(now()) @db.Timestamptz(6)
-  ended_at       DateTime?        @db.Timestamptz(6)
-  total_messages Int              @default(0)
-  last_intent    String?          @db.VarChar(50)
-  is_active      Boolean          @default(true)
-  user           User?            @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
-  messages       ChatbotMessage[]
+model DishPairing {
+  pairing_id  Int                @id @default(autoincrement())
+  reason      String?            @db.VarChar(255)
+  created_at  DateTime           @default(now()) @db.Timestamptz(6)
+  items       DishPairingItem[]
 
-  @@map("chatbot_sessions")
+  @@map("dish_pairings")
 }
 
-model ChatbotMessage {
-  message_id   Int            @id @default(autoincrement())
-  session_id   Int
-  role         String         @db.VarChar(20)
-  content      String         @db.Text
-  intent       String?        @db.VarChar(50)
-  dishes_count Int?           @default(0)
-  created_at   DateTime       @default(now()) @db.Timestamptz(6)
-  session      ChatbotSession @relation(fields: [session_id], references: [session_id], onDelete: Cascade)
+model DishPairingItem {
+  pairing_id  Int
+  dish_id     Int
+  pairing     DishPairing @relation(fields: [pairing_id], references: [pairing_id], onDelete: Cascade)
+  dish        Dish        @relation(fields: [dish_id], references: [dish_id], onDelete: Cascade)
 
-  @@map("chatbot_messages")
+  @@id([pairing_id, dish_id])
+  @@map("dish_pairing_item")
 }
 
+model DailyDishSale {
+  daily_dish_sale_id Int      @id @default(autoincrement())
+  dish_id            Int
+  sale_date          DateTime @db.Date
+  quantity_sold      Int      @default(0)
+  dish               Dish     @relation(fields: [dish_id], references: [dish_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([dish_id, sale_date])
+  @@index([sale_date])
+  @@index([dish_id])
+  @@map("daily_dish_sale")
+}
