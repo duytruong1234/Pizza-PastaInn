@@ -67,6 +67,18 @@ Tạo file `.env` trong thư mục `backend/` bằng cách sao chép từ file `
 cp .env.example .env
 ```
 
+*(Nếu dùng Windows PowerShell và muốn tạo trực tiếp file `.env` bằng 1 lệnh, chạy lệnh sau):*
+
+```powershell
+@"
+DATABASE_URL="postgresql://postgres:MAT_KHAU_POSTGRES_CUA_BAN@localhost:5432/pizza?schema=public"
+PORT=4000
+NODE_ENV=development
+JWT_SECRET="pizza_pasta_inn_secret_key_2026"
+JWT_EXPIRES_IN="7d"
+"@ | Set-Content -Path .env -Encoding UTF8
+```
+
 Mở file `backend/.env` và cập nhật lại đúng mật khẩu PostgreSQL (`YOUR_PASSWORD`) và tên database (`pizza`) trên máy của bạn:
 
 ```env

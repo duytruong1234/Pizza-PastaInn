@@ -879,7 +879,10 @@ export default function OrdersPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
+  const [yearFilter, setYearFilter] = useState("");
+  const [monthFilter, setMonthFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
+  const [yearCounts, setYearCounts] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
   const [detailOrder, setDetailOrder] = useState<Order | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -890,11 +893,19 @@ export default function OrdersPage() {
     try {
       const params: Record<string, string | number> = { page, limit: 20 };
       if (statusFilter) params.status = statusFilter;
-      if (dateFilter) params.date = dateFilter;
+      if (dateFilter) {
+        params.date = dateFilter;
+      } else if (yearFilter) {
+        params.year = yearFilter;
+        if (monthFilter) params.month = monthFilter;
+      }
       const res = await api.get("/api/admin/orders", { params });
       setOrders(res.data.data.orders);
       setTotal(res.data.data.total);
       setTotalPages(res.data.data.totalPages);
+      if (res.data.data.yearCounts) {
+        setYearCounts(res.data.data.yearCounts);
+      }
       if (res.data.data.stats) {
         setOrderStats(res.data.data.stats);
       }
@@ -907,7 +918,7 @@ export default function OrdersPage() {
 
   useEffect(() => {
     fetchOrders();
-  }, [page, statusFilter, dateFilter]);
+  }, [page, statusFilter, yearFilter, monthFilter, dateFilter]);
 
   const updateStatus = async (orderId: number, newStatus: string, extraData?: any) => {
     try {
@@ -990,21 +1001,69 @@ export default function OrdersPage() {
           ))}
         </div>
 
-        {/* Date Filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-dark dark:text-white">Lọc theo ngày:</span>
+        {/* Year / Month / Date Filter */}
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={yearFilter}
+            onChange={(e) => {
+              setYearFilter(e.target.value);
+              if (!e.target.value) setMonthFilter("");
+              setDateFilter("");
+              setPage(1);
+            }}
+            className="rounded-lg border border-stroke bg-white px-3 py-2 text-sm font-medium outline-none dark:border-dark-3 dark:bg-gray-dark dark:text-white focus:border-primary"
+          >
+            <option value="">Tất cả năm (2023 – 2026)</option>
+            {[2026, 2025, 2024, 2023].map((yr) => (
+              <option key={yr} value={String(yr)}>
+                Năm {yr}{yearCounts[yr] ? ` (${yearCounts[yr].toLocaleString("vi-VN")} đơn)` : ""}
+              </option>
+            ))}
+          </select>
+
+          {yearFilter && (
+            <select
+              value={monthFilter}
+              onChange={(e) => {
+                setMonthFilter(e.target.value);
+                setDateFilter("");
+                setPage(1);
+              }}
+              className="rounded-lg border border-stroke bg-white px-3 py-2 text-sm font-medium outline-none dark:border-dark-3 dark:bg-gray-dark dark:text-white focus:border-primary"
+            >
+              <option value="">Cả năm {yearFilter}</option>
+              {Array.from({ length: 12 }, (_, idx) => idx + 1).map((m) => (
+                <option key={m} value={String(m)}>
+                  Tháng {m}/{yearFilter}
+                </option>
+              ))}
+            </select>
+          )}
+
           <input
             type="date"
             value={dateFilter}
-            onChange={(e) => { setDateFilter(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setDateFilter(e.target.value);
+              if (e.target.value) {
+                setYearFilter("");
+                setMonthFilter("");
+              }
+              setPage(1);
+            }}
             className="rounded-lg border border-stroke bg-white px-3 py-2 text-sm font-medium outline-none dark:border-dark-3 dark:bg-gray-dark dark:text-white focus:border-primary"
           />
-          {dateFilter && (
+          {(dateFilter || yearFilter || monthFilter) && (
             <button
-              onClick={() => { setDateFilter(""); setPage(1); }}
+              onClick={() => {
+                setDateFilter("");
+                setYearFilter("");
+                setMonthFilter("");
+                setPage(1);
+              }}
               className="rounded-lg border border-stroke bg-gray-100 px-3 py-2 text-sm font-medium hover:bg-gray-200 dark:border-dark-3 dark:bg-dark-2 dark:text-gray-300 transition"
             >
-              Xóa
+              Xóa lọc
             </button>
           )}
         </div>

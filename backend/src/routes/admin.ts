@@ -135,28 +135,43 @@ router.get('/orders', async (req: AuthRequest, res: Response): Promise<void> => 
     const userId = req.query.userId as string | undefined;
     const phone = req.query.phone as string | undefined;
     const date = req.query.date as string | undefined;
+    const yearParam = req.query.year ? parseInt(req.query.year as string, 10) : undefined;
+    const monthParam = req.query.month ? parseInt(req.query.month as string, 10) : undefined;
 
-    const where: Record<string, any> = {};
-    if (status) where.order_status = status;
+    const baseWhereWithoutStatus: Record<string, any> = {};
     if (userId && userId !== 'null') {
-      where.user_id = parseInt(userId);
+      baseWhereWithoutStatus.user_id = parseInt(userId);
     } else if (phone) {
-      where.OR = [
+      baseWhereWithoutStatus.OR = [
         { customer_phone: phone },
         { user: { phone } }
       ];
     }
 
     if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      const start = new Date(`${date}T00:00:00`);
-      const end = new Date(`${date}T23:59:59.999`);
-      where.created_at = {
+      const start = new Date(`${date}T00:00:00.000+07:00`);
+      const end = new Date(`${date}T23:59:59.999+07:00`);
+      baseWhereWithoutStatus.created_at = {
         gte: start,
         lte: end,
       };
+    } else if (yearParam && yearParam >= 2020 && yearParam <= 2100) {
+      const startMonth = monthParam && monthParam >= 1 && monthParam <= 12 ? monthParam : 1;
+      const endMonth = monthParam && monthParam >= 1 && monthParam <= 12 ? monthParam : 12;
+      const daysInEndMonth = new Date(Date.UTC(yearParam, endMonth, 0)).getUTCDate();
+      const sm = String(startMonth).padStart(2, '0');
+      const em = String(endMonth).padStart(2, '0');
+      const ed = String(daysInEndMonth).padStart(2, '0');
+      baseWhereWithoutStatus.created_at = {
+        gte: new Date(`${yearParam}-${sm}-01T00:00:00.000+07:00`),
+        lte: new Date(`${yearParam}-${em}-${ed}T23:59:59.999+07:00`),
+      };
     }
 
-    const [orders, total, statusGroups] = await Promise.all([
+    const where: Record<string, any> = { ...baseWhereWithoutStatus };
+    if (status) where.order_status = status;
+
+    const [orders, total, statusGroups, yearRows] = await Promise.all([
       prisma.order.findMany({
         where,
         include: {
@@ -181,9 +196,19 @@ router.get('/orders', async (req: AuthRequest, res: Response): Promise<void> => 
       }),
       prisma.order.count({ where }),
       prisma.order.groupBy({
+        where: baseWhereWithoutStatus,
         by: ['order_status'],
         _count: { order_id: true },
       }),
+      prisma.$queryRawUnsafe<Array<{ yr: number; cnt: number }>>(`
+        SELECT
+          EXTRACT(YEAR FROM (created_at AT TIME ZONE 'UTC') + INTERVAL '7 hours')::int AS yr,
+          COUNT(*)::int AS cnt
+        FROM orders
+        WHERE created_at IS NOT NULL
+        GROUP BY 1
+        ORDER BY 1 DESC
+      `),
     ]);
 
     let allTotal = 0;
@@ -199,6 +224,11 @@ router.get('/orders', async (req: AuthRequest, res: Response): Promise<void> => 
       else processingCount += cnt;
     }
 
+    const yearCounts: Record<number, number> = {};
+    for (const r of yearRows) {
+      if (r.yr) yearCounts[r.yr] = Number(r.cnt) || 0;
+    }
+
     sendSuccess(res, {
       data: {
         orders,
@@ -206,6 +236,7 @@ router.get('/orders', async (req: AuthRequest, res: Response): Promise<void> => 
         page,
         limit,
         totalPages: Math.ceil(total / limit),
+        yearCounts,
         stats: {
           total: allTotal,
           completed: completedCount,

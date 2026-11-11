@@ -409,11 +409,13 @@ export class DailyDishSaleService {
       }
     }
 
-    const rowsToInsert = Array.from(aggregatedMap.values()).map((item) => ({
-      dish_id: item.dish_id,
-      sale_date: parseDateOnlyUTC(item.dateStr),
-      quantity_sold: item.qty,
-    }));
+    const rowsToInsert = Array.from(aggregatedMap.values())
+      .sort((a, b) => a.dateStr.localeCompare(b.dateStr) || a.dish_id - b.dish_id)
+      .map((item) => ({
+        dish_id: item.dish_id,
+        sale_date: parseDateOnlyUTC(item.dateStr),
+        quantity_sold: item.qty,
+      }));
 
     const BATCH_SIZE = 4000;
     for (let i = 0; i < rowsToInsert.length; i += BATCH_SIZE) {
@@ -464,11 +466,18 @@ export class DailyDishSaleService {
       orderBy: { dish_id: 'asc' },
     });
 
-    // Map món ăn -> dish_price_id & đơn giá chuẩn
+    // Map món ăn -> dish_price_id & đơn giá chuẩn (ưu tiên cỡ vừa/tiêu chuẩn nhất quán)
     const dishPriceInfoMap = new Map<number, { dish_price_id: string; price: number }>();
     for (const d of dishes) {
-      const validPrices = (d.prices || []).filter((p) => (Number(p.dish_price) || 0) > 0);
-      const chosen = validPrices[0] || d.prices?.[0];
+      const validPrices = [...(d.prices || [])]
+        .filter((p) => (Number(p.dish_price) || 0) > 0)
+        .sort(
+          (a, b) =>
+            Number(a.dish_price) - Number(b.dish_price) ||
+            a.dish_price_id.localeCompare(b.dish_price_id)
+        );
+      const midIdx = validPrices.length > 0 ? Math.floor((validPrices.length - 1) / 2) : 0;
+      const chosen = validPrices[midIdx] || d.prices?.[0];
       if (chosen) {
         dishPriceInfoMap.set(d.dish_id, {
           dish_price_id: chosen.dish_price_id,
@@ -616,7 +625,7 @@ export class DailyDishSaleService {
       { name: 'Lý Quốc Khánh', phone: '0908761234' },
       { name: 'Phan Thanh Tâm', phone: '0978123904' },
     ];
-    const paymentMethods = ['cash', 'sepay', 'vnpay'];
+    const paymentMethods = ['cod', 'cod', 'vietqr'];
 
     // ─── Cấu hình mô phỏng GIỎ HÀNG THẬT (phục vụ Phân tích Mua Cùng) ───
     // Bộ sinh số ngẫu nhiên có hạt giống (mulberry32) → kết quả mô phỏng ổn định, tái lập được
@@ -754,34 +763,23 @@ export class DailyDishSaleService {
     let nextOrderId = Math.max(1000, (Number(maxOrderRow?.[0]?.max_id) || 100) + 1);
 
     const years = [2023, 2024, 2025, 2026];
-    const ordersToInsert: Array<{
-      order_id: number;
+    const draftOrders: Array<{
+      lines: Array<{ dish_id: number; qty: number }>;
       payment_method: string;
-      payment_status: string;
       total_price_dish: number;
       shipping_fee: number;
-      discount_amount: number;
       total_order: number;
-      order_note: string | null;
       created_at: Date;
-      order_status: string;
       confirmed_at: Date;
       preparing_at: Date;
       shipped_at: Date;
       completed_at: Date;
+      estimated_delivery_time: Date | null;
+      pickup_time: Date | null;
       order_type: string;
       customer_name: string;
       customer_phone: string;
-      customer_email: string;
       store_id: number;
-    }> = [];
-
-    const orderItemsToInsert: Array<{
-      order_id: number;
-      dish_price_id: string;
-      quantity: number;
-      is_half_half: boolean;
-      order_price: number;
     }> = [];
 
     // Mô phỏng GIỎ HÀNG THẬT: mỗi đơn 1–5 món, giữ đúng tổng lượng tiêu hao tháng của từng món
@@ -931,28 +929,20 @@ export class DailyDishSaleService {
           }
         }
 
-        // 4. Ghi phiếu bán hàng (orders + order_items) với thời gian đặt thực tế trong tháng
+        // 4. Tạo bản nháp đơn hàng với thời gian đặt thực tế trong tháng
         for (const ord of simOrders) {
           if (ord.lines.length === 0) continue;
-          const oid = nextOrderId++;
           let totalDishPrice = 0;
           for (const line of ord.lines) {
             const priceInfo = dishPriceInfoMap.get(line.dish_id)!;
-            const linePrice = line.qty * priceInfo.price;
-            totalDishPrice += linePrice;
-            orderItemsToInsert.push({
-              order_id: oid,
-              dish_price_id: priceInfo.dish_price_id,
-              quantity: line.qty,
-              is_half_half: false,
-              order_price: linePrice,
-            });
+            totalDishPrice += line.qty * priceInfo.price;
           }
 
           const day = 1 + Math.floor(rng() * daysInMonth);
           const hourVN = pickHourVN(rng);
           const minute = Math.floor(rng() * 60);
-          const createdAt = new Date(Date.UTC(year, month - 1, day, hourVN - 7, minute, 0));
+          const second = Math.floor(rng() * 60);
+          const createdAt = new Date(Date.UTC(year, month - 1, day, hourVN - 7, minute, second));
           const confirmedAt = new Date(createdAt.getTime() + 3 * 60 * 1000);
           const preparingAt = new Date(createdAt.getTime() + 8 * 60 * 1000);
           const shippedAt = new Date(createdAt.getTime() + 22 * 60 * 1000);
@@ -963,28 +953,98 @@ export class DailyDishSaleService {
           const isPickup = rng() < 0.25;
           const shippingFee = isPickup ? 0 : 15000;
 
-          ordersToInsert.push({
-            order_id: oid,
+          draftOrders.push({
+            lines: ord.lines,
             payment_method: payMethod,
-            payment_status: 'paid',
             total_price_dish: totalDishPrice,
             shipping_fee: shippingFee,
-            discount_amount: 0,
             total_order: totalDishPrice + shippingFee,
-            order_note: null,
             created_at: createdAt,
-            order_status: 'completed',
             confirmed_at: confirmedAt,
             preparing_at: preparingAt,
             shipped_at: shippedAt,
             completed_at: completedAt,
+            estimated_delivery_time: isPickup ? null : completedAt,
+            pickup_time: isPickup ? completedAt : null,
             order_type: isPickup ? 'pickup' : 'delivery',
             customer_name: cust.name,
             customer_phone: cust.phone,
-            customer_email: SIMULATED_EMAIL_TAG,
             store_id: rng() < 0.5 ? 1 : 2,
           });
         }
+      }
+    }
+
+    // Sắp xếp toàn bộ đơn mô phỏng tăng dần theo thời gian đặt để order_id khớp thứ tự thời gian 2023 -> 2026
+    draftOrders.sort((a, b) => a.created_at.getTime() - b.created_at.getTime());
+
+    const ordersToInsert: Array<{
+      order_id: number;
+      payment_method: string;
+      payment_status: string;
+      total_price_dish: number;
+      shipping_fee: number;
+      discount_amount: number;
+      total_order: number;
+      order_note: string | null;
+      created_at: Date;
+      order_status: string;
+      confirmed_at: Date;
+      preparing_at: Date;
+      shipped_at: Date;
+      completed_at: Date;
+      estimated_delivery_time: Date | null;
+      pickup_time: Date | null;
+      order_type: string;
+      customer_name: string;
+      customer_phone: string;
+      customer_email: string;
+      store_id: number;
+    }> = [];
+
+    const orderItemsToInsert: Array<{
+      order_id: number;
+      dish_price_id: string;
+      quantity: number;
+      is_half_half: boolean;
+      order_price: number;
+    }> = [];
+
+    for (const draft of draftOrders) {
+      const oid = nextOrderId++;
+      ordersToInsert.push({
+        order_id: oid,
+        payment_method: draft.payment_method,
+        payment_status: 'paid',
+        total_price_dish: draft.total_price_dish,
+        shipping_fee: draft.shipping_fee,
+        discount_amount: 0,
+        total_order: draft.total_order,
+        order_note: null,
+        created_at: draft.created_at,
+        order_status: 'completed',
+        confirmed_at: draft.confirmed_at,
+        preparing_at: draft.preparing_at,
+        shipped_at: draft.shipped_at,
+        completed_at: draft.completed_at,
+        estimated_delivery_time: draft.estimated_delivery_time,
+        pickup_time: draft.pickup_time,
+        order_type: draft.order_type,
+        customer_name: draft.customer_name,
+        customer_phone: draft.customer_phone,
+        customer_email: SIMULATED_EMAIL_TAG,
+        store_id: draft.store_id,
+      });
+
+      for (const line of draft.lines) {
+        const priceInfo = dishPriceInfoMap.get(line.dish_id)!;
+        orderItemsToInsert.push({
+          order_id: oid,
+          dish_price_id: priceInfo.dish_price_id,
+          quantity: line.qty,
+          is_half_half: false,
+          order_price: line.qty * priceInfo.price,
+        });
       }
     }
 
@@ -1047,43 +1107,124 @@ export class DailyDishSaleService {
       orderBy: { dish_id: 'asc' },
     });
 
-    // Tính đơn giá đại diện (unitPrice) cho từng món từ bảng dish_prices
+    // Tính đơn giá chuẩn đại diện (unitPrice) cho từng món từ bảng dish_prices (nhất quán với đơn giá mô phỏng)
     const dishUnitPriceMap = new Map<number, number>();
     for (const d of dishes) {
-      const validPrices = (d.prices || [])
-        .map((p) => Number(p.dish_price) || 0)
-        .filter((p) => p > 0);
-      const rawAvg =
-        validPrices.length > 0
-          ? validPrices.reduce((s, v) => s + v, 0) / validPrices.length
-          : 120000;
-      // Làm tròn đến hàng nghìn VNĐ
-      const unitPrice = Math.max(15000, Math.round(rawAvg / 1000) * 1000);
-      dishUnitPriceMap.set(d.dish_id, unitPrice);
+      const validPrices = [...(d.prices || [])]
+        .filter((p) => (Number(p.dish_price) || 0) > 0)
+        .sort(
+          (a, b) =>
+            Number(a.dish_price) - Number(b.dish_price) ||
+            a.dish_price_id.localeCompare(b.dish_price_id)
+        );
+      const midIdx = validPrices.length > 0 ? Math.floor((validPrices.length - 1) / 2) : 0;
+      const chosenPrice = Number(validPrices[midIdx]?.dish_price) || 120000;
+      dishUnitPriceMap.set(d.dish_id, Math.max(15000, chosenPrice));
     }
 
-    // Truy vấn tổng hợp theo (dish_id, year, month, số ngày có dữ liệu trong tháng) trực tiếp từ PostgreSQL
-    const monthlyAgg = await prisma.$queryRawUnsafe<
-      Array<{
-        dish_id: number;
-        yr: number;
-        mo: number;
-        total_qty: number;
-        days_count: number;
-        max_day: number;
-      }>
-    >(`
-      SELECT
-        dish_id,
-        EXTRACT(YEAR FROM sale_date)::int AS yr,
-        EXTRACT(MONTH FROM sale_date)::int AS mo,
-        SUM(quantity_sold)::int AS total_qty,
-        COUNT(*)::int AS days_count,
-        MAX(EXTRACT(DAY FROM sale_date))::int AS max_day
-      FROM daily_dish_sale
-      GROUP BY dish_id, yr, mo
-      ORDER BY dish_id ASC, yr ASC, mo ASC
-    `);
+    // Truy vấn tổng hợp sản lượng theo (dish_id, year, month) từ daily_dish_sale,
+    // đồng thời đối chiếu doanh thu & số đơn thực tế từ bảng orders + order_items
+    const [monthlyAgg, directRevAgg, complexOrdersForRev, monthlyOrdersAgg] = await Promise.all([
+      prisma.$queryRawUnsafe<
+        Array<{
+          dish_id: number;
+          yr: number;
+          mo: number;
+          total_qty: number;
+          days_count: number;
+          max_day: number;
+        }>
+      >(`
+        SELECT
+          dish_id,
+          EXTRACT(YEAR FROM sale_date)::int AS yr,
+          EXTRACT(MONTH FROM sale_date)::int AS mo,
+          SUM(quantity_sold)::int AS total_qty,
+          COUNT(*)::int AS days_count,
+          MAX(EXTRACT(DAY FROM sale_date))::int AS max_day
+        FROM daily_dish_sale
+        GROUP BY dish_id, yr, mo
+        ORDER BY dish_id ASC, yr ASC, mo ASC
+      `),
+      prisma.$queryRawUnsafe<
+        Array<{
+          raw_dish_id: number;
+          yr: number;
+          mo: number;
+          total_rev: bigint | number | string;
+        }>
+      >(`
+        SELECT
+          dp.dish_id::int AS raw_dish_id,
+          EXTRACT(YEAR FROM (o.created_at AT TIME ZONE 'UTC') + INTERVAL '7 hours')::int AS yr,
+          EXTRACT(MONTH FROM (o.created_at AT TIME ZONE 'UTC') + INTERVAL '7 hours')::int AS mo,
+          SUM(COALESCE(oi.order_price, 0))::bigint AS total_rev
+        FROM orders o
+        JOIN order_items oi ON oi.order_id = o.order_id
+        JOIN dish_prices dp ON dp.dish_price_id = oi.dish_price_id
+        WHERE COALESCE(o.order_status, '') <> 'cancelled'
+          AND o.created_at IS NOT NULL
+          AND oi.combo_id IS NULL
+          AND COALESCE(oi.is_half_half, false) = false
+        GROUP BY 1, 2, 3
+      `),
+      prisma.order.findMany({
+        where: {
+          order_status: { not: 'cancelled' },
+          items: {
+            some: {
+              OR: [{ combo_id: { not: null } }, { is_half_half: true }],
+            },
+          },
+        },
+        include: {
+          items: {
+            where: {
+              OR: [{ combo_id: { not: null } }, { is_half_half: true }],
+            },
+            include: {
+              dish_price: true,
+              halves: true,
+              combos: {
+                include: {
+                  dish_price: true,
+                  halves: true,
+                },
+              },
+              combo: {
+                include: {
+                  groups: {
+                    include: {
+                      combo_items: {
+                        include: {
+                          dish_price: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+      prisma.$queryRawUnsafe<
+        Array<{
+          yr: number;
+          mo: number;
+          orders_cnt: number;
+        }>
+      >(`
+        SELECT
+          EXTRACT(YEAR FROM (created_at AT TIME ZONE 'UTC') + INTERVAL '7 hours')::int AS yr,
+          EXTRACT(MONTH FROM (created_at AT TIME ZONE 'UTC') + INTERVAL '7 hours')::int AS mo,
+          COUNT(*)::int AS orders_cnt
+        FROM orders
+        WHERE COALESCE(order_status, '') <> 'cancelled'
+          AND created_at IS NOT NULL
+        GROUP BY 1, 2
+      `),
+    ]);
 
     // Xác định danh sách các năm có trong bảng daily_dish_sale (2023, 2024, 2025, 2026)
     const yearsSet = new Set<number>([2023, 2024, 2025, 2026]);
@@ -1125,34 +1266,83 @@ export class DailyDishSaleService {
     const nextMonthYear = currentMonthVn === 12 ? selectedYear + 1 : selectedYear;
     const daysInNextMonth = new Date(Date.UTC(nextMonthYear, nextMonth, 0)).getUTCDate();
 
-    // Gom dữ liệu theo từng dish_id
+    // Gom dữ liệu theo từng dish_id (sản lượng từ daily_dish_sale, doanh thu khớp trực tiếp từ orders + order_items)
     const dishMonthlyMap = new Map<
       number,
-      Map<number, { qty: number[]; days: number[] }>
+      Map<number, { qty: number[]; rev: number[]; days: number[] }>
     >();
 
     for (const d of dishes) {
-      const yearMap = new Map<number, { qty: number[]; days: number[] }>();
+      const yearMap = new Map<number, { qty: number[]; rev: number[]; days: number[] }>();
       for (const y of availableYears) {
         yearMap.set(y, {
           qty: Array(12).fill(0),
+          rev: Array(12).fill(0),
           days: Array(12).fill(0),
         });
       }
       dishMonthlyMap.set(d.dish_id, yearMap);
     }
 
-    for (const row of monthlyAgg) {
-      const yearMap = dishMonthlyMap.get(row.dish_id);
-      if (!yearMap) continue;
-      let entry = yearMap.get(row.yr);
+    const ensureYearEntry = (dishId: number, yr: number) => {
+      const yearMap = dishMonthlyMap.get(dishId);
+      if (!yearMap) return null;
+      let entry = yearMap.get(yr);
       if (!entry) {
-        entry = { qty: Array(12).fill(0), days: Array(12).fill(0) };
-        yearMap.set(row.yr, entry);
+        entry = { qty: Array(12).fill(0), rev: Array(12).fill(0), days: Array(12).fill(0) };
+        yearMap.set(yr, entry);
       }
+      return entry;
+    };
+
+    for (const row of monthlyAgg) {
+      const entry = ensureYearEntry(row.dish_id, row.yr);
+      if (!entry) continue;
       if (row.mo >= 1 && row.mo <= 12) {
         entry.qty[row.mo - 1] = Number(row.total_qty) || 0;
         entry.days[row.mo - 1] = Number(row.days_count) || 0;
+      }
+    }
+
+    for (const row of directRevAgg) {
+      const normId = normalizeIndividualDishId(row.raw_dish_id);
+      if (!normId || row.mo < 1 || row.mo > 12) continue;
+      const entry = ensureYearEntry(normId, row.yr);
+      if (!entry) continue;
+      entry.rev[row.mo - 1] += Number(row.total_rev) || 0;
+    }
+
+    for (const order of complexOrdersForRev) {
+      if (!order.created_at) continue;
+      const [yrStr, moStr] = toVietnamDateString(order.created_at).split('-');
+      const yr = Number(yrStr);
+      const mo = Number(moStr);
+      if (mo < 1 || mo > 12) continue;
+
+      for (const item of order.items || []) {
+        const lineRev = Number(item.order_price) || 0;
+        if (lineRev <= 0) continue;
+        const extracted = Array.from(
+          this.extractDishQuantitiesFromOrder({ items: [item] }).entries()
+        ).filter(([dishId]) => dishMonthlyMap.has(dishId));
+        if (extracted.length === 0) continue;
+
+        const weights = extracted.map(
+          ([dishId, q]) => q * (dishUnitPriceMap.get(dishId) || 100000)
+        );
+        const totalW = weights.reduce((s, w) => s + w, 0) || 1;
+        let allocatedSum = 0;
+        const shares = weights.map((w) => {
+          const share = Math.floor((lineRev * w) / totalW);
+          allocatedSum += share;
+          return share;
+        });
+        shares[0] += lineRev - allocatedSum;
+
+        extracted.forEach(([dishId], idx) => {
+          const entry = ensureYearEntry(dishId, yr);
+          if (entry) entry.rev[mo - 1] += shares[idx];
+        });
       }
     }
 
@@ -1167,7 +1357,7 @@ export class DailyDishSaleService {
 
       for (const y of availableYears) {
         const arr = yearMap.get(y)?.qty || Array(12).fill(0);
-        const revArr = arr.map((q) => q * unitPrice);
+        const revArr = yearMap.get(y)?.rev || Array(12).fill(0);
         monthlyByYear[y] = arr;
         monthlyRevenueByYear[y] = revArr;
         yearlyTotals[y] = arr.reduce((sum, v) => sum + v, 0);
@@ -1304,13 +1494,13 @@ export class DailyDishSaleService {
           month: bestMonthIdx + 1,
           label: `Tháng ${bestMonthIdx + 1}/${selectedYear}`,
           quantity: bestMonthQty,
-          revenue: bestMonthQty * unitPrice,
+          revenue: monthlyRevenueByYear[selectedYear]?.[bestMonthIdx] || 0,
         },
         lowestMonth: {
           month: lowestMonthIdx + 1,
           label: `Tháng ${lowestMonthIdx + 1}/${selectedYear}`,
           quantity: lowestMonthQty,
-          revenue: lowestMonthQty * unitPrice,
+          revenue: monthlyRevenueByYear[selectedYear]?.[lowestMonthIdx] || 0,
         },
         trendStatus,
         trendLabel,
@@ -1363,11 +1553,16 @@ export class DailyDishSaleService {
       }
     }
 
-    for (const y of availableYears) {
-      for (let m = 0; m < 12; m++) {
-        // Trung bình 1 đơn hàng đặt khoảng 3.2 phần món ăn (gồm Pizza, Mì Ý/Khai vị, Nước uống)
-        overallOrdersByYear[y][m] = Math.max(1, Math.round(overallMonthlyByYear[y][m] / 3.2));
+    for (const row of monthlyOrdersAgg) {
+      if (!overallOrdersByYear[row.yr]) {
+        overallOrdersByYear[row.yr] = Array(12).fill(0);
       }
+      if (row.mo >= 1 && row.mo <= 12) {
+        overallOrdersByYear[row.yr][row.mo - 1] = Number(row.orders_cnt) || 0;
+      }
+    }
+
+    for (const y of availableYears) {
       yearlyQuantityTotals[y] = overallMonthlyByYear[y].reduce((s, v) => s + v, 0);
       yearlyRevenueTotals[y] = overallRevenueByYear[y].reduce((s, v) => s + v, 0);
       yearlyOrdersTotals[y] = overallOrdersByYear[y].reduce((s, v) => s + v, 0);
