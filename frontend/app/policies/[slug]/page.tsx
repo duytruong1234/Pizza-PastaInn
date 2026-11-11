@@ -118,7 +118,7 @@ export default function DynamicPolicyPage({ params }: { params: Promise<{ slug: 
             {/* SIDEBAR TABLE OF CONTENTS */}
             <aside className="lg:col-span-1">
               <div className="sticky top-28 space-y-4">
-                <h3 className={`text-base font-black uppercase tracking-[0.15em] mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                <h3 className={`text-base font-bold mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-800'}`}>
                   <span>Mục lục nhanh</span>
                 </h3>
 

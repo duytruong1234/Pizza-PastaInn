@@ -31,16 +31,10 @@ export default function AboutPage() {
 
         {/* Hero Content */}
         <div className="relative z-10 max-w-4xl mx-auto px-6 py-14 text-center">
-          <h1 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight uppercase select-none drop-shadow-lg">
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight uppercase select-none drop-shadow-lg mb-4">
             <span className="text-white block mb-1">PIZZA & PASTA</span>
             <span className="text-[#f5c043] block">INN</span>
           </h1>
-
-          <div className="flex flex-col items-center mt-3 mb-3">
-            <span className="text-zinc-300 font-bold text-xs md:text-sm tracking-[0.25em] uppercase">
-              PIZZA • SPAGHETTI • RISOTTO / GRATIN • SALAD
-            </span>
-          </div>
 
           <p className="text-zinc-200 text-sm sm:text-base md:text-lg leading-relaxed max-w-2xl mx-auto font-medium">
             {isEn ? (
@@ -164,16 +158,13 @@ export default function AboutPage() {
             ].map((item) => (
               <div
                 key={item.num}
-                className={`p-6 md:p-7 rounded-3xl border flex flex-col space-y-3 text-left transition-all duration-200 ${
+                className={`p-6 md:p-7 rounded-3xl border flex flex-col space-y-2.5 text-left transition-all duration-200 ${
                   isDark
                     ? 'bg-[#1a1613] border-white/[0.08] hover:border-[#f5c043]/40'
                     : 'bg-white border-zinc-200 hover:border-[#007a3f]/40 shadow-sm'
                 }`}
               >
-                <span className={`text-xs font-black tracking-widest ${isDark ? 'text-[#f5c043]' : 'text-[#007a3f]'}`}>
-                  {item.num}
-                </span>
-                <h3 className={`text-base font-black tracking-wider uppercase pt-1 ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                <h3 className={`text-base font-black uppercase ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                   {item.title}
                 </h3>
                 <p className={`text-xs md:text-[13.5px] leading-relaxed font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>

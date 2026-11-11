@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, ArrowUp, X, Send, MessageSquare, Paperclip, MoreVertical, Trash2, ImageIcon, Sparkles } from 'lucide-react';
+import { User, ArrowUp, X, Send, MessageSquare, Paperclip, MoreVertical, Trash2, ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import api from '../lib/api';
 import { useAuthStore } from '../store/authStore';
-import { useRecommendationStore } from '../store/recommendationStore';
 import { useCartStore } from '../store/cartStore';
 import { useUI } from './UIProvider';
 import { BACKEND_URL } from '../lib/config';
@@ -62,7 +61,6 @@ export default function QuickDock() {
 
   // Live Chat with Admin states
   const { user, clearAuth } = useAuthStore();
-  const openQuiz = useRecommendationStore(s => s.openQuiz);
   const cartItemsCount = useCartStore(s => s.items.length);
   const { isCartOpen, isCartPinned, theme, lang } = useUI();
   const isLight = theme === 'light';
@@ -328,18 +326,6 @@ export default function QuickDock() {
             : 'right-4 sm:right-6'
         } ${isCartOpen && !isCartPinned ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
       >
-        {!contactOpen && !chatOpen && pathname === '/' && (
-          <button
-            type="button"
-            onClick={() => openQuiz('quick_dock')}
-            title={isEn ? 'Help me choose a dish' : 'Chọn món giúp tôi'}
-            aria-label={isEn ? 'Help me choose a dish' : 'Chọn món giúp tôi'}
-            className="flex items-center justify-center w-12 h-12 rounded-full bg-[#ffc107] hover:bg-[#ffb300] text-zinc-950 border-2 border-[#b38600] shadow-[0_6px_24px_rgba(0,0,0,0.35)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
-          >
-            <Sparkles className="w-5 h-5 text-zinc-950" strokeWidth={2.4} />
-          </button>
-        )}
-
         <button
           type="button"
           aria-label={isEn ? 'Open support & chat' : 'Mở hỗ trợ & trò chuyện'}
@@ -519,15 +505,12 @@ export default function QuickDock() {
                   <User className="w-6 h-6 text-[#ee2828]" />
                 </div>
                 <div className="text-left">
-                  <span className="text-zinc-200 text-[10px] font-semibold tracking-wide block uppercase leading-none">
-                    {isEn ? 'Online Support' : 'Hỗ trợ trực tuyến'}
-                  </span>
-                  <h4 className="font-extrabold text-[15px] text-white tracking-wide leading-snug mt-0.5">
+                  <h4 className="font-extrabold text-[15px] text-white leading-snug">
                     {isEn ? 'Support Staff' : 'Nhân viên hỗ trợ'}
                   </h4>
                   <div className="flex items-center gap-1.5 mt-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span className="text-[10px] text-emerald-400/90 font-bold uppercase tracking-wider">
+                    <span className="text-[11px] text-emerald-400/90 font-semibold">
                       {isEn ? 'Online' : 'Trực tuyến'}
                     </span>
                   </div>
@@ -578,7 +561,7 @@ export default function QuickDock() {
               <form onSubmit={handleGuestFormSubmit} className="space-y-4 my-5 flex-1 flex flex-col justify-center text-left">
                 {/* Full name input */}
                 <div>
-                  <label className={`block text-[10px] font-black tracking-widest uppercase mb-1.5 ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                  <label className={`block text-xs font-bold mb-1.5 ${isLight ? 'text-zinc-700' : 'text-zinc-300'}`}>
                     {isEn ? 'Full Name (*)' : 'Họ và tên (*)'}
                   </label>
                   <input
@@ -599,10 +582,10 @@ export default function QuickDock() {
 
                 {/* Phone number input */}
                 <div>
-                  <label className={`block text-[10px] font-black tracking-widest uppercase mb-1.5 ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                  <label className={`block text-xs font-bold mb-1.5 ${isLight ? 'text-zinc-700' : 'text-zinc-300'}`}>
                     {isEn ? 'Phone Number (*)' : 'Số điện thoại (*)'}{' '}
-                    <span className={`font-bold normal-case tracking-normal ml-1 ${isLight ? 'text-[#b45309]' : 'text-[#ffc107]'}`}>
-                      {isEn ? '10 digits starting with 0' : 'Định dạng: 10 chữ số bắt đầu bằng 0'}
+                    <span className={`font-semibold text-[11px] ml-1 ${isLight ? 'text-[#b45309]' : 'text-[#ffc107]'}`}>
+                      {isEn ? '(10 digits starting with 0)' : '(10 chữ số bắt đầu bằng 0)'}
                     </span>
                   </label>
                   <input
@@ -623,7 +606,7 @@ export default function QuickDock() {
 
                 {/* Delivery address input */}
                 <div>
-                  <label className={`block text-[10px] font-black tracking-widest uppercase mb-1.5 ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                  <label className={`block text-xs font-bold mb-1.5 ${isLight ? 'text-zinc-700' : 'text-zinc-300'}`}>
                     {isEn ? 'Delivery Address (*)' : 'Địa chỉ giao hàng (*)'}
                   </label>
                   <input
@@ -657,22 +640,15 @@ export default function QuickDock() {
                 isLight ? 'bg-[#f4f7f9]' : 'bg-[#161311]'
               }`}>
                 
-                <div className="text-center py-1 select-none">
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wide ${
-                    isLight ? 'bg-zinc-200/70 text-zinc-600' : 'bg-white/[0.06] text-zinc-400'
+                {roomStatus === 'closed' && (
+                  <div className={`border rounded-xl p-2.5 text-xs font-semibold leading-relaxed mx-2 text-center ${
+                    isLight ? 'bg-rose-50 border-rose-200 text-rose-600' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
                   }`}>
-                    {isEn ? 'Live Support Channel' : 'Kênh hỗ trợ trực tuyến'}
-                  </span>
-                  {roomStatus === 'closed' && (
-                    <div className={`mt-2.5 border rounded-xl p-2.5 text-xs font-semibold leading-relaxed mx-2 ${
-                      isLight ? 'bg-rose-50 border-rose-200 text-rose-600' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
-                    }`}>
-                      {isEn
-                        ? 'Conversation has ended. Send a new message to reopen.'
-                        : 'Cuộc trò chuyện đã kết thúc. Gửi tin nhắn mới để mở lại.'}
-                    </div>
-                  )}
-                </div>
+                    {isEn
+                      ? 'Conversation has ended. Send a new message to reopen.'
+                      : 'Cuộc trò chuyện đã kết thúc. Gửi tin nhắn mới để mở lại.'}
+                  </div>
+                )}
 
                 {dbMessages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-zinc-400 select-none">

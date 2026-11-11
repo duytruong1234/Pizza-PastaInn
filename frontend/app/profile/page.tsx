@@ -36,7 +36,6 @@ import {
   Award,
   Copy,
   ShoppingBag,
-  Sparkles,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useWishlistStore } from '@/store/wishlistStore';
@@ -1173,15 +1172,8 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <span
-                    className={`text-[11px] font-bold uppercase tracking-wider block leading-none ${
-                      isDark ? 'text-zinc-400' : 'text-zinc-500'
-                    }`}
-                  >
-                    {lang === 'en' ? 'Account of' : 'Tài khoản của'}
-                  </span>
                   <h3
-                    className={`font-extrabold text-[15px] leading-snug break-words line-clamp-2 mt-1 ${
+                    className={`font-extrabold text-[15px] leading-snug break-words line-clamp-2 ${
                       isDark ? 'text-white' : 'text-zinc-900'
                     }`}
                     title={user.username}
@@ -1298,11 +1290,11 @@ export default function ProfilePage() {
                       }`}
                     >
                       <h2
-                        className={`text-xs font-black tracking-widest uppercase ${
-                          isDark ? 'text-[#f5c043]' : 'text-[#007a3f]'
+                        className={`text-base font-bold ${
+                          isDark ? 'text-white' : 'text-zinc-900'
                         }`}
                       >
-                        {lang === 'en' ? 'ACCOUNT INFORMATION' : 'THÔNG TIN TÀI KHOẢN'}
+                        {lang === 'en' ? 'Account Information' : 'Thông tin tài khoản'}
                       </h2>
                       {!isEditingProfile ? (
                         <button
@@ -1526,11 +1518,11 @@ export default function ProfilePage() {
                     }`}
                   >
                     <h2
-                      className={`text-xs font-black tracking-widest uppercase ${
-                        isDark ? 'text-[#f5c043]' : 'text-[#007a3f]'
+                      className={`text-base font-bold ${
+                        isDark ? 'text-white' : 'text-zinc-900'
                       }`}
                     >
-                      {lang === 'en' ? 'RECENT ORDER' : 'ĐƠN HÀNG GẦN NHẤT'}
+                      {lang === 'en' ? 'Recent Order' : 'Đơn hàng gần nhất'}
                     </h2>
                     {orders.length > 0 && (
                       <button
@@ -1628,11 +1620,11 @@ export default function ProfilePage() {
                     }`}
                   >
                     <h2
-                      className={`text-xs font-black tracking-widest uppercase ${
-                        isDark ? 'text-[#f5c043]' : 'text-[#007a3f]'
+                      className={`text-base font-bold ${
+                        isDark ? 'text-white' : 'text-zinc-900'
                       }`}
                     >
-                      {lang === 'en' ? 'DELIVERY ADDRESS BOOK' : 'SỔ ĐỊA CHỈ GIAO HÀNG'}
+                      {lang === 'en' ? 'Delivery Address Book' : 'Sổ địa chỉ giao hàng'}
                     </h2>
                     <button
                       onClick={() => {
@@ -2628,13 +2620,13 @@ export default function ProfilePage() {
                 >
                   <div className="relative z-10 space-y-6 max-w-xl">
                     <h2
-                      className={`text-xs font-black tracking-widest uppercase border-b pb-3.5 ${
+                      className={`text-base font-bold border-b pb-3.5 ${
                         isDark
-                          ? 'text-[#f5c043] border-white/[0.07]'
-                          : 'text-[#007a3f] border-zinc-100'
+                          ? 'text-white border-white/[0.07]'
+                          : 'text-zinc-900 border-zinc-100'
                       }`}
                     >
-                      {lang === 'en' ? 'CHANGE ACCOUNT PASSWORD' : 'ĐỔI MẬT KHẨU BẢO MẬT'}
+                      {lang === 'en' ? 'Change Password' : 'Đổi mật khẩu bảo mật'}
                     </h2>
 
                     {passwordMessage && (
@@ -2842,13 +2834,13 @@ export default function ProfilePage() {
                 {/* Danh sách Voucher đang hoạt động */}
                 <div>
                   <h3
-                    className={`text-xs font-black tracking-widest uppercase mb-3.5 ${
-                      isDark ? 'text-[#f5c043]' : 'text-[#007a3f]'
+                    className={`text-base font-bold mb-3.5 ${
+                      isDark ? 'text-white' : 'text-zinc-900'
                     }`}
                   >
                     {lang === 'en'
-                      ? `AVAILABLE VOUCHERS FOR YOU (${vouchersList.length})`
-                      : `MÃ GIẢM GIÁ DÀNH CHO BẠN (${vouchersList.length})`}
+                      ? `Available Vouchers (${vouchersList.length})`
+                      : `Mã giảm giá dành cho bạn (${vouchersList.length})`}
                   </h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

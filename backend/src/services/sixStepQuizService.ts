@@ -16,6 +16,8 @@ import { normalizeCategory } from './contentBasedService';
 
 export interface PriceVariant {
   dish_price_id: string;
+  size_id?: number | null;
+  crust_id?: number | null;
   size_name: string;
   crust_name: string;
   price: number;
@@ -75,7 +77,7 @@ export const INGREDIENT_DEFS: IngredientDef[] = [
   },
   {
     key: 'sausage',
-    label: 'Xúc xích (Pepperoni, Sausage)',
+    label: 'Xúc xích',
     db_keywords_label: 'Pepperoni, Saugage',
     in_allergy_list: true,
     is_meat: true,
@@ -99,7 +101,7 @@ export const INGREDIENT_DEFS: IngredientDef[] = [
   },
   {
     key: 'olive',
-    label: 'Trái Olive',
+    label: 'Ô liu đen',
     db_keywords_label: 'Olive',
     in_allergy_list: true,
     is_meat: false,
@@ -143,7 +145,7 @@ export const INGREDIENT_DEFS: IngredientDef[] = [
     db_keywords_label: 'Mozzarella, Parmesan',
     in_allergy_list: false,
     is_meat: false,
-    matches: (name, ing) => /\b(cheese|mozzarella|parmesan|cheddar)\b/i.test(`${name} ${ing}`),
+    matches: (name, ing) => /\b(cheese|mozzarella|parmesan|parmersan|cheddar)\b/i.test(`${name} ${ing}`),
   },
 ];
 
@@ -239,7 +241,10 @@ export interface SixStepCandidate {
   image: string | null;
   ingredient: string;
   is_spicy: boolean;
+  avg_rating?: number;
+  review_count?: number;
   ingredients: IngredientKey[];
+  valid_groups?: { max_select: number; dish_ingredients: IngredientKey[][] }[];
   variants: PriceVariant[];
   selected_variant: PriceVariant;
 }
@@ -293,6 +298,91 @@ export interface SixStepQuizResponse {
 
 // ─── 5. Nạp dữ liệu từ CSDL (Dishes + Combos) ───────────────────────────────
 
+const COMBO_ONLY_BREAD_IDS = new Set([62, 63, 64]);
+const EXCLUDED_STANDALONE_DISH_IDS = new Set([62, 63, 64, 65]);
+
+function countBits(n: number): number {
+  let c = 0;
+  let v = n;
+  while (v > 0) {
+    v &= v - 1;
+    c++;
+  }
+  return c;
+}
+
+/**
+ * Tìm tập nguyên liệu khớp lớn nhất mà khách thực sự có thể nhận được trong 1 phần Combo
+ * (mỗi nhóm chọn tối đa max_select món hợp lệ, không gộp ảo tất cả món trong cùng 1 nhóm chọn 1).
+ */
+function bestComboMatchedKeys(
+  item: SixStepCandidate,
+  selectedOrdered: IngredientKey[]
+): IngredientKey[] {
+  if (selectedOrdered.length === 0) return [];
+  if (!item.valid_groups || item.valid_groups.length === 0) {
+    const set = new Set(selectedOrdered);
+    return item.ingredients.filter(k => set.has(k));
+  }
+
+  const bitIndex = new Map<IngredientKey, number>();
+  selectedOrdered.forEach((k, idx) => bitIndex.set(k, idx));
+
+  let comboMasks = new Set<number>([0]);
+
+  for (const g of item.valid_groups) {
+    const rawMasks: number[] = [];
+    for (const dIngs of g.dish_ingredients) {
+      let m = 0;
+      for (const k of dIngs) {
+        const idx = bitIndex.get(k);
+        if (idx !== undefined) m |= 1 << idx;
+      }
+      rawMasks.push(m);
+    }
+    const uniqueDishMasks = [...new Set(rawMasks)];
+    if (uniqueDishMasks.length === 0) continue;
+
+    let groupMasks: number[];
+    const maxPick = Math.max(1, g.max_select || 1);
+    if (maxPick === 1) {
+      groupMasks = uniqueDishMasks;
+    } else {
+      let cur = new Set<number>([0]);
+      const steps = Math.min(maxPick, uniqueDishMasks.length);
+      for (let s = 0; s < steps; s++) {
+        const next = new Set<number>(cur);
+        for (const cm of cur) {
+          for (const dm of uniqueDishMasks) next.add(cm | dm);
+        }
+        cur = next;
+      }
+      cur.delete(0);
+      groupMasks = cur.size > 0 ? [...cur] : [0];
+    }
+
+    const nextComboMasks = new Set<number>();
+    for (const cm of comboMasks) {
+      for (const gm of groupMasks) {
+        nextComboMasks.add(cm | gm);
+      }
+    }
+    comboMasks = nextComboMasks;
+  }
+
+  let bestMask = 0;
+  let bestCount = -1;
+  for (const m of comboMasks) {
+    const c = countBits(m);
+    if (c > bestCount) {
+      bestCount = c;
+      bestMask = m;
+    }
+  }
+
+  return selectedOrdered.filter((_, idx) => (bestMask & (1 << idx)) !== 0);
+}
+
 export async function loadSixStepCandidates(): Promise<{
   dishes: SixStepCandidate[];
   combos: {
@@ -305,11 +395,20 @@ export async function loadSixStepCandidates(): Promise<{
     has_pizza_regular: boolean;
     group_dishes: {
       group_name: string;
-      dishes: { dish_id: number; dish_name: string; dish_type: string; ingredient: string; is_spicy: boolean; ingredients: IngredientKey[] }[];
+      max_select: number;
+      dishes: {
+        dish_id: number;
+        dish_name: string;
+        dish_type: string;
+        is_drink: boolean;
+        ingredient: string;
+        is_spicy: boolean;
+        ingredients: IngredientKey[];
+      }[];
     }[];
   }[];
 }> {
-  const [rawDishes, rawCombos] = await Promise.all([
+  const [rawDishes, rawCombos, rawRatings] = await Promise.all([
     prisma.dish.findMany({
       where: { dish_status: true },
       include: {
@@ -327,7 +426,7 @@ export async function loadSixStepCandidates(): Promise<{
               include: {
                 dish_price: {
                   include: {
-                    dish: true,
+                    dish: { include: { category: true } },
                     size: true,
                   },
                 },
@@ -338,11 +437,26 @@ export async function loadSixStepCandidates(): Promise<{
       },
       orderBy: { combo_id: 'asc' },
     }),
+    prisma.reviewItemRating.findMany({
+      where: { review: { is_visible: { not: false } } },
+      select: { dish_name: true, rating_star: true },
+    }),
   ]);
+
+  const ratingByName = new Map<string, { sum: number; count: number }>();
+  for (const r of rawRatings) {
+    const key = (r.dish_name || '').trim().toLowerCase();
+    if (!key) continue;
+    const cur = ratingByName.get(key) || { sum: 0, count: 0 };
+    cur.sum += Number(r.rating_star) || 0;
+    cur.count += 1;
+    ratingByName.set(key, cur);
+  }
 
   const dishes: SixStepCandidate[] = [];
   for (const d of rawDishes) {
-    if (d.dish_name?.toLowerCase().includes('half-half')) continue;
+    if (EXCLUDED_STANDALONE_DISH_IDS.has(d.dish_id)) continue;
+    if (d.dish_name?.toLowerCase().includes('half')) continue;
     const normCat = normalizeCategory(d.category?.category_name);
     if (!normCat || normCat === 'Drink') continue;
     const catKey = normCat as CategoryOptionKey;
@@ -350,6 +464,8 @@ export async function loadSixStepCandidates(): Promise<{
     const variants: PriceVariant[] = (d.prices || [])
       .map(p => ({
         dish_price_id: String(p.dish_price_id),
+        size_id: p.size_id ?? null,
+        crust_id: p.crust_id ?? null,
         size_name: p.size?.size_name || 'Standard',
         crust_name: p.crust?.crust_name || 'None',
         price: Number(p.dish_price) || 0,
@@ -363,6 +479,7 @@ export async function loadSixStepCandidates(): Promise<{
     const ingredients = extractDishIngredients(d.dish_name, ingText);
     const isSpicy = hasSpicyIngredient(ingText);
     const dishType: 'chay' | 'man' = d.dish_type === 'chay' ? 'chay' : 'man';
+    const rStat = ratingByName.get((d.dish_name || '').trim().toLowerCase());
 
     dishes.push({
       id: `dish_${d.dish_id}`,
@@ -375,6 +492,8 @@ export async function loadSixStepCandidates(): Promise<{
       image: d.image || null,
       ingredient: ingText,
       is_spicy: isSpicy,
+      avg_rating: rStat && rStat.count > 0 ? rStat.sum / rStat.count : 0,
+      review_count: rStat?.count || 0,
       ingredients,
       variants,
       selected_variant: variants[0],
@@ -387,19 +506,36 @@ export async function loadSixStepCandidates(): Promise<{
     let hasPizzaRegular = /\bpizza\s+regular\b|\bregular\s+size\b/i.test(desc);
 
     const groupDishes = c.groups.map(g => {
-      const dsMap = new Map<number, { dish_id: number; dish_name: string; dish_type: string; ingredient: string; is_spicy: boolean; ingredients: IngredientKey[] }>();
+      const dsMap = new Map<
+        number,
+        {
+          dish_id: number;
+          dish_name: string;
+          dish_type: string;
+          is_drink: boolean;
+          ingredient: string;
+          is_spicy: boolean;
+          ingredients: IngredientKey[];
+        }
+      >();
       for (const ci of g.combo_items) {
         const dp = ci.dish_price;
         const dish = dp?.dish;
         if (!dish) continue;
+        // Bỏ vỏ Half-Half và các món lẻ đã ngừng kinh doanh (giữ lại bánh mì bơ tỏi tặng kèm trong combo)
+        if (dish.dish_id === 65 || dish.dish_name?.toLowerCase().includes('half')) continue;
+        if (!dish.dish_status && !COMBO_ONLY_BREAD_IDS.has(dish.dish_id)) continue;
+
         if (dp?.size?.size_name === 'Large' && dish.dish_name.toLowerCase().includes('pizza')) hasPizzaLarge = true;
         if (dp?.size?.size_name === 'Regular' && dish.dish_name.toLowerCase().includes('pizza')) hasPizzaRegular = true;
         if (!dsMap.has(dish.dish_id)) {
           const ing = dish.ingredient || '';
+          const isDrink = normalizeCategory(dish.category?.category_name || dish.dish_name) === 'Drink';
           dsMap.set(dish.dish_id, {
             dish_id: dish.dish_id,
             dish_name: dish.dish_name,
             dish_type: dish.dish_type || 'man',
+            is_drink: isDrink,
             ingredient: ing,
             is_spicy: hasSpicyIngredient(ing),
             ingredients: extractDishIngredients(dish.dish_name, ing),
@@ -408,6 +544,7 @@ export async function loadSixStepCandidates(): Promise<{
       }
       return {
         group_name: g.group_name,
+        max_select: g.max_select || 1,
         dishes: [...dsMap.values()],
       };
     });
@@ -444,6 +581,7 @@ export async function runSixStepQuiz(req: SixStepQuizRequest): Promise<SixStepQu
     for (const c of rawCombos) {
       let validCombo = true;
       const unionIngredients = new Set<IngredientKey>();
+      const validGroups: { max_select: number; dish_ingredients: IngredientKey[][] }[] = [];
       let anySpicy = false;
       let allVegPossible = true;
       let anyMeatPossible = false;
@@ -451,14 +589,12 @@ export async function runSixStepQuiz(req: SixStepQuizRequest): Promise<SixStepQu
       for (const g of c.group_dishes) {
         if (g.dishes.length === 0) continue;
         const validGroupDishes = g.dishes.filter(d => {
-          const isDrinkOrBread = !d.ingredient || d.ingredient === 'null';
-          if (dietFilter === 'chay' && d.dish_type !== 'chay' && !d.dish_name.toLowerCase().includes('pepsi')) {
+          if (dietFilter === 'chay' && d.dish_type !== 'chay' && !d.is_drink) {
             return false;
           }
-          if (!isDrinkOrBread) {
-            if (d.ingredients.some(k => allergySet.has(k))) return false;
-            if (spicyFilter === 'no' && d.is_spicy) return false;
-          }
+          // Luôn kiểm tra dị ứng & độ cay trên cả tên món lẫn nguyên liệu (VD: BBQ Wing có ingredient = null vẫn chứa 'chicken')
+          if (d.ingredients.some(k => allergySet.has(k))) return false;
+          if (spicyFilter === 'no' && d.is_spicy) return false;
           return true;
         });
 
@@ -467,10 +603,10 @@ export async function runSixStepQuiz(req: SixStepQuizRequest): Promise<SixStepQu
           break;
         }
 
-        if (!validGroupDishes.some(d => d.dish_type === 'chay' || d.dish_name.toLowerCase().includes('pepsi'))) {
+        if (!validGroupDishes.some(d => d.dish_type === 'chay' || d.is_drink)) {
           allVegPossible = false;
         }
-        if (validGroupDishes.some(d => d.dish_type === 'man' && !d.dish_name.toLowerCase().includes('pepsi'))) {
+        if (validGroupDishes.some(d => d.dish_type === 'man' && !d.is_drink)) {
           anyMeatPossible = true;
         }
 
@@ -478,6 +614,11 @@ export async function runSixStepQuiz(req: SixStepQuizRequest): Promise<SixStepQu
           vd.ingredients.forEach(k => unionIngredients.add(k));
           if (vd.is_spicy) anySpicy = true;
         }
+
+        validGroups.push({
+          max_select: g.max_select,
+          dish_ingredients: validGroupDishes.map(vd => vd.ingredients),
+        });
       }
 
       if (!validCombo) continue;
@@ -503,6 +644,7 @@ export async function runSixStepQuiz(req: SixStepQuizRequest): Promise<SixStepQu
         ingredient: c.description,
         is_spicy: anySpicy,
         ingredients: [...unionIngredients],
+        valid_groups: validGroups,
         variants: [v],
         selected_variant: v,
       });
@@ -576,7 +718,7 @@ export async function runSixStepQuiz(req: SixStepQuizRequest): Promise<SixStepQu
   );
 
   if (selectedCats.has('Combo') && !isAnyCategory && peoplePlan?.disallowAllCombos) {
-    notices.push('Bạn chọn đi 1 mình nên các gói Combo lớn đã được lược bỏ để vừa khẩu phần.');
+    notices.push('Vì bạn dùng bữa một mình, quán xin phép ẩn các phần Combo lớn để khẩu phần vừa vặn hơn.');
   }
 
   const afterQ5Candidates = [...afterQ4Dishes, ...afterQ4Combos].filter(item => selectedCats.has(item.category));
@@ -610,22 +752,53 @@ export async function runSixStepQuiz(req: SixStepQuizRequest): Promise<SixStepQu
   //   Phần trăm phù hợp = (k / M) * 100% (VD: chọn 2 nguyên liệu, món có cả 2 -> 100%, món có 1 -> 50%).
   const isDefaultOrAll100 = totalAvailableN === 0 || selectedM === 0 || selectedM === totalAvailableN;
 
+  const availableOrdered = availableIngredientDefs.map(d => d.key);
+  const getCandidateMatchedKeys = (item: SixStepCandidate): IngredientKey[] => {
+    if (item.item_type === 'combo') {
+      return bestComboMatchedKeys(item, isDefaultOrAll100 ? availableOrdered : validSelectedIngredients);
+    }
+    return isDefaultOrAll100
+      ? item.ingredients.filter(k => availableKeySet.has(k))
+      : item.ingredients.filter(k => selectedSet.has(k));
+  };
+
   const afterQ6Candidates = isDefaultOrAll100
     ? afterQ5Candidates
-    : afterQ5Candidates.filter(item => item.ingredients.some(k => selectedSet.has(k)));
+    : afterQ5Candidates.filter(item => getCandidateMatchedKeys(item).length > 0);
 
   const afterQ6Count = afterQ6Candidates.length;
 
   if (afterQ6Count === 0 && afterQ5Count > 0 && !isDefaultOrAll100) {
-    notices.push('Chưa có món nào trong nhóm bạn chọn chứa nguyên liệu này. Bạn thử chọn thêm nguyên liệu khác nhé.');
+    notices.push('Hiện chưa có món nào trong nhóm đã chọn kết hợp thành phần này. Bạn thử chọn thêm nguyên liệu khác nhé.');
   } else if (afterQ5Count === 0) {
-    notices.push('Chưa tìm thấy món thỏa mãn tất cả lựa chọn của bạn. Bạn thử bớt điều kiện lọc nhé.');
+    notices.push('Chưa tìm được món đáp ứng đồng thời tất cả tiêu chí trên. Bạn thử nới nhẹ lựa chọn để xem thêm nhiều món ngon nhé.');
   }
 
+  const formatSizeVi = (sizeName: string) => {
+    if (sizeName === 'Regular') return 'cỡ vừa (M)';
+    if (sizeName === 'Large') return 'cỡ lớn (L)';
+    return sizeName;
+  };
+
+  const ratingTieMap = new Map<string, { avg: number; count: number }>();
+  for (const item of afterQ6Candidates) {
+    ratingTieMap.set(`${item.item_type}_${item.dish_id}`, {
+      avg: item.avg_rating || 0,
+      count: item.review_count || 0,
+    });
+  }
+
+  /**
+   * Thuật toán 2: Gợi ý dựa trên tri thức & Thỏa mãn ràng buộc (Knowledge-Based / Constraint-Based Filtering)
+   * Cơ sở học thuật:
+   *   - Robin Burke (2000), "Knowledge-Based Recommender Systems", Encyclopedia of Library and Information Science, Vol. 69.
+   *   - Dietmar Jannach, Markus Zanker, Alexander Felfernig, Gerhard Friedrich (2010),
+   *     "Recommender Systems: An Introduction", Cambridge University Press, Chapter 4 (Sec. 4.2).
+   * Công thức gốc: utility(d) = sum_{j=1..M} w_j * s_j(d)
+   * Rút gọn trọng số đều w_j = 1 / M -> Score(d, P) = (|I(d) ∩ P| / |P|) * 100%
+   */
   const scoredItems: SixStepScoredItem[] = afterQ6Candidates.map(item => {
-    const matchedKeys = isDefaultOrAll100
-      ? item.ingredients.filter(k => availableKeySet.has(k))
-      : item.ingredients.filter(k => selectedSet.has(k));
+    const matchedKeys = getCandidateMatchedKeys(item);
 
     // Tính tỷ lệ phù hợp: nếu khách chọn M nguyên liệu, món khớp k nguyên liệu thì đạt (k / M) * 100%
     const matchPercent = isDefaultOrAll100
@@ -638,16 +811,16 @@ export async function runSixStepQuiz(req: SixStepQuizRequest): Promise<SixStepQu
     const reasons: string[] = [];
 
     if (item.item_type === 'combo') {
-      reasons.push('Bạn có thể tự do lựa chọn các món ăn trong Combo theo sở thích của mình.');
+      reasons.push('Tự chọn món chính, món phụ và thức uống trong phần Combo với mức giá tiết kiệm.');
     } else {
       if (!isDefaultOrAll100 && matchedLabels.length > 0) {
-        reasons.push(`Có thành phần bạn thích: ${matchedLabels.join(', ')}`);
+        reasons.push(`Kết hợp nguyên liệu bạn yêu thích: ${matchedLabels.join(', ')}`);
       }
 
       if (item.category === 'Pizza' && peoplePlan) {
-        reasons.push(`Cỡ bánh phù hợp cho ${peoplePlan.label}: Size ${item.selected_variant.size_name}`);
+        reasons.push(`Khẩu phần vừa vặn cho ${peoplePlan.label}: bánh ${formatSizeVi(item.selected_variant.size_name)}`);
       } else {
-        reasons.push(`${item.category_label} · ${item.dish_type === 'chay' ? 'Món chay' : 'Món mặn'}`);
+        reasons.push(`${item.category_label} · ${item.dish_type === 'chay' ? 'Món chay thanh đạm' : 'Món mặn đậm đà'}`);
       }
     }
 
@@ -674,13 +847,20 @@ export async function runSixStepQuiz(req: SixStepQuizRequest): Promise<SixStepQu
     };
   });
 
-  // Sắp xếp theo % phù hợp giảm dần -> Số nguyên liệu khớp giảm dần -> Mã món tăng dần
-  scoredItems.sort(
-    (a, b) =>
-      b.match_percent - a.match_percent ||
-      b.matched_ingredients_count - a.matched_ingredients_count ||
-      a.dish.dish_id - b.dish.dish_id
-  );
+  // Sắp xếp theo % phù hợp giảm dần -> Số nguyên liệu khớp giảm dần -> Đánh giá thực tế giảm dần -> Mã món tăng dần
+  scoredItems.sort((a, b) => {
+    if (b.match_percent !== a.match_percent) return b.match_percent - a.match_percent;
+    if (b.matched_ingredients_count !== a.matched_ingredients_count) {
+      return b.matched_ingredients_count - a.matched_ingredients_count;
+    }
+    const rA = ratingTieMap.get(`${a.item_type}_${a.dish.dish_id}`);
+    const rB = ratingTieMap.get(`${b.item_type}_${b.dish.dish_id}`);
+    const avgDiff = (rB?.avg || 0) - (rA?.avg || 0);
+    if (Math.abs(avgDiff) > 1e-6) return avgDiff;
+    const cntDiff = (rB?.count || 0) - (rA?.count || 0);
+    if (cntDiff !== 0) return cntDiff;
+    return a.dish.dish_id - b.dish.dish_id;
+  });
 
   scoredItems.forEach((item, idx) => {
     item.rank = idx + 1;

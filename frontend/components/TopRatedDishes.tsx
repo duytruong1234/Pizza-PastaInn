@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { ChevronLeft, ChevronRight, Heart } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Heart, Star } from 'lucide-react';
 import { API_BASE, BACKEND_URL } from '@/lib/config';
 import { formatPrice } from '@/lib/utils';
 import { shouldBypassNextImageOptimization } from '@/lib/image';
@@ -49,6 +49,8 @@ interface DishItem {
   dish_type?: string;
   type?: string;
   is_half_half?: boolean;
+  avg_rating?: number;
+  review_count?: number;
   prices?: DishPriceItem[];
 }
 
@@ -86,8 +88,9 @@ const getDishPricing = (dish: DishItem) => {
 };
 
 export default function TopRatedDishes({ initialDishes }: { initialDishes?: DishItem[] }) {
-  const { isCartOpen, isCartPinned, theme, t, td, ti } = useUI();
+  const { isCartOpen, isCartPinned, theme, lang, t, td, ti } = useUI();
   const isLight = theme === 'light';
+  const isEn = lang === 'en';
   const wishlistItems = useWishlistStore((s) => s.items);
   const toggleWishlist = useWishlistStore((s) => s.toggleWishlist);
   const [dishes, setDishes] = useState<DishItem[]>(initialDishes ?? []);
@@ -265,15 +268,16 @@ export default function TopRatedDishes({ initialDishes }: { initialDishes?: Dish
             >
               {/* Content Area (Left) */}
               <div className="flex flex-col flex-1 h-full py-0.5 justify-center text-left pr-[92px] sm:pr-28 lg:pr-32 min-w-0">
+                <div className="mb-1 flex items-center gap-1.5">
+                  <span className="inline-flex items-center gap-1 bg-white/95 text-[#1c1208] text-[10px] font-bold px-2 py-0.5 rounded-md">
+                    <Star size={10} className="fill-[#d4a017] text-[#d4a017]" />
+                    <span>{Number(dish.avg_rating || 5).toFixed(1)}</span>
+                  </span>
+                </div>
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <h3 className="text-white font-bold text-sm sm:text-base lg:text-lg leading-tight line-clamp-1">
                     {td(dish.dish_name)}
                   </h3>
-                  {dish.dish_type === 'chay' && (
-                    <span className="shrink-0 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
-                      {t('product.badge_veg')}
-                    </span>
-                  )}
                   {dish.type !== 'combo' && !pricing.isHalfHalf && (
                     <button
                       type="button"

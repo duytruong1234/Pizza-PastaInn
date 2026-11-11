@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, X, Clock, Flame, ArrowUpRight } from 'lucide-react';
+import { Search, X, Clock, Flame, ArrowUpRight, UtensilsCrossed } from 'lucide-react';
 import { useUI } from '@/components/UIProvider';
+import { useRecommendationStore } from '@/store/recommendationStore';
 import { API_BASE, BACKEND_URL } from '@/lib/config';
 import { formatPrice } from '@/lib/utils';
 import HalfHalfModal from './HalfHalfModal';
@@ -62,6 +63,7 @@ export default function CategoryNav({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { theme, isCartOpen, isCartPinned, lang, td } = useUI();
+  const openQuiz = useRecommendationStore((s) => s.openQuiz);
   const isLight = theme === 'light';
   const isEn = lang === 'en';
 
@@ -742,8 +744,8 @@ export default function CategoryNav({
                   {popularItems.length > 0 && (
                     <div>
                       <div
-                        className={`px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${
-                          isLight ? 'text-[#ee2828]' : 'text-[#f5c043]'
+                        className={`px-3.5 py-1.5 text-xs font-bold flex items-center gap-1.5 ${
+                          isLight ? 'text-zinc-600' : 'text-zinc-300'
                         }`}
                       >
                         <span>{isEn ? 'Best Sellers' : 'Món bán chạy'}</span>
@@ -896,6 +898,20 @@ export default function CategoryNav({
               className={getPillClassName(isHalfHalfModalOpen)}
             >
               <span>{isEn ? 'Half & Half' : 'Nửa-Nửa'}</span>
+            </button>
+
+            {/* Pill Gợi ý món thông minh */}
+            <button
+              type="button"
+              onClick={() => openQuiz('category_nav')}
+              className={`shrink-0 snap-start inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs sm:text-[13px] font-extrabold tracking-wide border transition-all duration-200 cursor-pointer active:scale-95 ${
+                isLight
+                  ? 'bg-gradient-to-r from-[#fff3d1] to-[#ffe4a3] text-[#7c2d12] border-[#e8b949] hover:from-[#ffe8ad] hover:to-[#ffd97d] shadow-2xs'
+                  : 'bg-gradient-to-r from-[#3d2514] to-[#2c1b12] text-[#f5c043] border-[#f5c043]/40 hover:border-[#f5c043]/80 shadow-xs'
+              }`}
+            >
+              <UtensilsCrossed size={14} className="shrink-0" />
+              <span>{isEn ? 'Dish Guide' : 'Tư vấn chọn món'}</span>
             </button>
           </div>
         </div>

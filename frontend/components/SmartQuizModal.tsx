@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { X, ChevronLeft, Sparkles, Check, ShoppingCart, RotateCcw, TriangleAlert, LoaderCircle } from 'lucide-react';
+import { X, ChevronLeft, UtensilsCrossed, Check, ShoppingCart, RotateCcw, TriangleAlert, LoaderCircle } from 'lucide-react';
 import { API_BASE, BACKEND_URL } from '@/lib/config';
 import { formatPrice } from '@/lib/utils';
 import { useCartStore } from '@/store/cartStore';
@@ -89,8 +89,8 @@ const ALL_INGREDIENTS: IngredientOption[] = [
   },
   {
     key: 'olive',
-    label: 'Trái Olive',
-    labelEn: 'Olive',
+    label: 'Ô liu đen',
+    labelEn: 'Black Olive',
     in_allergy_list: true,
     is_meat: false,
     categories: ['Pizza', 'Salad / Side Dish', 'Combo'],
@@ -140,36 +140,43 @@ const ALL_INGREDIENTS: IngredientOption[] = [
 const ALLERGY_INGREDIENTS = ALL_INGREDIENTS.filter(i => i.in_allergy_list);
 
 const DIET_CHOICES: { value: DietKey; label: string; labelEn: string }[] = [
-  { value: 'chay', label: 'Ăn chay', labelEn: 'Vegetarian' },
-  { value: 'man', label: 'Ăn mặn', labelEn: 'Savory / Meat' },
-  { value: 'both', label: 'Cả 2 đều được', labelEn: 'Either is fine' },
+  { value: 'chay', label: 'Món chay thanh đạm', labelEn: 'Vegetarian' },
+  { value: 'man', label: 'Món mặn truyền thống', labelEn: 'Savory / Meat' },
+  { value: 'both', label: 'Dùng cả món chay và món mặn', labelEn: 'Either is fine' },
 ];
 
 const SPICY_CHOICES: { value: SpicyKey; label: string; labelEn: string }[] = [
-  { value: 'yes', label: 'Có', labelEn: 'Yes' },
-  { value: 'no', label: 'Không', labelEn: 'No' },
+  { value: 'yes', label: 'Có, mình ăn được cay', labelEn: 'Yes, I enjoy spicy' },
+  { value: 'no', label: 'Không, ưu tiên vị dịu nhẹ', labelEn: 'No, keep it mild' },
 ];
 
 const PEOPLE_CHOICES: { value: PeopleKey; label: string; labelEn: string }[] = [
-  { value: '1', label: 'Một mình', labelEn: 'Just me (1 person)' },
-  { value: '2', label: '2 người', labelEn: '2 people' },
-  { value: '3-4', label: '3–4 người', labelEn: '3–4 people' },
-  { value: '5-6', label: '5–6 người', labelEn: '5–6 people' },
-  { value: '6+', label: 'Trên 6 người', labelEn: 'More than 6 people' },
+  { value: '1', label: 'Dùng bữa 1 mình', labelEn: 'Just me (1 person)' },
+  { value: '2', label: 'Đi 2 người', labelEn: '2 people' },
+  { value: '3-4', label: 'Nhóm 3 – 4 người', labelEn: '3–4 people' },
+  { value: '5-6', label: 'Nhóm 5 – 6 người', labelEn: '5–6 people' },
+  { value: '6+', label: 'Nhóm trên 6 người', labelEn: 'More than 6 people' },
 ];
 
 const CATEGORY_CHOICES: { value: CategoryKey; label: string; labelEn: string }[] = [
-  { value: 'Pizza', label: 'Pizza', labelEn: 'Pizza' },
-  { value: 'Spaghetti', label: 'Mì Ý', labelEn: 'Spaghetti' },
-  { value: 'Gratin / Risotto', label: 'Cơm Ý đút lò', labelEn: 'Baked Gratin & Risotto' },
-  { value: 'Salad / Side Dish', label: 'Salad', labelEn: 'Salad & Side Dishes' },
-  { value: 'Combo', label: 'Combo', labelEn: 'Combo' },
-  { value: 'any', label: 'Không có lựa chọn cụ thể', labelEn: 'No specific preference' },
+  { value: 'Pizza', label: 'Pizza nướng lò', labelEn: 'Pizza' },
+  { value: 'Spaghetti', label: 'Mì Ý Spaghetti', labelEn: 'Spaghetti' },
+  { value: 'Gratin / Risotto', label: 'Cơm Ý & Đút lò', labelEn: 'Baked Gratin & Risotto' },
+  { value: 'Salad / Side Dish', label: 'Salad & Món phụ', labelEn: 'Salad & Side Dishes' },
+  { value: 'Combo', label: 'Combo tiết kiệm', labelEn: 'Value Combo' },
+  { value: 'any', label: 'Xem đa dạng tất cả dòng món', labelEn: 'All menu categories' },
 ];
 
 // ─── Kiểu dữ liệu trả về từ Backend ─────────────────────────────────────────
 
-type Variant = { dish_price_id: string; size_name: string; crust_name: string; price: number };
+type Variant = {
+  dish_price_id: string;
+  size_id?: number | null;
+  crust_id?: number | null;
+  size_name: string;
+  crust_name: string;
+  price: number;
+};
 type DishInfo = {
   dish_id: number;
   dish_name: string;
@@ -221,13 +228,16 @@ const INITIAL_ANSWERS: QuizAnswersState = {
 
 const FALLBACK_IMG = 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=300&auto=format&fit=crop';
 const imgUrl = (p: string | null) => (!p ? FALLBACK_IMG : p.startsWith('http') ? p : `${BACKEND_URL}${p}`);
-const sizeText = (v: Variant) =>
-  [v.size_name && v.size_name !== 'Standard' ? `Size ${v.size_name}` : '', v.crust_name && v.crust_name !== 'None' ? v.crust_name : '']
+const sizeText = (v: Variant, translate: (s?: string | null) => string) =>
+  [
+    v.size_name && v.size_name !== 'Standard' ? translate(v.size_name) : '',
+    v.crust_name && v.crust_name !== 'None' ? translate(v.crust_name) : '',
+  ]
     .filter(Boolean)
     .join(' · ');
 
 export default function SmartQuizModal() {
-  const { quizOpen, quizSource, closeQuiz } = useRecommendationStore();
+  const { quizOpen, quizSource, closeQuiz, setSavedQuizProfile } = useRecommendationStore();
   const addToCart = useCartStore(s => s.addToCart);
   const { theme, lang, td, ti, tc } = useUI();
   const isLight = theme === 'light';
@@ -344,13 +354,77 @@ export default function SmartQuizModal() {
         if (!res.ok || !json.success) throw new Error(json.message || 'Không tạo được gợi ý');
         const data: QuizResult = json.data;
         setResult(data);
+
+        // Lưu kết quả gợi ý ra Trang chủ để làm nổi bật hồ sơ khẩu vị của khách
+        const topList = (data.items || data.top || []).slice(0, 6);
+        if (topList.length > 0) {
+          const tagsVi: string[] = [];
+          const tagsEn: string[] = [];
+
+          const dietChoice = DIET_CHOICES.find(d => d.value === finalAnswers.diet);
+          if (dietChoice) {
+            tagsVi.push(dietChoice.label);
+            tagsEn.push(dietChoice.labelEn);
+          }
+
+          if (finalAnswers.spicy === 'yes') {
+            tagsVi.push('Ăn cay');
+            tagsEn.push('Spicy');
+          } else if (finalAnswers.spicy === 'no') {
+            tagsVi.push('Không cay');
+            tagsEn.push('Non-Spicy');
+          }
+
+          const peopleChoice = PEOPLE_CHOICES.find(p => p.value === finalAnswers.people);
+          if (peopleChoice) {
+            tagsVi.push(peopleChoice.label);
+            tagsEn.push(peopleChoice.labelEn);
+          }
+
+          const favLabelsVi = finalAnswers.ingredients
+            .map(k => ALL_INGREDIENTS.find(i => i.key === k)?.label.split(' (')[0])
+            .filter(Boolean);
+          const favLabelsEn = finalAnswers.ingredients
+            .map(k => ALL_INGREDIENTS.find(i => i.key === k)?.labelEn.split(' (')[0])
+            .filter(Boolean);
+          if (favLabelsVi.length > 0) {
+            tagsVi.push(`Thích: ${favLabelsVi.slice(0, 3).join(', ')}`);
+            tagsEn.push(`Loves: ${favLabelsEn.slice(0, 3).join(', ')}`);
+          }
+
+          const allergyLabelsVi = finalAnswers.allergies
+            .map(k => ALL_INGREDIENTS.find(i => i.key === k)?.label.split(' (')[0])
+            .filter(Boolean);
+          const allergyLabelsEn = finalAnswers.allergies
+            .map(k => ALL_INGREDIENTS.find(i => i.key === k)?.labelEn.split(' (')[0])
+            .filter(Boolean);
+          if (allergyLabelsVi.length > 0) {
+            tagsVi.push(`Tránh: ${allergyLabelsVi.slice(0, 2).join(', ')}`);
+            tagsEn.push(`Avoids: ${allergyLabelsEn.slice(0, 2).join(', ')}`);
+          }
+
+          setSavedQuizProfile({
+            tagsVi,
+            tagsEn,
+            items: topList.map(item => ({
+              rank: item.rank,
+              item_type: item.item_type,
+              dish: item.dish,
+              variant: item.variant,
+              all_variants: item.all_variants,
+              match_percent: item.match_percent,
+              reasons: item.reasons || [],
+            })),
+            updatedAt: Date.now(),
+          });
+        }
       } catch (e: unknown) {
         setError(e instanceof Error && e.message ? e.message : 'Có lỗi xảy ra, vui lòng thử lại');
       } finally {
         setLoading(false);
       }
     },
-    [quizSource]
+    [quizSource, setSavedQuizProfile]
   );
 
   // ─── Xử lý chọn / bỏ chọn từng câu ────────────────────────────────────────
@@ -442,8 +516,8 @@ export default function SmartQuizModal() {
         <div
           role="dialog"
           aria-modal="true"
-          aria-label={isEn ? 'Find Your Ideal Dish' : 'Lựa chọn phù hợp cho bạn'}
-          className={`relative w-full sm:max-w-[700px] max-h-[92vh] flex flex-col border rounded-t-[28px] sm:rounded-[28px] overflow-hidden animate-fadeIn ${
+          aria-label={isEn ? 'Find Your Ideal Dish' : 'Gợi ý món ngon hợp khẩu vị'}
+          className={`relative w-full sm:max-w-[680px] max-h-[86dvh] sm:max-h-[min(650px,84dvh)] flex flex-col border rounded-t-[28px] sm:rounded-[28px] overflow-hidden animate-fadeIn ${
             isLight
               ? 'bg-white text-zinc-900 border-zinc-200 shadow-[0_20px_60px_rgba(0,0,0,0.18)]'
               : 'bg-[#1a1513] text-white border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.6)]'
@@ -454,8 +528,8 @@ export default function SmartQuizModal() {
         <div
           className={`shrink-0 px-5 pt-5 pb-3 border-b ${
             isLight
-              ? 'bg-gradient-to-b from-zinc-50 to-white border-zinc-100'
-              : 'bg-gradient-to-b from-[#2a1f1a] to-[#1a1513] border-white/[0.06]'
+              ? 'bg-white border-zinc-200'
+              : 'bg-[#1a1513] border-white/[0.08]'
           }`}
         >
           <div className="flex items-center justify-between gap-3">
@@ -472,21 +546,21 @@ export default function SmartQuizModal() {
                 </button>
               ) : (
                 <div className="w-9 h-9 rounded-full bg-[#ee2828]/15 text-[#ee2828] flex items-center justify-center shrink-0">
-                  <Sparkles size={18} />
+                  <UtensilsCrossed size={18} />
                 </div>
               )}
               <div className="min-w-0">
                 <h3 className={`font-extrabold text-[17px] tracking-wide truncate ${isLight ? 'text-zinc-900' : 'text-white'}`}>
-                  {isEn ? 'Find Your Ideal Dish' : 'Lựa chọn phù hợp cho bạn'}
+                  {isEn ? 'Find Your Ideal Dish' : 'Gợi ý món ngon hợp khẩu vị'}
                 </h3>
                 <p className={`text-[11px] font-semibold ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
                   {result
                     ? isEn
                       ? `Found ${totalResultsCount} matching dishes for you`
-                      : `Tìm thấy ${totalResultsCount} món phù hợp với bạn`
+                      : `Đã chọn lọc ${totalResultsCount} món phù hợp với khẩu vị của bạn`
                     : isEn
-                      ? `Question ${step + 1} / 6`
-                      : `Câu hỏi ${step + 1} / 6`}
+                      ? `Step ${step + 1} / 6`
+                      : `Bước ${step + 1} / 6`}
                 </p>
               </div>
             </div>
@@ -511,7 +585,7 @@ export default function SmartQuizModal() {
             <div className="py-16 flex flex-col items-center justify-center gap-3 text-center">
               <LoaderCircle size={32} className="animate-spin text-[#ee2828]" />
               <p className={`font-bold text-sm ${isLight ? 'text-zinc-900' : 'text-white'}`}>
-                {isEn ? 'Finding the best dishes for you…' : 'Đang tìm món phù hợp cho bạn…'}
+                {isEn ? 'Selecting the best dishes for you...' : 'Đang chọn lọc những món hợp vị nhất cho bạn...'}
               </p>
             </div>
           )}
@@ -532,12 +606,14 @@ export default function SmartQuizModal() {
           {!loading && !error && !result && step === 0 && (
             <div className="pt-4">
               <h4 className={`text-lg font-extrabold mb-1 ${isLight ? 'text-zinc-900' : 'text-white'}`}>
-                {isEn ? 'Question 1: Do you prefer vegetarian or savory dishes?' : 'Câu 1: Bạn là người ăn chay hay ăn mặn?'}
+                {isEn
+                  ? '1. Do you prefer vegetarian or savory dishes?'
+                  : '1. Bạn muốn dùng món chay hay món mặn?'}
               </h4>
               <p className={`text-xs mb-4 ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
                 {isEn
-                  ? 'Select one option or click Continue to skip filtering.'
-                  : 'Bạn có thể chọn 1 đáp án hoặc bấm Tiếp tục nếu không muốn lọc.'}
+                  ? 'Choose one option or press Continue to browse the full menu.'
+                  : 'Chọn một phương án phù hợp, hoặc nhấn Tiếp tục để xem toàn bộ thực đơn.'}
               </p>
               <div className="grid grid-cols-1 gap-2.5">
                 {DIET_CHOICES.map(o => {
@@ -586,13 +662,13 @@ export default function SmartQuizModal() {
             <div className="pt-4">
               <h4 className={`text-lg font-extrabold mb-1 ${isLight ? 'text-zinc-900' : 'text-white'}`}>
                 {isEn
-                  ? 'Question 2: Are you allergic to any of the following ingredients?'
-                  : 'Câu 2: Bạn dị ứng với nguyên liệu dưới đây không nào?'}
+                  ? '2. Are there any ingredients you need to avoid?'
+                  : '2. Bạn cần tránh thành phần nguyên liệu nào không?'}
               </h4>
               <p className={`text-xs mb-4 ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
                 {isEn
-                  ? 'You can select multiple options (click Continue if you have no allergies).'
-                  : 'Có thể chọn nhiều đáp án (nếu không bị dị ứng, bạn bấm Tiếp tục).'}
+                  ? 'Select all ingredients to exclude, or press Continue if you have no restrictions.'
+                  : 'Chọn các thành phần bạn bị dị ứng hoặc không dùng được (nhấn Tiếp tục nếu bạn dùng được tất cả).'}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {ALLERGY_INGREDIENTS.map(item => {
@@ -640,12 +716,12 @@ export default function SmartQuizModal() {
           {!loading && !error && !result && step === 2 && (
             <div className="pt-4">
               <h4 className={`text-lg font-extrabold mb-1 ${isLight ? 'text-zinc-900' : 'text-white'}`}>
-                {isEn ? 'Question 3: Do you enjoy spicy food?' : 'Câu 3: Bạn có ăn được cay không?'}
+                {isEn ? '3. Do you enjoy spicy flavors?' : '3. Bạn có thích hương vị cay nồng không?'}
               </h4>
               <p className={`text-xs mb-4 ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
                 {isEn
-                  ? 'Select one option or click Continue to skip filtering.'
-                  : 'Bạn có thể chọn 1 đáp án hoặc bấm Tiếp tục nếu không muốn lọc.'}
+                  ? 'Choose your preference or press Continue to keep all dishes.'
+                  : 'Chọn mức độ phù hợp với bạn, hoặc nhấn Tiếp tục để giữ tất cả các món.'}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {SPICY_CHOICES.map(o => {
@@ -694,13 +770,13 @@ export default function SmartQuizModal() {
             <div className="pt-4">
               <h4 className={`text-lg font-extrabold mb-1 ${isLight ? 'text-zinc-900' : 'text-white'}`}>
                 {isEn
-                  ? 'Question 4: How many people are dining with you?'
-                  : 'Câu 4: Bạn dự định dùng bữa với bao nhiêu người?'}
+                  ? '4. How many people are dining today?'
+                  : '4. Bữa ăn hôm nay của bạn dành cho mấy người?'}
               </h4>
               <p className={`text-xs mb-4 ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
                 {isEn
-                  ? 'Select one option or click Continue to skip filtering.'
-                  : 'Bạn có thể chọn 1 đáp án hoặc bấm Tiếp tục nếu không muốn lọc.'}
+                  ? 'Helps us recommend the most suitable pizza size and meal portion.'
+                  : 'Giúp quán gợi ý cỡ bánh và phần ăn vừa vặn nhất cho bàn tiệc của bạn.'}
               </p>
               <div className="grid grid-cols-1 gap-2.5">
                 {PEOPLE_CHOICES.map(o => {
@@ -749,13 +825,13 @@ export default function SmartQuizModal() {
             <div className="pt-4">
               <h4 className={`text-lg font-extrabold mb-1 ${isLight ? 'text-zinc-900' : 'text-white'}`}>
                 {isEn
-                  ? 'Question 5: Which categories are you craving?'
-                  : 'Câu 5: Bạn muốn lựa chọn món ăn nào?'}
+                  ? '5. Which menu categories would you like to enjoy?'
+                  : '5. Bạn đang muốn thưởng thức dòng món nào?'}
               </h4>
               <p className={`text-xs mb-4 ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
                 {isEn
-                  ? 'You can select multiple categories (leave unselected to include all).'
-                  : 'Có thể chọn nhiều đáp án (nếu không chọn, hệ thống sẽ giữ tất cả các món).'}
+                  ? 'You may choose one or multiple categories (leave unselected to view all).'
+                  : 'Bạn có thể chọn một hoặc nhiều dòng món yêu thích (nếu không chọn, quán sẽ gợi ý trên toàn thực đơn).'}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {CATEGORY_CHOICES.map(o => {
@@ -808,18 +884,20 @@ export default function SmartQuizModal() {
             <div className="pt-4">
               <h4 className={`text-lg font-extrabold mb-1 ${isLight ? 'text-zinc-900' : 'text-white'}`}>
                 {isEn
-                  ? 'Question 6: Which ingredients do you love?'
-                  : 'Câu 6: Bạn yêu thích nguyên liệu nào?'}
+                  ? '6. Which ingredients do you love the most?'
+                  : '6. Đâu là những nguyên liệu bạn yêu thích nhất?'}
               </h4>
               <p className={`text-xs mb-4 ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                {isEn ? 'You can select multiple ingredients.' : 'Có thể chọn nhiều đáp án.'}
+                {isEn
+                  ? 'Select your favorite ingredients so we can prioritize matching dishes.'
+                  : 'Chọn các thành phần bạn thích để quán ưu tiên gợi ý những món hợp vị lên đầu nhé.'}
               </p>
 
               {availableIngredients.length === 0 ? (
                 <p className={`text-sm py-6 text-center ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
                   {isEn
-                    ? 'You have filtered out all ingredient groups. Click Find Matching Dishes to see results.'
-                    : 'Bạn đã chọn lọc hết các nhóm nguyên liệu ở câu trước. Hãy bấm Tìm món phù hợp để xem kết quả nhé.'}
+                    ? 'All ingredient groups have been narrowed down. Press View Suggested Menu to see your results.'
+                    : 'Các tiêu chí trước đó đã thu gọn danh sách nguyên liệu. Bạn nhấn Xem thực đơn gợi ý để nhận kết quả nhé.'}
                 </p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -840,7 +918,7 @@ export default function SmartQuizModal() {
                         }`}
                       >
                         <span className={`font-bold text-sm ${isLight ? 'text-zinc-900' : 'text-white'}`}>
-                          {isEn && localIng ? localIng.labelEn : item.label}
+                          {isEn && localIng ? localIng.labelEn : localIng ? localIng.label : item.label}
                         </span>
                         <div
                           className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${
@@ -861,7 +939,7 @@ export default function SmartQuizModal() {
                   onClick={() => submit(answers)}
                   className="w-full sm:w-auto bg-[#ee2828] hover:bg-[#d42020] text-white font-black text-sm uppercase tracking-wider px-7 py-3.5 rounded-2xl shadow-lg cursor-pointer transition-all"
                 >
-                  {isEn ? 'Find Matching Dishes' : 'Tìm món phù hợp'}
+                  {isEn ? 'View Suggested Menu' : 'Xem thực đơn gợi ý'}
                 </button>
               </div>
             </div>
@@ -888,8 +966,8 @@ export default function SmartQuizModal() {
               {displayedResults.length === 0 ? (
                 <p className={`text-center text-sm py-8 ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
                   {isEn
-                    ? 'No dishes matched all your criteria. Try relaxing some filters.'
-                    : 'Chưa tìm được món ăn thỏa mãn tất cả điều kiện. Bạn thử giảm bớt điều kiện lọc nhé.'}
+                    ? 'No dishes matched all your criteria. Try relaxing some preferences.'
+                    : 'Hiện chưa tìm được món đáp ứng đồng thời tất cả tiêu chí trên. Bạn thử nới nhẹ lựa chọn để xem thêm nhiều món ngon nhé.'}
                 </p>
               ) : (
                 <section>
@@ -914,28 +992,17 @@ export default function SmartQuizModal() {
                               }`}
                             />
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="min-w-0">
-                                  <p className={`font-extrabold text-[15px] leading-tight ${isLight ? 'text-zinc-900' : 'text-white'}`}>
-                                    {td(t.dish.dish_name)}
-                                  </p>
-                                  <p className={`text-[11px] font-semibold mt-0.5 ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                                    {t.item_type === 'combo'
-                                      ? isEn
-                                        ? 'Combo · Value Meal'
-                                        : 'Combo · Trọn gói'
-                                      : [td(t.dish.category || t.dish.category_label || ''), sizeText(t.variant)].filter(Boolean).join(' · ')}
-                                  </p>
-                                </div>
-                                <span
-                                  className={`shrink-0 border text-[11px] font-black px-2.5 py-1 rounded-full ${
-                                    isLight
-                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                      : 'bg-[#007a3f]/25 text-emerald-300 border-emerald-500/30'
-                                  }`}
-                                >
-                                  {isEn ? `${t.match_percent}% Match` : `Phù hợp ${t.match_percent}%`}
-                                </span>
+                              <div className="min-w-0">
+                                <p className={`font-extrabold text-[15px] leading-tight ${isLight ? 'text-zinc-900' : 'text-white'}`}>
+                                  {td(t.dish.dish_name)}
+                                </p>
+                                <p className={`text-[11px] mt-0.5 ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                                  {t.item_type === 'combo'
+                                    ? isEn
+                                      ? 'Value Combo'
+                                      : 'Combo tiết kiệm'
+                                    : [td(t.dish.category || t.dish.category_label || ''), sizeText(t.variant, td)].filter(Boolean).join(' · ')}
+                                </p>
                               </div>
                               {t.dish.ingredient && t.dish.ingredient !== 'null' && (
                                 <p className={`text-[11px] mt-1 line-clamp-1 ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
@@ -944,8 +1011,8 @@ export default function SmartQuizModal() {
                               )}
                               <ul className="mt-1.5 space-y-0.5">
                                 {t.reasons.map((r, i) => (
-                                  <li key={i} className={`text-xs flex gap-1.5 ${isLight ? 'text-zinc-700' : 'text-zinc-200'}`}>
-                                    <Check size={13} className="text-emerald-500 shrink-0 mt-0.5" />
+                                  <li key={i} className={`text-xs flex gap-1.5 ${isLight ? 'text-stone-700' : 'text-zinc-200'}`}>
+                                    <Check size={13} className="text-[#007a3f] shrink-0 mt-0.5" />
                                     {r}
                                   </li>
                                 ))}
@@ -953,7 +1020,7 @@ export default function SmartQuizModal() {
                             </div>
                           </div>
                           <div className="flex items-center justify-between mt-2.5 gap-2">
-                            <span className={`font-black text-sm ${isLight ? 'text-[#ee2828]' : 'text-[#ffc107]'}`}>
+                            <span className={`font-black text-sm ${isLight ? 'text-[#a82e10]' : 'text-[#ffc107]'}`}>
                               {formatPrice(t.variant.price)}
                             </span>
                             <div className="flex items-center gap-2">
@@ -961,20 +1028,18 @@ export default function SmartQuizModal() {
                                 <button
                                   type="button"
                                   onClick={() => setSelectedCombo(t)}
-                                  className="text-xs font-black px-3.5 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 bg-[#007a3f] hover:bg-[#005a2e] text-white"
+                                  className="text-xs font-bold px-3.5 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 bg-[#007a3f] hover:bg-[#005a2e] text-white"
                                 >
                                   <ShoppingCart size={13} />
-                                  {isEn ? 'Add to Cart' : 'Thêm vào giỏ'}
+                                  {isEn ? 'Customize Combo' : 'Chọn món trong combo'}
                                 </button>
                               ) : (
                                 <button
                                   type="button"
                                   onClick={() => addDishToCart(t)}
-                                  className={`text-xs font-black px-3.5 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 ${
+                                  className={`text-xs font-bold px-3.5 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 ${
                                     isAdded
-                                      ? isLight
-                                        ? 'bg-emerald-100 text-emerald-700'
-                                        : 'bg-emerald-600/30 text-emerald-200'
+                                      ? 'bg-[#235328] text-white'
                                       : 'bg-[#007a3f] hover:bg-[#005a2e] text-white'
                                   }`}
                                 >
@@ -1019,15 +1084,31 @@ export default function SmartQuizModal() {
                 </section>
               )}
 
-              <div className="flex items-center justify-center pt-1">
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                 <button
+                  type="button"
                   onClick={reset}
-                  className={`text-sm font-bold flex items-center gap-1.5 px-3 py-2 cursor-pointer ${
-                    isLight ? 'text-zinc-500 hover:text-zinc-900' : 'text-zinc-400 hover:text-white'
+                  className={`text-xs sm:text-sm font-bold flex items-center gap-1.5 px-3.5 py-2 rounded-xl border cursor-pointer transition-colors ${
+                    isLight
+                      ? 'border-zinc-200 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
+                      : 'border-white/10 text-zinc-300 hover:bg-white/5 hover:text-white'
                   }`}
                 >
-                  <RotateCcw size={15} /> {isEn ? 'Start Over' : 'Chọn lại từ đầu'}
+                  <RotateCcw size={15} /> {isEn ? 'Choose Again' : 'Chọn lại khẩu vị'}
                 </button>
+                {displayedResults.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeQuiz();
+                      document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="text-xs sm:text-sm font-extrabold flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#f5c043] hover:bg-[#e5b034] text-zinc-950 shadow-sm cursor-pointer transition-colors"
+                  >
+                    <Check size={15} />
+                    {isEn ? 'Done · View on Homepage' : 'Hoàn tất & Xem ngoài trang chủ'}
+                  </button>
+                )}
               </div>
             </div>
           )}

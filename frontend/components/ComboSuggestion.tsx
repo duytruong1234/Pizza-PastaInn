@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { API_BASE, BACKEND_URL } from '@/lib/config';
 import { formatPrice } from '@/lib/utils';
 import Image from 'next/image';
-import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Tag } from 'lucide-react';
 import { shouldBypassNextImageOptimization } from '@/lib/image';
 import { useUI } from '@/components/UIProvider';
 import ComboModal from './ComboModal';
@@ -35,7 +35,7 @@ const formatComboDescription = (desc: string) => {
 };
 
 export default function ComboSuggestion({ dishIds }: ComboSuggestionProps) {
-  const { theme, lang, tc } = useUI();
+  const { theme, lang, tc, td } = useUI();
   const isLight = theme === 'light';
   const isEn = lang === 'en';
   const [suggestions, setSuggestions] = useState<any[]>([]);
@@ -90,9 +90,9 @@ export default function ComboSuggestion({ dishIds }: ComboSuggestionProps) {
     <div className="pt-2 border-t border-dashed border-current/10">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
-          <Sparkles size={13} className={isLight ? 'text-[#b45309]' : 'text-[#f5c043]'} />
+          <Tag size={13} className={isLight ? 'text-[#b45309]' : 'text-[#f5c043]'} />
           <h3 className={`text-[11px] font-extrabold uppercase tracking-wider ${isLight ? 'text-zinc-700' : 'text-zinc-300'}`}>
-            {isEn ? 'Value Combo Deals' : 'Gợi ý Combo tiết kiệm'}
+            {isEn ? 'Value Combo Deals' : 'Combo tiết kiệm phù hợp'}
           </h3>
         </div>
         {visibleList.length > 1 && (
@@ -130,10 +130,10 @@ export default function ComboSuggestion({ dishIds }: ComboSuggestionProps) {
 
       <div
         key={combo.combo_id}
-        className={`border rounded-2xl p-3 flex flex-col gap-2 transition-all ${
+        className={`border rounded-xl p-3 flex flex-col gap-2 ${
           isLight
-            ? 'bg-gradient-to-br from-amber-50/90 to-white border-amber-300/60 shadow-xs'
-            : 'bg-gradient-to-br from-[#281e17] to-[#1e1814] border-[#f5c043]/25 shadow-sm'
+            ? 'bg-white border-[#e4d8c5]'
+            : 'bg-[#211c18] border-white/12'
         }`}
       >
         <div className="flex gap-2.5 items-center">
@@ -148,27 +148,18 @@ export default function ComboSuggestion({ dishIds }: ComboSuggestionProps) {
             />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-1.5">
-              <h4 className={`font-extrabold text-xs sm:text-[13px] truncate ${isLight ? 'text-zinc-900' : 'text-white'}`}>
-                {combo.combo_name}
-              </h4>
-              <span
-                className={`shrink-0 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md border ${
-                  isLight
-                    ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
-                    : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25'
-                }`}
-              >
-                -{formatPrice(combo.savings)}
-              </span>
-            </div>
-            <div className="flex items-baseline gap-2 mt-0.5">
-              <span className={`text-xs font-black ${isLight ? 'text-[#ee2828]' : 'text-[#f5c043]'}`}>
+            <h4 className={`font-extrabold text-xs sm:text-[13px] truncate ${isLight ? 'text-zinc-900' : 'text-white'}`}>
+              {combo.combo_name}
+            </h4>
+            <div className="flex items-baseline gap-2 mt-0.5 flex-wrap">
+              <span className={`text-xs font-black ${isLight ? 'text-[#a82e10]' : 'text-[#f5c043]'}`}>
                 {formatPrice(combo.combo_price)}
               </span>
-              <span className={`text-[10.5px] line-through ${isLight ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                {formatPrice(combo.individual_price)}
-              </span>
+              {combo.savings > 0 && (
+                <span className={`text-[10.5px] ${isLight ? 'text-stone-500' : 'text-zinc-400'}`}>
+                  {isEn ? `Save ${formatPrice(combo.savings)}` : `Tiết kiệm ${formatPrice(combo.savings)}`}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -181,8 +172,8 @@ export default function ComboSuggestion({ dishIds }: ComboSuggestionProps) {
 
         <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-current/10">
           {combo.matched_dishes && combo.matched_dishes.length > 0 ? (
-            <span className={`text-[10.5px] font-medium truncate ${isLight ? 'text-amber-800' : 'text-amber-200/85'}`}>
-              {isEn ? 'Includes:' : 'Có sẵn:'} <strong>{combo.matched_dishes[0]}</strong>
+            <span className={`text-[10.5px] truncate ${isLight ? 'text-stone-600' : 'text-zinc-400'}`}>
+              {isEn ? 'Includes:' : 'Đã gồm:'} <strong>{td(combo.matched_dishes[0])}</strong>
             </span>
           ) : (
             <span />
@@ -190,7 +181,7 @@ export default function ComboSuggestion({ dishIds }: ComboSuggestionProps) {
           <button
             type="button"
             onClick={() => setSelectedCombo(combo)}
-            className="shrink-0 bg-[#f5c043] hover:bg-[#e5b034] text-zinc-950 text-[11px] font-extrabold px-3 py-1.5 rounded-lg shadow-xs transition-all active:scale-95 cursor-pointer"
+            className="shrink-0 bg-[#ee2828] hover:bg-[#d42020] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
           >
             {isEn ? 'Select Combo' : 'Chọn combo'}
           </button>

@@ -14,12 +14,12 @@ import { logger } from '../utils/logger';
 // thêm 'chilli', 'tabasco' (Hot Pizza dùng "Chilli Powder", "Tabasco Sauce"); thêm 'saugage' (lỗi chính tả có
 // trong dữ liệu Napolitan), 'wing'; thêm rau củ 'broccoli', 'carrot', 'cabbage', 'vegetable'.
 const TASTE_KEYWORDS: Record<string, string[]> = {
-  spicy:    ['chili', 'chilli', 'hot', 'spicy', 'tabasco', 'jalapeño', 'cay', 'ớt'],
-  cheesy:   ['cheese', 'mozzarella', 'phô mai', 'parmesan', 'cheddar'],
+  spicy:    ['chili', 'chilli', 'hot', 'spicy', 'tabasco', 'jalapeño', 'jalapeno', 'kim chi', 'cay', 'ớt'],
+  cheesy:   ['cheese', 'mozzarella', 'phô mai', 'parmesan', 'parmersan', 'cheddar'],
   seafood:  ['tuna', 'shrimp', 'squid', 'fish', 'tôm', 'mực', 'cá', 'hải sản', 'salmon'],
   meat:     ['beef', 'pork', 'ham', 'pepperoni', 'bacon', 'sausage', 'saugage', 'chicken', 'wing', 'bò', 'heo', 'gà', 'xúc xích', 'beefsteak'],
   veggie:   ['mushroom', 'onion', 'olive', 'corn', 'tomato', 'broccoli', 'carrot', 'cabbage', 'vegetable', 'nấm', 'hành', 'ô liu', 'bắp', 'cà chua', 'green pepper', 'salad', 'lettuce'],
-  sweet:    ['pineapple', 'honey', 'dứa', 'mật ong', 'bbq', 'teriyaki', 'hawaiian', 'kim chi', 'sugar', 'ngọt', 'đường', 'juice', 'mirinda', 'sting', 'nước ngọt'],
+  sweet:    ['pineapple', 'honey', 'dứa', 'mật ong', 'bbq', 'teriyaki', 'hawaiian', 'sugar', 'ngọt', 'đường', 'juice', 'pepsi', '7 up', '7up', 'mirinda', 'sting', 'nước ngọt'],
   creamy:   ['cream', 'mayo', 'mayonnaise', 'kem', 'béchamel', 'alfredo', 'carbonara', 'pesto'],
 };
 
@@ -70,14 +70,44 @@ export function matchTasteKeywords(text: string): Record<string, string[]> {
 // Chuẩn hóa tên danh mục tương ứng với CSDL
 export function normalizeCategory(cat?: string | null): string | null {
   if (!cat) return null;
-  const lower = cat.toLowerCase();
-  if (lower.includes('drink') || lower.includes('nước') || lower.includes('nuoc') || lower.includes('đồ uống') || lower.includes('do uong') || lower.includes('bia') || lower.includes('juice') || lower.includes('soda') || lower.includes('pepsi') || lower.includes('sting') || lower.includes('aquafina')) {
+  const lower = cat.normalize('NFC').toLowerCase().trim();
+  if (lower === 'combo' || /\bcombo\b/iu.test(lower)) return null;
+  if (
+    lower.includes('drink') ||
+    lower.includes('nước') ||
+    lower.includes('nuoc') ||
+    lower.includes('đồ uống') ||
+    lower.includes('do uong') ||
+    lower.includes('bia') ||
+    lower.includes('juice') ||
+    lower.includes('soda') ||
+    lower.includes('pepsi') ||
+    lower.includes('sting') ||
+    lower.includes('aquafina')
+  ) {
     return 'Drink';
   }
   if (lower.includes('pizza')) return 'Pizza';
-  if (lower.includes('spaghetti') || lower.includes('mì') || lower.includes('pasta') || lower.includes('mi y') || lower.includes('mi')) return 'Spaghetti';
-  if (lower.includes('gratin') || lower.includes('risotto') || lower.includes('cơm') || lower.includes('com')) return 'Gratin / Risotto';
-  if (lower.includes('salad') || lower.includes('side') || lower.includes('khai vị') || lower.includes('món phụ')) return 'Salad / Side Dish';
+  if (
+    lower.includes('spaghetti') ||
+    lower.includes('pasta') ||
+    /(?<![\p{L}\p{N}])(mì|mi\s*y)(?![\p{L}\p{N}])/iu.test(lower)
+  ) {
+    return 'Spaghetti';
+  }
+  if (
+    lower.includes('gratin') ||
+    lower.includes('grantin') ||
+    lower.includes('risotto') ||
+    lower.includes('forno') ||
+    lower.includes('đút lò') ||
+    /(?<![\p{L}\p{N}])(cơm|com(?:\s*y)?)(?![\p{L}\p{N}])/iu.test(lower)
+  ) {
+    return 'Gratin / Risotto';
+  }
+  if (lower.includes('salad') || lower.includes('side') || lower.includes('khai vị') || lower.includes('món phụ')) {
+    return 'Salad / Side Dish';
+  }
   return null;
 }
 
@@ -200,9 +230,13 @@ export function buildUserPreferenceVector(criteria: UserCriteria): number[] {
 // ─── Cosine Similarity ──────────────────────────────────────────────────────
 
 /**
- * Tính Cosine Similarity giữa 2 vector
- * Công thức: cos(θ) = (A·B) / (|A| × |B|)
- * Kết quả: -1 (ngược chiều) đến 1 (cùng chiều)
+ * Thuật toán 1: Lọc dựa trên nội dung (Content-Based Filtering)
+ * Cơ sở học thuật:
+ *   - Gerard Salton, Anita Wong, Chung-Shu Yang (1975), "A Vector Space Model for Automatic Indexing",
+ *     Communications of the ACM, Vol. 18, No. 11, pp. 613–620.
+ *   - Charu C. Aggarwal (2016), "Recommender Systems: The Textbook", Springer, Chapter 4.
+ * Công thức gốc:
+ *   sim(A, B) = cos(θ) = (A · B) / (||A|| × ||B||)
  */
 export function cosineSimilarity(vecA: number[], vecB: number[]): number {
   if (vecA.length !== vecB.length) return 0;
@@ -250,6 +284,59 @@ export interface RecommendationResult {
   match_reasons: string[];     // Ly do goi y
 }
 
+const EXCLUDED_DISH_IDS = new Set([62, 63, 64, 65]);
+
+const AVOID_INGREDIENT_SYNONYMS: Record<string, string[]> = {
+  'tôm': ['shrimp', 'srimp', 'tôm'],
+  'mực': ['squid', 'mực'],
+  'hải sản': ['shrimp', 'srimp', 'squid', 'tuna', 'seafood', 'fish', 'salmon', 'hải sản', 'tôm', 'mực', 'cá'],
+  'cá': ['tuna', 'fish', 'salmon', 'cá'],
+  'cá ngừ': ['tuna', 'cá ngừ'],
+  'bò': ['beef', 'beefsteak', 'beefteak', 'bò'],
+  'thịt bò': ['beef', 'beefsteak', 'beefteak', 'bò'],
+  'gà': ['chicken', 'chiken', 'wing', 'gà'],
+  'thịt gà': ['chicken', 'chiken', 'wing', 'gà'],
+  'heo': ['pork', 'ham', 'bacon', 'heo'],
+  'thịt nguội': ['ham', 'thịt nguội'],
+  'xông khói': ['bacon', 'xông khói'],
+  'ba rọi': ['bacon', 'ba rọi'],
+  'xúc xích': ['pepperoni', 'sausage', 'saugage', 'gaugage', 'xúc xích'],
+  'nấm': ['mushroom', 'mushrooms', 'nấm'],
+  'hành': ['onion', 'hành'],
+  'ớt chuông': ['green pepper', 'green paper', 'ớt chuông'],
+  'ớt': ['chili', 'chilli', 'tabasco', 'jalapeno', 'jalapeño', 'kim chi', 'ớt'],
+  'cay': ['chili', 'chilli', 'tabasco', 'jalapeno', 'jalapeño', 'kim chi', 'hot', 'spicy', 'cay'],
+  'cà chua': ['tomato', 'tomatoes', 'cà chua'],
+  'phô mai': ['cheese', 'mozzarella', 'parmesan', 'parmersan', 'cheddar', 'phô mai'],
+  'dứa': ['pineapple', 'dứa'],
+  'thơm': ['pineapple', 'thơm'],
+  'ô liu': ['olive', 'olives', 'ô liu'],
+  'khoai lang': ['sweet potato', 'khoai lang'],
+  'khoai tây': ['potato', 'french fries', 'khoai tây'],
+  'bắp': ['corn', 'bắp'],
+  'ngô': ['corn', 'ngô'],
+  'kem': ['cream', 'kem'],
+  'sốt kem': ['cream', 'sốt kem'],
+  'mayo': ['mayonnaise', 'mayo'],
+  'mayonnaise': ['mayonnaise', 'mayo'],
+};
+
+function dishContainsAvoidTerm(dish: { dish_name: string; ingredient: string }, rawAvoid: string): boolean {
+  const normAvoid = (rawAvoid || '').normalize('NFC').toLowerCase().trim();
+  if (!normAvoid) return false;
+
+  let text = `${dish.dish_name || ''} ${dish.ingredient || ''}`.normalize('NFC').toLowerCase();
+  if (normAvoid === 'khoai tây' || normAvoid === 'potato') {
+    text = text.replace(/sweet\s+potato/gi, ' ');
+  }
+  if (normAvoid === 'ớt') {
+    text = text.replace(/ớt\s+chuông/giu, ' ').replace(/green\s+p(epper|aper)/gi, ' ');
+  }
+
+  const expanded = AVOID_INGREDIENT_SYNONYMS[normAvoid] || [normAvoid];
+  return expanded.some(term => keywordRegex(term).test(text));
+}
+
 // ─── Load và vector hóa tất cả món ăn ───────────────────────────────────────
 
 export async function loadDishFeatures(): Promise<DishFeature[]> {
@@ -258,13 +345,19 @@ export async function loadDishFeatures(): Promise<DishFeature[]> {
     return dishFeaturesCache;
   }
 
-  // Load dishes từ database
-  const dishes = await prisma.dish.findMany({
+  // Load dishes từ database (loại trừ các mã món tặng kèm/vỏ Half-Half không bán lẻ)
+  const rawDishes = await prisma.dish.findMany({
     where: { dish_status: true },
     include: {
       prices: { include: { size: true, crust: true } },
       category: true
     }
+  });
+
+  const dishes = rawDishes.filter(d => {
+    if (EXCLUDED_DISH_IDS.has(d.dish_id)) return false;
+    if ((d.dish_name || '').toLowerCase().includes('half')) return false;
+    return d.prices.some(p => Number(p.dish_price) > 0);
   });
 
   // Load ratings theo dish_id (ánh xạ dish_name -> dish_id, chỉ đánh giá không bị ẩn)
@@ -304,9 +397,12 @@ export async function loadDishFeatures(): Promise<DishFeature[]> {
 
   // Vector hóa từng món
   dishFeaturesCache = dishes.map(d => {
-    const priceValues = d.prices.map(p => Number(p.dish_price)).filter(p => p > 0);
-    const minP = priceValues.length > 0 ? Math.min(...priceValues) : 0;
-    const maxP = priceValues.length > 0 ? Math.max(...priceValues) : 0;
+    const sortedValidPrices = [...d.prices]
+      .filter(p => Number(p.dish_price) > 0)
+      .sort((a, b) => Number(a.dish_price) - Number(b.dish_price));
+    const priceValues = sortedValidPrices.map(p => Number(p.dish_price));
+    const minP = priceValues.length > 0 ? priceValues[0] : 0;
+    const maxP = priceValues.length > 0 ? priceValues[priceValues.length - 1] : 0;
     const avgP = priceValues.length > 0 ? priceValues.reduce((a, b) => a + b, 0) / priceValues.length : 0;
     const rating = ratingMap.get(d.dish_id);
 
@@ -332,11 +428,13 @@ export async function loadDishFeatures(): Promise<DishFeature[]> {
         globalMaxPrice,
         rating?.avg || 0
       ),
-      prices: d.prices.map((p: any) => ({
+      prices: sortedValidPrices.map((p: any) => ({
         dish_price_id: p.dish_price_id,
+        size_id: p.size_id ?? null,
+        crust_id: p.crust_id ?? null,
         size_name: p.size?.size_name || '',
         crust_name: p.crust?.crust_name || '',
-        dish_price: p.dish_price
+        dish_price: Number(p.dish_price)
       }))
     };
   });
@@ -383,11 +481,18 @@ export async function recommendByContentBased(
     results = results.filter(r => r.dish.min_price <= criteria.max_budget!);
   }
 
-  // Bước 4: Lọc theo thành phần không muốn (nếu có)
+  // Bước 3.5: Lọc cứng các nhóm khẩu vị khách muốn tránh (avoid_tastes)
+  if (criteria.avoid_tastes && criteria.avoid_tastes.length > 0) {
+    results = results.filter(r => {
+      const matched = matchTasteKeywords(`${r.dish.dish_name} ${r.dish.ingredient}`);
+      return !criteria.avoid_tastes!.some(avoidTaste => (matched[avoidTaste] || []).length > 0);
+    });
+  }
+
+  // Bước 4: Lọc theo thành phần không muốn (hỗ trợ song ngữ Việt - Anh)
   if (criteria.avoid_ingredients && criteria.avoid_ingredients.length > 0) {
     results = results.filter(r => {
-      const ingLower = r.dish.ingredient.toLowerCase();
-      return !criteria.avoid_ingredients!.some(avoid => ingLower.includes(avoid.toLowerCase()));
+      return !criteria.avoid_ingredients!.some(avoid => dishContainsAvoidTerm(r.dish, avoid));
     });
   }
 
@@ -450,9 +555,6 @@ function generateMatchReasons(
     reasons.push(`Đánh giá cao: ${dish.avg_rating.toFixed(1)}/5 sao (${dish.review_count} đánh giá)`);
   }
 
-  // Điểm tương đồng
-  reasons.push(`Độ phù hợp: ${(score * 100).toFixed(1)}%`);
-
   return reasons;
 }
 
@@ -474,9 +576,15 @@ export async function getSimilarDishes(dishId: number, topN: number = 4): Promis
     .map(dish => {
       const score = cosineSimilarity(targetDish.vector, dish.vector);
       return { dish, score };
-    });
+    })
+    .filter(r => r.score >= 0.35);
 
-  results.sort((a, b) => b.score - a.score);
+  results.sort(
+    (a, b) =>
+      Math.round(b.score * 1000) - Math.round(a.score * 1000) ||
+      b.dish.avg_rating - a.dish.avg_rating ||
+      b.dish.review_count - a.dish.review_count
+  );
 
   return results.slice(0, topN).map(r => ({
     dish_id: r.dish.dish_id,
@@ -487,10 +595,7 @@ export async function getSimilarDishes(dishId: number, topN: number = 4): Promis
     dish_type: r.dish.dish_type,
     prices: r.dish.prices,
     similarity_score: Math.round(r.score * 1000) / 1000,
-    match_reasons: [
-      `Tương đồng với ${targetDish.dish_name}`,
-      `Độ tương đồng đặc trưng: ${(r.score * 100).toFixed(1)}%`
-    ]
+    match_reasons: [`Cùng phong cách hương vị với ${targetDish.dish_name}`]
   }));
 }
 
@@ -501,15 +606,21 @@ export async function getVegetarianSimilarDishes(dishId: number, topN: number = 
 
   if (!targetDish) return [];
 
-  // Lọc chỉ lấy các món chay (khác món hiện tại)
+  // Lọc chỉ lấy các món chay (khác món hiện tại, loại bỏ đồ uống)
   const vegResults = dishFeatures
-    .filter(d => d.dish_id !== dishId && d.dish_type === 'chay')
+    .filter(d => d.dish_id !== dishId && d.dish_type === 'chay' && normalizeCategory(d.category) !== 'Drink')
     .map(dish => {
       const score = cosineSimilarity(targetDish.vector, dish.vector);
       return { dish, score };
-    });
+    })
+    .filter(r => r.score >= 0.4);
 
-  vegResults.sort((a, b) => b.score - a.score);
+  vegResults.sort(
+    (a, b) =>
+      Math.round(b.score * 1000) - Math.round(a.score * 1000) ||
+      b.dish.avg_rating - a.dish.avg_rating ||
+      b.dish.review_count - a.dish.review_count
+  );
 
   return vegResults.slice(0, topN).map(r => ({
     dish_id: r.dish.dish_id,
@@ -520,10 +631,7 @@ export async function getVegetarianSimilarDishes(dishId: number, topN: number = 
     dish_type: r.dish.dish_type,
     prices: r.dish.prices,
     similarity_score: Math.round(r.score * 1000) / 1000,
-    match_reasons: [
-      `Món chay có đặc trưng tương tự ${targetDish.dish_name}`,
-      `Độ tương đồng: ${(r.score * 100).toFixed(1)}%`
-    ]
+    match_reasons: [`Món chay thanh đạm hợp vị ${targetDish.dish_name}`]
   }));
 }
 

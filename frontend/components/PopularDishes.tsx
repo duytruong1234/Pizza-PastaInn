@@ -49,6 +49,8 @@ interface DishItem {
   dish_type?: string;
   type?: string;
   is_half_half?: boolean;
+  total_ordered?: number;
+  avg_rating?: number;
   prices?: DishPriceItem[];
 }
 
@@ -86,8 +88,9 @@ const getDishPricing = (dish: DishItem) => {
 };
 
 export default function PopularDishes({ initialDishes }: { initialDishes?: DishItem[] }) {
-  const { isCartOpen, isCartPinned, theme, t, td, ti } = useUI();
+  const { isCartOpen, isCartPinned, theme, lang, t, td, ti } = useUI();
   const isLight = theme === 'light';
+  const isEn = lang === 'en';
   const wishlistItems = useWishlistStore((s) => s.items);
   const toggleWishlist = useWishlistStore((s) => s.toggleWishlist);
   const [dishes, setDishes] = useState<DishItem[]>(initialDishes ?? []);
@@ -275,8 +278,8 @@ export default function PopularDishes({ initialDishes }: { initialDishes?: DishI
             >
               {/* Content Area (Left) */}
               <div className="flex flex-col flex-1 h-full py-0.5 justify-center text-left pr-[92px] sm:pr-28 lg:pr-32 min-w-0">
-                <div className="mb-1">
-                  <span className="inline-block bg-[#f0c14b] text-black text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                <div className="mb-1 flex items-center gap-1.5">
+                  <span className="inline-flex items-center bg-white/95 text-[#1c1208] text-[10px] font-bold px-2 py-0.5 rounded-md">
                     {t('home.best_seller')}
                   </span>
                 </div>
@@ -285,11 +288,6 @@ export default function PopularDishes({ initialDishes }: { initialDishes?: DishI
                   <h3 className="text-white font-bold text-sm sm:text-base lg:text-lg leading-tight line-clamp-1">
                     {td(dish.dish_name)}
                   </h3>
-                  {dish.dish_type === 'chay' && (
-                    <span className="shrink-0 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
-                      {t('product.badge_veg')}
-                    </span>
-                  )}
                   {dish.type !== 'combo' && !pricing.isHalfHalf && (
                     <button
                       type="button"

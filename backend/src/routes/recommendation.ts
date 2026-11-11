@@ -35,7 +35,7 @@ router.get('/reorder', async (req, res) => {
   }
 });
 
-// Lấy danh sách món thường được đặt cùng (Luật kết hợp Apriori, chỉ tính món lẻ)
+// Lấy danh sách món thường được đặt cùng (Thống kê tần suất đơn hàng gọi chung, chỉ tính món lẻ)
 // GET /api/recommendations/together?dish_ids=1,2,3
 router.get('/together', async (req, res) => {
   try {
@@ -44,10 +44,10 @@ router.get('/together', async (req, res) => {
       return sendError(res, 'Vui lòng cung cấp dish_ids', 400);
     }
     const dishIds = dishIdsStr.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
-    // Ưu tiên luật kết hợp (Confidence × ln(Lift)); thiếu dữ liệu thì dùng cách đếm cũ làm dự phòng
-    const ruleBased = await BasketAnalysisService.getCustomerRecommendations(dishIds, 4);
-    const data = ruleBased && ruleBased.length > 0
-      ? ruleBased
+    // Ưu tiên thống kê tỷ lệ gọi kèm & số đơn chung; thiếu dữ liệu thì dùng cách đếm cơ bản làm dự phòng
+    const coOrdered = await BasketAnalysisService.getCustomerRecommendations(dishIds, 4);
+    const data = coOrdered && coOrdered.length > 0
+      ? coOrdered
       : await recommendationService.getFrequentlyOrderedTogether(dishIds);
     sendSuccess(res, { data });
   } catch (error: any) {
@@ -185,13 +185,32 @@ router.get('/pairings/:dishId', async (req, res) => {
       }
     });
 
-    // Trả về danh sách món kết hợp (loại bỏ chính món đang xem)
+    // Trả về danh sách món kết hợp (loại bỏ chính món đang xem và món ngừng bán)
+    const excludedDishIds = new Set([62, 63, 64, 65]);
     const pairedDishes: any[] = [];
     const addedDishIds = new Set<number>();
 
     for (const pairing of pairings) {
       for (const item of pairing.items) {
-        if (item.dish_id !== dishId && !addedDishIds.has(item.dish_id)) {
+        if (
+          item.dish_id !== dishId &&
+          !addedDishIds.has(item.dish_id) &&
+          !excludedDishIds.has(item.dish_id) &&
+          item.dish?.dish_status
+        ) {
+          const sortedPrices = [...(item.dish.prices || [])]
+            .filter(p => Number(p.dish_price) > 0)
+            .sort((a, b) => Number(a.dish_price) - Number(b.dish_price))
+            .map(p => ({
+              dish_price_id: p.dish_price_id,
+              size_id: p.size_id ?? null,
+              crust_id: p.crust_id ?? null,
+              size_name: p.size?.size_name || '',
+              crust_name: p.crust?.crust_name || '',
+              dish_price: Number(p.dish_price)
+            }));
+          if (sortedPrices.length === 0) continue;
+
           addedDishIds.add(item.dish_id);
           pairedDishes.push({
             dish_id: item.dish.dish_id,
@@ -200,13 +219,10 @@ router.get('/pairings/:dishId', async (req, res) => {
             ingredient: item.dish.ingredient,
             dish_type: (item.dish as any).dish_type || 'man',
             category: item.dish.category?.category_name || '',
+            price: sortedPrices[0].dish_price,
+            dish_price_id: sortedPrices[0].dish_price_id,
             reason: pairing.reason || '',
-            prices: item.dish.prices.map(p => ({
-              dish_price_id: p.dish_price_id,
-              size_name: p.size?.size_name || '',
-              crust_name: p.crust?.crust_name || '',
-              dish_price: p.dish_price
-            }))
+            prices: sortedPrices
           });
         }
       }

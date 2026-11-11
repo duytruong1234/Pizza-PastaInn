@@ -8,6 +8,8 @@ import { SearchResultsBanner } from '@/components/PageComponents';
 import PopularDishes from '@/components/PopularDishes';
 import ReorderFavorites from '@/components/ReorderFavorites';
 import TopRatedDishes from '@/components/TopRatedDishes';
+import SmartQuizBanner from '@/components/SmartQuizBanner';
+import HeroBanner from '@/components/HeroBanner';
 import { BACKEND_URL } from '@/lib/config';
 
 const FALLBACK_PRODUCT_IMAGE = 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=300&auto=format&fit=crop';
@@ -70,17 +72,18 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
       : `${API_BASE}/menu/dishes`;
 
   // Tải song song toàn bộ dữ liệu cần thiết trên Server (loại bỏ waterfall tuần tự)
-  const [categoriesRes, dishesRes, combosRes, popularRes, topRatedRes] = await Promise.all([
+  const [categoriesRes, dishesRes, combosRes, popularRes, topRatedRes, vouchersRes] = await Promise.all([
     fetch(`${API_BASE}/menu/categories`, { next: { revalidate: 60 } }).catch(() => null),
     fetch(dishesEndpoint, { next: { revalidate: 30 } }).catch(() => null),
-    hasCategoryFilter || searchQuery
-      ? fetch(`${API_BASE}/menu/combos`, { next: { revalidate: 30 } }).catch(() => null)
-      : Promise.resolve(null),
+    fetch(`${API_BASE}/menu/combos`, { next: { revalidate: 30 } }).catch(() => null),
     isFeaturedPage
       ? fetch(`${API_BASE}/recommendations/popular`, { next: { revalidate: 60 } }).catch(() => null)
       : Promise.resolve(null),
     isFeaturedPage
       ? fetch(`${API_BASE}/recommendations/top-rated`, { next: { revalidate: 60 } }).catch(() => null)
+      : Promise.resolve(null),
+    isFeaturedPage
+      ? fetch(`${API_BASE}/vouchers`, { next: { revalidate: 60 } }).catch(() => null)
       : Promise.resolve(null),
   ]);
 
@@ -94,25 +97,75 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
     }
   }
 
+  let allCombos: any[] = [];
+  if (combosRes?.ok) {
+    try {
+      const json = await combosRes.json();
+      if (json.success && Array.isArray(json.data)) {
+        allCombos = json.data;
+      }
+    } catch (err) {
+      console.error('Error parsing combos:', err);
+    }
+  }
+
+  let activeVouchers: any[] = [];
+  if (vouchersRes?.ok) {
+    try {
+      const json = await vouchersRes.json();
+      if (json.success && Array.isArray(json.data)) {
+        activeVouchers = json.data;
+      }
+    } catch {
+      // fallback silently
+    }
+  }
+
   let popularDishes: any[] | undefined = undefined;
   if (popularRes?.ok) {
     try {
       const json = await popularRes.json();
-      if (json.success && Array.isArray(json.data)) popularDishes = json.data;
+      if (json.success && Array.isArray(json.data)) {
+        popularDishes = json.data.slice(0, 6);
+      }
     } catch {
       // fallback to client fetch if needed
     }
   }
 
+  const popularIdSet = new Set(
+    (popularDishes || [])
+      .filter((d: any) => d.type !== 'combo')
+      .map((d: any) => Number(d.dish_id))
+  );
+
   let topRatedDishes: any[] | undefined = undefined;
   if (topRatedRes?.ok) {
     try {
       const json = await topRatedRes.json();
-      if (json.success && Array.isArray(json.data)) topRatedDishes = json.data;
+      if (json.success && Array.isArray(json.data)) {
+        topRatedDishes = json.data.filter(
+          (d: any) =>
+            Number(d.avg_rating || 0) >= 4 &&
+            (d.type === 'combo' || !popularIdSet.has(Number(d.dish_id)))
+        );
+      }
     } catch {
       // fallback to client fetch if needed
     }
   }
+
+  const showTopRatedSection = Array.isArray(topRatedDishes) && topRatedDishes.length >= 2;
+  const featuredExcludedIds = Array.from(
+    new Set([
+      ...popularIdSet,
+      ...(showTopRatedSection
+        ? topRatedDishes!
+            .filter((d: any) => d.type !== 'combo')
+            .map((d: any) => Number(d.dish_id))
+        : []),
+    ])
+  );
 
   // Kiểm tra xem danh mục đang chọn có phải "Combo" không
   const activeCategory = categories.find((c: any) => c.category_id === activeCategoryId);
@@ -122,30 +175,27 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
   let products: any[] = [];
   try {
     if (isComboCategory && !searchQuery) {
-      if (combosRes?.ok) {
-        const json = await combosRes.json();
-        if (json.success) {
-          products = json.data.map((combo: any, index: number) => {
-            const comboImagePath = getComboImagePath(combo);
-            return {
-              id: combo.combo_id,
-              name: combo.combo_name,
-              ingredients: formatIngredientsText(
-                (combo.description || '').split(',').map((s: string) => s.trim()).filter(Boolean).join('\n') ||
-                (combo.groups || []).map((g: any) => g.group_name).join('\n') || ''
-              ),
-              price: combo.combo_price || 0,
-              dish_price_id: null,
-              prices: [],
-              hasRealImage: hasRealProductImage(comboImagePath),
-              originalIndex: index,
-              theme: index % 2 === 0 ? 'green' : 'red',
-              layout: index % 2 === 0 ? 'image-left' : 'image-right',
-              imageUrl: getImageUrl(comboImagePath) || FALLBACK_PRODUCT_IMAGE,
-              isCombo: true
-            };
-          });
-        }
+      if (allCombos.length > 0) {
+        products = allCombos.map((combo: any, index: number) => {
+          const comboImagePath = getComboImagePath(combo);
+          return {
+            id: combo.combo_id,
+            name: combo.combo_name,
+            ingredients: formatIngredientsText(
+              (combo.description || '').split(',').map((s: string) => s.trim()).filter(Boolean).join('\n') ||
+              (combo.groups || []).map((g: any) => g.group_name).join('\n') || ''
+            ),
+            price: combo.combo_price || 0,
+            dish_price_id: null,
+            prices: [],
+            hasRealImage: hasRealProductImage(comboImagePath),
+            originalIndex: index,
+            theme: index % 2 === 0 ? 'green' : 'red',
+            layout: index % 2 === 0 ? 'image-left' : 'image-right',
+            imageUrl: getImageUrl(comboImagePath) || FALLBACK_PRODUCT_IMAGE,
+            isCombo: true
+          };
+        });
       }
     } else {
       if (dishesRes?.ok) {
@@ -187,35 +237,28 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
       }
 
       // Khi đang tìm kiếm, gộp thêm combos vào kết quả
-      if (searchQuery && combosRes?.ok) {
-        try {
-          const comboJson = await combosRes.json();
-          if (comboJson.success) {
-            const comboProducts = comboJson.data.map((combo: any, index: number) => {
-              const comboImagePath = getComboImagePath(combo);
-              return {
-                id: combo.combo_id,
-                name: combo.combo_name,
-                ingredients: formatIngredientsText(
-                  (combo.description || '').split(',').map((s: string) => s.trim()).filter(Boolean).join('\n') ||
-                  (combo.groups || []).map((g: any) => g.group_name).join('\n') || ''
-                ),
-                price: combo.combo_price || 0,
-                dish_price_id: null,
-                prices: [],
-                hasRealImage: hasRealProductImage(comboImagePath),
-                originalIndex: products.length + index,
-                theme: index % 2 === 0 ? 'green' : 'red',
-                layout: index % 2 === 0 ? 'image-left' : 'image-right',
-                imageUrl: getImageUrl(comboImagePath) || FALLBACK_PRODUCT_IMAGE,
-                isCombo: true
-              };
-            });
-            products = [...products, ...comboProducts];
-          }
-        } catch (comboErr) {
-          console.error('Error parsing combos for search:', comboErr);
-        }
+      if (searchQuery && allCombos.length > 0) {
+        const comboProducts = allCombos.map((combo: any, index: number) => {
+          const comboImagePath = getComboImagePath(combo);
+          return {
+            id: combo.combo_id,
+            name: combo.combo_name,
+            ingredients: formatIngredientsText(
+              (combo.description || '').split(',').map((s: string) => s.trim()).filter(Boolean).join('\n') ||
+              (combo.groups || []).map((g: any) => g.group_name).join('\n') || ''
+            ),
+            price: combo.combo_price || 0,
+            dish_price_id: null,
+            prices: [],
+            hasRealImage: hasRealProductImage(comboImagePath),
+            originalIndex: products.length + index,
+            theme: index % 2 === 0 ? 'green' : 'red',
+            layout: index % 2 === 0 ? 'image-left' : 'image-right',
+            imageUrl: getImageUrl(comboImagePath) || FALLBACK_PRODUCT_IMAGE,
+            isCombo: true
+          };
+        });
+        products = [...products, ...comboProducts];
       }
     }
   } catch (err) {
@@ -264,12 +307,19 @@ export default async function Home(props: { searchParams: Promise<{ [key: string
               </div>
             )}
 
-            {/* Gợi ý món ăn — chỉ hiển thị tại tab NỔI BẬT (trang chủ) và khi không tìm kiếm */}
+            {/* Hero Banner & Gợi ý món ăn — hiển thị gọn gàng trên trang chủ */}
             {isFeaturedPage && (
               <div className="w-full max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8">
+                <HeroBanner
+                  combos={allCombos}
+                  vouchers={activeVouchers}
+                  categories={categories}
+                  popularDishes={popularDishes}
+                />
+                <SmartQuizBanner />
+                <ReorderFavorites excludeDishIds={featuredExcludedIds} />
                 <PopularDishes initialDishes={popularDishes} />
-                <ReorderFavorites />
-                <TopRatedDishes initialDishes={topRatedDishes} />
+                {showTopRatedSection && <TopRatedDishes initialDishes={topRatedDishes} />}
               </div>
             )}
 

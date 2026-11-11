@@ -598,7 +598,7 @@ export default function ComboModal({
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        className={`w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] transition-colors ${
+        className={`w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[86dvh] sm:max-h-[min(660px,84dvh)] transition-colors ${
           isLight
             ? 'bg-[#fbf8f2] text-[#1c1208] border border-[#dfd3bf]'
             : 'bg-[#9f280a] text-white'
@@ -715,7 +715,7 @@ export default function ComboModal({
                           )
                           .map((ud: any) => ({
                             value: ud.dish.dish_id,
-                            label: ud.dish.dish_name,
+                            label: td(ud.dish.dish_name),
                           }));
 
                         const sizeMap = new Map();
@@ -835,7 +835,9 @@ export default function ComboModal({
                                       >
                                         {isHalf && <Check size={11} strokeWidth={3} />}
                                       </div>
-                                      <span className="text-sm font-semibold">Half-Half</span>
+                                      <span className="text-sm font-semibold">
+                                        {isEn ? 'Half & Half' : 'Ghép 2 vị'}
+                                      </span>
                                       <input
                                         type="checkbox"
                                         className="hidden"

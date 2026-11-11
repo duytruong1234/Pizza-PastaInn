@@ -8,6 +8,7 @@ import { formatPrice } from '@/lib/utils';
 import { shouldBypassNextImageOptimization } from '@/lib/image';
 import { useUI } from '@/components/UIProvider';
 import { useWishlistStore } from '@/store/wishlistStore';
+import { useRecommendationStore } from '@/store/recommendationStore';
 import ProductModal from './ProductModal';
 import ComboModal from './ComboModal';
 import HalfHalfModal from './HalfHalfModal';
@@ -52,6 +53,7 @@ interface DishItem {
   is_half_half?: boolean;
   price?: number;
   order_count?: number;
+  similarity_score?: number;
   match_reasons?: string[];
   prices?: DishPriceItem[];
 }
@@ -89,16 +91,26 @@ const getDishPricing = (dish: DishItem) => {
   };
 };
 
-export default function ReorderFavorites({ userId }: { userId?: number | null }) {
+export default function ReorderFavorites({
+  userId,
+  excludeDishIds = [],
+}: {
+  userId?: number | null;
+  excludeDishIds?: number[];
+}) {
   const { user } = useAuthStore();
-  const { isCartOpen, isCartPinned, theme, t, td, ti } = useUI();
+  const { isCartOpen, isCartPinned, theme, lang, t, td, ti } = useUI();
   const isLight = theme === 'light';
+  const isEn = lang === 'en';
   const wishlistItems = useWishlistStore((s) => s.items);
   const toggleWishlist = useWishlistStore((s) => s.toggleWishlist);
+  const recentViewedDishes = useRecommendationStore((s) => s.recentViewedDishes);
   const effectiveUserId = userId ?? user?.user_id ?? null;
+  const anchorViewedDish = recentViewedDishes[0] ?? null;
 
   const [dishes, setDishes] = useState<DishItem[]>([]);
   const [suggestions, setSuggestions] = useState<DishItem[]>([]);
+  const [sessionSimilar, setSessionSimilar] = useState<DishItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDish, setSelectedDish] = useState<DishItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -134,9 +146,16 @@ export default function ReorderFavorites({ userId }: { userId?: number | null })
   }, [isCartOpen, isCartPinned]);
 
   useEffect(() => {
-    if (!effectiveUserId) return;
     let cancelled = false;
 
+    if (!effectiveUserId) {
+      setDishes([]);
+      setSuggestions([]);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
     const fetchFavorites = async () => {
       try {
         const res = await fetch(`${API_BASE}/recommendations/reorder?user_id=${effectiveUserId}`);
@@ -172,9 +191,35 @@ export default function ReorderFavorites({ userId }: { userId?: number | null })
     };
   }, [effectiveUserId]);
 
-  if (!effectiveUserId) return null;
+  // Cold-start / Khách chưa đăng nhập (hoặc chưa có đơn): Gợi ý Content-Based theo món vừa xem gần nhất
+  useEffect(() => {
+    if (!anchorViewedDish?.dish_id) {
+      setSessionSimilar([]);
+      return;
+    }
+    if (effectiveUserId && (dishes.length > 0 || suggestions.length > 0)) {
+      return;
+    }
 
-  if (isLoading) {
+    let cancelled = false;
+    fetch(`${API_BASE}/recommendations/similar/${anchorViewedDish.dish_id}?limit=6`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (!cancelled && json?.success && Array.isArray(json.data)) {
+          setSessionSimilar(json.data);
+          setSuggStartIndex(0);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSessionSimilar([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [anchorViewedDish?.dish_id, effectiveUserId, dishes.length, suggestions.length]);
+
+  if (isLoading && effectiveUserId) {
     return (
       <div className="py-6">
         <div className="flex items-center justify-between mb-4">
@@ -196,7 +241,21 @@ export default function ReorderFavorites({ userId }: { userId?: number | null })
     );
   }
 
-  if ((!dishes || dishes.length === 0) && (!suggestions || suggestions.length === 0)) return null;
+  const rawSuggestions =
+    suggestions && suggestions.length > 0 ? suggestions : sessionSimilar;
+  const reorderIdSet = new Set((dishes || []).map((d) => d.dish_id));
+  const excludedSet = new Set([...excludeDishIds, ...reorderIdSet]);
+  const activeSuggestions = (rawSuggestions || []).filter(
+    (item) => item.type === 'combo' || !excludedSet.has(item.dish_id)
+  );
+  const isSessionFallback =
+    (!suggestions || suggestions.length === 0) &&
+    sessionSimilar.length > 0 &&
+    !!anchorViewedDish;
+
+  if ((!dishes || dishes.length === 0) && (!activeSuggestions || activeSuggestions.length === 0)) {
+    return null;
+  }
 
   const maxReorderStart = Math.max(0, dishes.length - cardsPerView);
   const safeReorderStart = Math.min(reorderStartIndex, maxReorderStart);
@@ -204,11 +263,11 @@ export default function ReorderFavorites({ userId }: { userId?: number | null })
   const canScrollRight = safeReorderStart < maxReorderStart;
   const visibleReorder = dishes.slice(safeReorderStart, safeReorderStart + cardsPerView);
 
-  const maxSuggStart = Math.max(0, suggestions.length - cardsPerView);
+  const maxSuggStart = Math.max(0, activeSuggestions.length - cardsPerView);
   const safeSuggStart = Math.min(suggStartIndex, maxSuggStart);
   const canSuggScrollLeft = safeSuggStart > 0;
   const canSuggScrollRight = safeSuggStart < maxSuggStart;
-  const visibleSuggestions = suggestions.slice(safeSuggStart, safeSuggStart + cardsPerView);
+  const visibleSuggestions = activeSuggestions.slice(safeSuggStart, safeSuggStart + cardsPerView);
 
   const gridColsClass =
     cardsPerView === 1
@@ -306,11 +365,6 @@ export default function ReorderFavorites({ userId }: { userId?: number | null })
                       <h3 className="text-white font-bold text-sm sm:text-base lg:text-lg leading-tight line-clamp-1">
                         {td(dish.dish_name)}
                       </h3>
-                      {dish.dish_type === 'chay' && (
-                        <span className="shrink-0 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
-                          {t('product.badge_veg')}
-                        </span>
-                      )}
                       {dish.type !== 'combo' && !pricing.isHalfHalf && (
                         <button
                           type="button"
@@ -398,19 +452,27 @@ export default function ReorderFavorites({ userId }: { userId?: number | null })
       )}
 
       {/* Suggestions Section */}
-      {suggestions && suggestions.length > 0 && (
+      {activeSuggestions && activeSuggestions.length > 0 && (
         <div className="mb-4">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className={`text-lg md:text-xl font-extrabold tracking-wide transition-colors ${isLight ? 'text-[#1c1208]' : 'text-white'}`}>
-                {t('home.suggest_title')}
+                {isSessionFallback
+                  ? isEn
+                    ? `Similar To "${td(anchorViewedDish?.dish_name || '')}"`
+                    : `Món Ngon Cùng Vị Với "${td(anchorViewedDish?.dish_name || '')}"`
+                  : t('home.suggest_title')}
               </h2>
               <p className={`text-xs transition-colors ${isLight ? 'text-[#6b5c4c]' : 'text-gray-400'}`}>
-                {t('home.suggest_desc')}
+                {isSessionFallback
+                  ? isEn
+                    ? 'Selected based on shared ingredients and flavors with the dish you recently viewed'
+                    : 'Tuyển chọn những món có thành phần và hương vị gần gũi với món bạn vừa xem'
+                  : t('home.suggest_desc')}
               </p>
             </div>
 
-            {suggestions.length > cardsPerView && (
+            {activeSuggestions.length > cardsPerView && (
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -456,9 +518,11 @@ export default function ReorderFavorites({ userId }: { userId?: number | null })
                 : isLight
                   ? 'bg-[#235328]/92 shadow-[0_10px_28px_rgba(35,83,40,0.22)] border border-[#1b401f]/20'
                   : 'bg-[#294c29]/65 shadow-xl';
-              const subtitle =
-                ti(dish.ingredient || '') ||
-                (dish.match_reasons && dish.match_reasons.length > 0 ? dish.match_reasons.slice(0, 2).join(' · ') : '');
+              const reasonLine =
+                dish.match_reasons && dish.match_reasons.length > 0
+                  ? dish.match_reasons[0]
+                  : '';
+              const subtitle = ti(dish.ingredient || '');
 
               const onSelectSuggestion = () => {
                 handleCardClick(dish);
@@ -472,15 +536,15 @@ export default function ReorderFavorites({ userId }: { userId?: number | null })
                 >
                   {/* Content Area (Left) */}
                   <div className="flex flex-col flex-1 h-full py-0.5 justify-center text-left pr-[92px] sm:pr-28 lg:pr-32 min-w-0">
+                    {reasonLine && (
+                      <p className="text-white/80 text-[11px] font-medium truncate mb-0.5">
+                        {reasonLine}
+                      </p>
+                    )}
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h3 className="text-white font-bold text-sm sm:text-base lg:text-lg leading-tight line-clamp-1">
                         {td(dish.dish_name)}
                       </h3>
-                      {dish.dish_type === 'chay' && (
-                        <span className="shrink-0 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
-                          {t('product.badge_veg')}
-                        </span>
-                      )}
                       {dish.type !== 'combo' && !pricing.isHalfHalf && (
                         <button
                           type="button"

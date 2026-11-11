@@ -11,8 +11,10 @@ import {
   Check,
   Minus,
   Plus,
+  Utensils,
 } from 'lucide-react';
 import { useCartStore, CartItem } from '@/store/cartStore';
+import { useRecommendationStore } from '@/store/recommendationStore';
 import { useUI } from '@/components/UIProvider';
 import { API_BASE, BACKEND_URL } from '@/lib/config';
 import HalfHalfModal from './HalfHalfModal';
@@ -45,14 +47,26 @@ interface ToppingOption {
 interface RecommendedDish {
   dish_id: number;
   dish_name: string;
+  category?: string;
   ingredient?: string;
   image?: string | null;
   dish_type?: string;
+  price?: number;
+  dish_price_id?: string | null;
   prices?: ProductPriceItem[];
   similarity_score?: number;
+  confidence?: number;
   match_reasons?: string[];
   reason?: string;
 }
+
+const getMinItemPrice = (item: RecommendedDish): number => {
+  if (typeof item.price === 'number' && item.price > 0) return item.price;
+  const pos = (item.prices || [])
+    .map((p) => Number(p.dish_price))
+    .filter((v) => !isNaN(v) && v > 0);
+  return pos.length > 0 ? Math.min(...pos) : 0;
+};
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -87,15 +101,18 @@ export default function ProductModal({
   editCartItem,
 }: ProductModalProps) {
   const { addToCart, removeFromCart } = useCartStore();
+  const addRecentViewedDish = useRecommendationStore((s) => s.addRecentViewedDish);
   const { theme, lang, td, ti } = useUI();
   const isLight = theme === 'light';
   const isEn = lang === 'en';
 
   const [activeProduct, setActiveProduct] = useState(product);
+  const [activeCategoryName, setActiveCategoryName] = useState(categoryName);
   const [similarDishes, setSimilarDishes] = useState<RecommendedDish[]>([]);
   const latestSimilarFor = useRef<number | null>(null);
   const [pairingDishes, setPairingDishes] = useState<RecommendedDish[]>([]);
   const [vegetarianDishes, setVegetarianDishes] = useState<RecommendedDish[]>([]);
+  const [addedPairingIds, setAddedPairingIds] = useState<Record<number, boolean>>({});
 
   const [sizes, setSizes] = useState<SizeOption[]>([]);
   const [crusts, setCrusts] = useState<CrustOption[]>([]);
@@ -112,7 +129,8 @@ export default function ProductModal({
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveProduct(product);
-  }, [product]);
+    setActiveCategoryName(categoryName);
+  }, [product, categoryName]);
 
   // Đóng bằng phím Escape
   useEffect(() => {
@@ -143,12 +161,40 @@ export default function ProductModal({
 
   const fetchPairingDishes = async (dishId: number) => {
     try {
-      const res = await fetch(`${API_BASE}/recommendations/pairings/${dishId}`);
-      if (!res.ok) return;
-      const json = await res.json();
-      if (json.success && json.data) {
-        setPairingDishes(json.data as RecommendedDish[]);
+      const [pairRes, togetherRes] = await Promise.allSettled([
+        fetch(`${API_BASE}/recommendations/pairings/${dishId}`),
+        fetch(`${API_BASE}/recommendations/together?dish_ids=${dishId}`),
+      ]);
+
+      const merged: RecommendedDish[] = [];
+      const seen = new Set<number>([dishId]);
+
+      if (pairRes.status === 'fulfilled' && pairRes.value.ok) {
+        const pairJson = await pairRes.value.json();
+        if (pairJson?.success && Array.isArray(pairJson.data)) {
+          for (const p of pairJson.data as RecommendedDish[]) {
+            if (!p?.dish_id || seen.has(p.dish_id) || p.dish_name?.toLowerCase().includes('half')) continue;
+            seen.add(p.dish_id);
+            merged.push(p);
+          }
+        }
       }
+
+      if (togetherRes.status === 'fulfilled' && togetherRes.value.ok) {
+        const togetherJson = await togetherRes.value.json();
+        if (togetherJson?.success && Array.isArray(togetherJson.data)) {
+          for (const a of togetherJson.data as RecommendedDish[]) {
+            if (!a?.dish_id || seen.has(a.dish_id) || a.dish_name?.toLowerCase().includes('half')) continue;
+            seen.add(a.dish_id);
+            merged.push({
+              ...a,
+              reason: isEn ? 'Often ordered with this dish' : 'Thường được gọi kèm món này',
+            });
+          }
+        }
+      }
+
+      setPairingDishes(merged.slice(0, 3));
     } catch (e) {
       console.error('Error fetching pairing dishes:', e);
     }
@@ -180,8 +226,15 @@ export default function ProductModal({
         const availableSizeIds = new Set(
           prod.prices?.map((p) => p.size_id).filter((id) => id !== null && id !== undefined)
         );
-        const availableSizes = (sizesData.data as SizeOption[]).filter((s) =>
-          availableSizeIds.has(s.size_id)
+        const availableSizeNames = new Set(
+          prod.prices
+            ?.map((p) => p.size_name)
+            .filter((n): n is string => !!n && n !== 'Standard')
+        );
+        const availableSizes = (sizesData.data as SizeOption[]).filter(
+          (s) =>
+            availableSizeIds.has(s.size_id) ||
+            (availableSizeIds.size === 0 && availableSizeNames.has(s.size_name))
         );
         setSizes(availableSizes);
         if (editCartItem && editCartItem.options?.size) {
@@ -197,8 +250,15 @@ export default function ProductModal({
         const availableCrustIds = new Set(
           prod.prices?.map((p) => p.crust_id).filter((id) => id !== null && id !== undefined)
         );
-        const availableCrusts = (crustsData.data as CrustOption[]).filter((c) =>
-          availableCrustIds.has(c.crust_id)
+        const availableCrustNames = new Set(
+          prod.prices
+            ?.map((p) => p.crust_name)
+            .filter((n): n is string => !!n && n !== 'None')
+        );
+        const availableCrusts = (crustsData.data as CrustOption[]).filter(
+          (c) =>
+            availableCrustIds.has(c.crust_id) ||
+            (availableCrustIds.size === 0 && availableCrustNames.has(c.crust_name))
         );
         setCrusts(availableCrusts);
         if (editCartItem && editCartItem.options?.crust) {
@@ -219,11 +279,22 @@ export default function ProductModal({
     const mainContainer = document.getElementById('main-scroll-container');
     if (isOpen) {
       if (mainContainer) mainContainer.style.overflow = 'hidden';
+      addRecentViewedDish({
+        dish_id: activeProduct.id,
+        dish_name: activeProduct.name,
+        category: activeCategoryName,
+      });
       // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchData(activeProduct);
       fetchSimilarDishes(activeProduct.id);
       fetchPairingDishes(activeProduct.id);
-      fetchVegetarianDishes(activeProduct.id);
+      const isDrinkCat = activeCategoryName?.toLowerCase().includes('drink');
+      if (activeProduct.dish_type !== 'chay' && !isDrinkCat) {
+        fetchVegetarianDishes(activeProduct.id);
+      } else {
+        setVegetarianDishes([]);
+      }
+      setAddedPairingIds({});
       if (editCartItem) {
         setQuantity(editCartItem.quantity);
         setNote(editCartItem.options?.notes || '');
@@ -246,29 +317,66 @@ export default function ProductModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, activeProduct.id]);
 
+  const handleQuickAddPairing = async (e: React.MouseEvent, item: RecommendedDish) => {
+    e.stopPropagation();
+    const firstPrice = item.prices?.[0];
+    const unitPrice = item.price || firstPrice?.dish_price || 0;
+    const priceId =
+      item.dish_price_id || firstPrice?.dish_price_id || `${item.dish_id}_default`;
+
+    await addToCart({
+      type: 'regular',
+      dish_id: item.dish_id,
+      dish_price_id: priceId,
+      name: item.dish_name,
+      price: unitPrice,
+      quantity: 1,
+      imageUrl: resolveDishImage(item.image),
+      options: {
+        size:
+          firstPrice?.size_name && firstPrice.size_name !== 'Standard'
+            ? firstPrice.size_name
+            : undefined,
+        crust:
+          firstPrice?.crust_name && firstPrice.crust_name !== 'None'
+            ? firstPrice.crust_name
+            : undefined,
+      },
+    });
+
+    setAddedPairingIds((prev) => ({ ...prev, [item.dish_id]: true }));
+    setTimeout(() => {
+      setAddedPairingIds((prev) => ({ ...prev, [item.dish_id]: false }));
+    }, 1800);
+  };
+
   const handleSwitchProduct = (item: RecommendedDish) => {
     setActiveProduct({
       id: item.dish_id,
       name: item.dish_name,
       ingredients: item.ingredient || '',
-      basePrice: item.prices?.[0]?.dish_price || 0,
+      basePrice: getMinItemPrice(item),
       prices: item.prices || [],
       imageUrl: resolveDishImage(item.image),
       dish_type: item.dish_type || 'man',
     });
+    if (item.category) {
+      setActiveCategoryName(item.category);
+    }
     setSelectedToppings([]);
     setNote('');
     setQuantity(1);
   };
 
   const toppingType =
-    categoryName?.toLowerCase().includes('spaghetti') ||
-    categoryName?.toLowerCase().includes('gratin') ||
-    categoryName?.toLowerCase().includes('risotto')
+    activeCategoryName?.toLowerCase().includes('spaghetti') ||
+    activeCategoryName?.toLowerCase().includes('gratin') ||
+    activeCategoryName?.toLowerCase().includes('risotto')
       ? 'spaghetti'
       : 'pizza';
   const isSimpleProduct =
-    categoryName?.toLowerCase().includes('salad') || categoryName?.toLowerCase().includes('drink');
+    activeCategoryName?.toLowerCase().includes('salad') ||
+    activeCategoryName?.toLowerCase().includes('drink');
 
   const fetchToppings = async (size_id: number | null) => {
     try {
@@ -330,9 +438,19 @@ export default function ProductModal({
 
   let exactDishPriceObj: ProductPriceItem | undefined;
   if (selectedSize || selectedCrust) {
-    exactDishPriceObj = activeProduct.prices?.find(
-      (p) => p.size_id === selectedSize?.size_id && p.crust_id === selectedCrust?.crust_id
-    );
+    exactDishPriceObj = activeProduct.prices?.find((p) => {
+      const matchSize = !selectedSize
+        ? true
+        : p.size_id != null
+          ? p.size_id === selectedSize.size_id
+          : p.size_name === selectedSize.size_name;
+      const matchCrust = !selectedCrust
+        ? true
+        : p.crust_id != null
+          ? p.crust_id === selectedCrust.crust_id
+          : p.crust_name === selectedCrust.crust_name;
+      return matchSize && matchCrust;
+    });
   }
   if (!exactDishPriceObj && activeProduct.prices && activeProduct.prices.length > 0) {
     exactDishPriceObj = activeProduct.prices[0];
@@ -391,37 +509,37 @@ export default function ProductModal({
         aria-modal="true"
         aria-labelledby="product-modal-title"
         onClick={(e) => e.stopPropagation()}
-        className={`w-full max-w-[920px] rounded-2xl overflow-hidden flex flex-col md:flex-row shadow-[0_24px_60px_rgba(0,0,0,0.65)] relative max-h-[92vh] transition-colors ${
+        className={`w-full max-w-[520px] md:max-w-[840px] lg:max-w-[900px] max-h-[86dvh] md:h-[min(560px,82dvh)] lg:h-[min(600px,82dvh)] rounded-2xl overflow-hidden flex flex-col md:flex-row shadow-[0_24px_60px_rgba(0,0,0,0.65)] relative transition-colors ${
           isLight
             ? 'bg-[#fbf8f2] text-[#1c1208] border border-[#dfd3bf]'
             : 'bg-[#9f280a] text-white'
         }`}
       >
         {/* Cột trái: Hình ảnh món ăn */}
-        <div className="w-full md:w-[46%] relative h-[180px] sm:h-[220px] md:h-auto md:min-h-full shrink-0 overflow-hidden">
+        <div className="w-full md:w-[42%] lg:w-[44%] relative h-[155px] sm:h-[185px] md:h-full shrink-0 overflow-hidden">
           <Image
             src={productImageSrc}
             alt={activeProduct.name}
             fill
-            sizes="(max-width: 768px) 100vw, 46vw"
+            sizes="(max-width: 768px) 100vw, 44vw"
             unoptimized={shouldBypassNextImageOptimization(productImageSrc)}
             className="object-cover"
           />
         </div>
 
         {/* Cột phải: Header cố định + Nội dung cuộn + Footer cố định */}
-        <div className="w-full md:w-[54%] flex-1 flex flex-col min-h-0 relative bg-transparent">
+        <div className="w-full md:w-[58%] lg:w-[56%] flex-1 md:h-full flex flex-col min-h-0 overflow-hidden relative bg-transparent">
           {/* 1. Header cố định (Nút X không bao giờ đè lên nội dung khi cuộn) */}
           <div
-            className={`px-5 sm:px-6 pt-5 pb-3 border-b flex items-start justify-between gap-3 shrink-0 ${
+            className={`px-4 sm:px-6 pt-4 pb-2.5 border-b flex items-start justify-between gap-3 shrink-0 ${
               isLight ? 'border-[#e6dccb]' : 'border-white/20'
             }`}
           >
             <div className="min-w-0">
-              <div className="flex items-center gap-2.5 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h2
                   id="product-modal-title"
-                  className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-snug"
+                  className="text-xl sm:text-2xl font-extrabold tracking-tight leading-snug"
                 >
                   {td(activeProduct.name?.normalize('NFC'))}
                 </h2>
@@ -476,7 +594,7 @@ export default function ProductModal({
           {/* 2. Vùng cuộn Tùy chọn & Gợi ý */}
           <div
             ref={scrollContainerRef}
-            className="px-5 sm:px-6 py-4 overflow-y-auto custom-scrollbar flex-1 space-y-5"
+            className="px-4 sm:px-6 py-3.5 overflow-y-auto overscroll-contain custom-scrollbar flex-1 min-h-0 space-y-4"
           >
             {/* Chọn Cỡ bánh */}
             {sizes.length > 0 && (
@@ -486,7 +604,7 @@ export default function ProductModal({
                     isLight ? 'border-[#e6dccb]' : 'border-white/20'
                   }`}
                 >
-                  {isEn ? 'Size:' : 'Cỡ:'}
+                  {isEn ? 'Size:' : 'Kích cỡ:'}
                 </h3>
                 <div className="flex flex-wrap gap-2.5">
                   {sizes.map((size) => {
@@ -527,10 +645,18 @@ export default function ProductModal({
                 <div className="space-y-2.5">
                   {crusts.map((crust) => {
                     const isSelected = selectedCrust?.crust_id === crust.crust_id;
-                    const crustPrice = activeProduct.prices?.find(
-                      (p) =>
-                        p.size_id === selectedSize?.size_id && p.crust_id === crust.crust_id
-                    );
+                    const crustPrice = activeProduct.prices?.find((p) => {
+                      const matchSize = !selectedSize
+                        ? true
+                        : p.size_id != null
+                          ? p.size_id === selectedSize.size_id
+                          : p.size_name === selectedSize.size_name;
+                      const matchCrust =
+                        p.crust_id != null
+                          ? p.crust_id === crust.crust_id
+                          : p.crust_name === crust.crust_name;
+                      return matchSize && matchCrust;
+                    });
                     return (
                       <label
                         key={crust.crust_id}
@@ -587,7 +713,7 @@ export default function ProductModal({
                     isLight ? 'border-[#e6dccb]' : 'border-white/20'
                   }`}
                 >
-                  {isEn ? 'Extra Toppings:' : 'Thêm Topping:'}
+                  {isEn ? 'Extra Toppings:' : 'Thêm nhân bánh:'}
                 </h3>
                 <div className="space-y-2.5">
                   {toppings.map((topping) => {
@@ -640,7 +766,100 @@ export default function ProductModal({
               </div>
             )}
 
-            {/* Ghi chú đơn hàng */}
+            {/* Món dùng kèm hợp vị (Chọn kèm 1 chạm) */}
+            {pairingDishes.length > 0 && (
+              <div
+                className={`rounded-2xl border p-3.5 ${
+                  isLight
+                    ? 'bg-white border-[#e2d7c5]'
+                    : 'bg-black/20 border-white/15'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 mb-2.5">
+                  <Utensils
+                    size={14}
+                    className={isLight ? 'text-[#a82e10]' : 'text-white/80'}
+                  />
+                  <h3 className="font-bold text-xs sm:text-sm uppercase tracking-wider">
+                    {isEn ? 'Recommended Sides' : 'Món dùng kèm hợp vị'}
+                  </h3>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  {pairingDishes.map((item) => {
+                    const displayPrice = getMinItemPrice(item);
+                    const isAdded = !!addedPairingIds[item.dish_id];
+                    return (
+                      <div
+                        key={item.dish_id}
+                        onClick={() => handleSwitchProduct(item)}
+                        className={`p-2 rounded-xl border flex items-center gap-2.5 transition-colors cursor-pointer group ${
+                          isLight
+                            ? 'bg-[#faf7f2] hover:bg-[#f3ede2] border-[#e6dccb]'
+                            : 'bg-black/25 hover:bg-black/35 border-white/10'
+                        }`}
+                      >
+                        <div className="w-12 h-12 relative rounded-lg overflow-hidden shrink-0 border border-white/10">
+                          <Image
+                            src={resolveDishImage(item.image)}
+                            alt={item.dish_name}
+                            fill
+                            sizes="48px"
+                            className="object-cover"
+                            unoptimized={shouldBypassNextImageOptimization(item.image || '')}
+                          />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold leading-snug truncate">
+                            {td(item.dish_name)}
+                          </p>
+                          {item.reason && (
+                            <p
+                              className={`text-[11px] truncate ${
+                                isLight ? 'text-stone-500' : 'text-white/65'
+                              }`}
+                            >
+                              {item.reason}
+                            </p>
+                          )}
+                          <p
+                            className={`text-xs font-extrabold mt-0.5 ${
+                              isLight ? 'text-[#a82e10]' : 'text-[#f5c043]'
+                            }`}
+                          >
+                            +{formatPrice(displayPrice)}
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={(e) => handleQuickAddPairing(e, item)}
+                          className={`shrink-0 inline-flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                            isAdded
+                              ? 'bg-[#235328] text-white'
+                              : 'bg-[#007a3f] hover:bg-[#006232] text-white'
+                          }`}
+                        >
+                          {isAdded ? <Check size={12} /> : <Plus size={12} strokeWidth={2.5} />}
+                          <span>
+                            {isAdded
+                              ? isEn
+                                ? 'Added'
+                                : 'Đã thêm'
+                              : isEn
+                                ? 'Add Side'
+                                : 'Chọn kèm'}
+                          </span>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Ghi chú món ăn */}
             <div>
               <label
                 htmlFor="product-modal-note"
@@ -648,84 +867,27 @@ export default function ProductModal({
                   isLight ? 'border-[#e6dccb]' : 'border-white/20'
                 }`}
               >
-                {isEn ? 'Special Instructions:' : 'Ghi chú:'}
+                {isEn ? 'Special Instructions:' : 'Ghi chú món ăn:'}
               </label>
               <input
                 id="product-modal-note"
                 type="text"
-                placeholder={isEn ? 'Notes for this item...' : 'Ghi chú cho đơn hàng của bạn...'}
+                placeholder={
+                  isEn
+                    ? 'E.g., less onion, well done, cut into 6 slices...'
+                    : 'Ví dụ: ít hành, nướng kỹ, cắt 6 miếng...'
+                }
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 className={`w-full px-3.5 py-2.5 rounded-xl text-sm outline-none border transition-all ${
                   isLight
-                    ? 'bg-white border-[#dcd0bc] text-[#1c1208] placeholder:text-stone-400 focus:border-[#d4a017]'
+                    ? 'bg-white border-[#dcd0bc] text-[#1c1208] placeholder:text-stone-400 focus:border-[#a82e10]'
                     : 'bg-white text-zinc-900 border-white/20 placeholder:text-zinc-400 focus:ring-2 focus:ring-[#f5c043]'
                 }`}
               />
             </div>
 
-            {/* Gợi ý kết hợp tròn vị (Pairings) */}
-            {pairingDishes.length > 0 && (
-              <div className="pt-2">
-                <h3
-                  className={`font-bold text-sm uppercase tracking-wider mb-3 border-b pb-1.5 ${
-                    isLight ? 'border-[#e6dccb]' : 'border-white/20'
-                  }`}
-                >
-                  {isEn ? 'Recommended Sides & Pairings' : 'Gợi ý kết hợp tròn vị'}
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  {pairingDishes.map((item) => (
-                    <button
-                      key={item.dish_id}
-                      type="button"
-                      onClick={() => handleSwitchProduct(item)}
-                      className={`p-2 rounded-xl border text-left cursor-pointer transition-all hover:-translate-y-0.5 flex sm:flex-col gap-2.5 group ${
-                        isLight
-                          ? 'bg-white hover:bg-[#faf3e6] border-[#e2d7c5] hover:border-[#d4a017] shadow-xs'
-                          : 'bg-black/20 hover:bg-black/30 border-white/12 hover:border-[#f5c043]/60'
-                      }`}
-                    >
-                      <div className="w-16 h-16 sm:w-full sm:h-20 relative rounded-lg overflow-hidden shrink-0">
-                        <Image
-                          src={resolveDishImage(item.image)}
-                          alt={item.dish_name}
-                          fill
-                          sizes="(max-width: 640px) 64px, 140px"
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
-                          unoptimized={shouldBypassNextImageOptimization(item.image || '')}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0 flex flex-col justify-between w-full">
-                        <div>
-                          <p className="text-xs font-bold leading-snug line-clamp-2 group-hover:text-[#f5c043] transition-colors">
-                            {item.dish_name}
-                          </p>
-                          <p
-                            className={`text-xs font-extrabold mt-0.5 ${
-                              isLight ? 'text-[#ee2828]' : 'text-[#f5c043]'
-                            }`}
-                          >
-                            {formatPrice(item.prices?.[0]?.dish_price || 0)}
-                          </p>
-                        </div>
-                        {item.reason && (
-                          <p
-                            className={`text-[10px] mt-1 line-clamp-1 ${
-                              isLight ? 'text-stone-500' : 'text-white/70'
-                            }`}
-                          >
-                            {item.reason}
-                          </p>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Món tương tự bạn có thể thích */}
+            {/* Món ngon tương đồng hương vị */}
             {similarDishes.length > 0 && (
               <div className="pt-2">
                 <h3
@@ -733,7 +895,7 @@ export default function ProductModal({
                     isLight ? 'border-[#e6dccb]' : 'border-white/20'
                   }`}
                 >
-                  {isEn ? 'Similar Dishes You Might Like' : 'Món tương tự bạn có thể thích'}
+                  {isEn ? 'Similar Dishes You May Like' : 'Món cùng hương vị'}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   {similarDishes.map((item) => (
@@ -743,10 +905,10 @@ export default function ProductModal({
                       onClick={() => {
                         handleSwitchProduct(item);
                       }}
-                      className={`p-2 rounded-xl border text-left cursor-pointer transition-all hover:-translate-y-0.5 flex sm:flex-col gap-2.5 group ${
+                      className={`p-2 rounded-xl border text-left cursor-pointer transition-transform hover:-translate-y-0.5 flex sm:flex-col gap-2.5 group ${
                         isLight
-                          ? 'bg-white hover:bg-[#faf3e6] border-[#e2d7c5] hover:border-[#d4a017] shadow-xs'
-                          : 'bg-black/20 hover:bg-black/30 border-white/12 hover:border-[#f5c043]/60'
+                          ? 'bg-white hover:bg-[#faf7f2] border-[#e2d7c5]'
+                          : 'bg-black/20 hover:bg-black/30 border-white/12'
                       }`}
                     >
                       <div className="w-16 h-16 sm:w-full sm:h-20 relative rounded-lg overflow-hidden shrink-0">
@@ -755,38 +917,33 @@ export default function ProductModal({
                           alt={item.dish_name}
                           fill
                           sizes="(max-width: 640px) 64px, 140px"
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          className="object-cover"
                           unoptimized={shouldBypassNextImageOptimization(item.image || '')}
                         />
-                        {item.similarity_score && item.similarity_score > 0 ? (
-                          <span className="absolute top-1.5 right-1.5 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-black/75 text-[#f5c043] backdrop-blur-xs">
-                            {Math.round(item.similarity_score * 100)}%
-                          </span>
-                        ) : null}
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col justify-between w-full">
                         <div>
-                          <p className="text-xs font-bold leading-snug line-clamp-2 group-hover:text-[#f5c043] transition-colors">
-                            {item.dish_name}
+                          <p className="text-xs font-bold leading-snug line-clamp-2">
+                            {td(item.dish_name)}
                           </p>
                           <p
                             className={`text-xs font-extrabold mt-0.5 ${
-                              isLight ? 'text-[#ee2828]' : 'text-[#f5c043]'
+                              isLight ? 'text-[#a82e10]' : 'text-[#f5c043]'
                             }`}
                           >
-                            {formatPrice(item.prices?.[0]?.dish_price || 0)}
+                            {formatPrice(getMinItemPrice(item))}
                           </p>
                         </div>
-                        {item.match_reasons?.[0] && (
+                        {item.ingredient ? (
                           <p
-                            className={`mt-1 text-[10px] font-medium line-clamp-1 ${
-                              isLight ? 'text-stone-600' : 'text-amber-200/85'
+                            className={`mt-1 text-[10.5px] line-clamp-1 ${
+                              isLight ? 'text-stone-500' : 'text-white/65'
                             }`}
-                            title={item.match_reasons.join(' · ')}
+                            title={ti(item.ingredient)}
                           >
-                            {item.match_reasons[0]}
+                            {ti(item.ingredient)}
                           </p>
-                        )}
+                        ) : null}
                       </div>
                     </button>
                   ))}
@@ -794,34 +951,33 @@ export default function ProductModal({
               </div>
             )}
 
-            {/* Gợi ý món chay tương tự */}
-            {vegetarianDishes.length > 0 && (
-              <div className="pt-2">
-                <h3
-                  className={`font-bold text-sm uppercase tracking-wider mb-3 border-b pb-1.5 ${
-                    isLight
-                      ? 'text-emerald-800 border-[#e6dccb]'
-                      : 'text-emerald-300 border-white/20'
-                  }`}
-                >
-                  {activeProduct.dish_type === 'chay'
-                    ? isEn
-                      ? 'Similar Vegetarian Dishes'
-                      : 'Món chay tương tự có thể bạn thích'
-                    : isEn
-                      ? 'Vegetarian Alternatives'
-                      : 'Gợi ý món chay tương tự có thể dùng'}
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  {vegetarianDishes.map((item) => (
+            {/* Gợi ý món chay thanh đạm (chỉ hiển thị cho món mặn và loại trừ món đã có ở mục trên) */}
+            {(() => {
+              const similarIdSet = new Set(similarDishes.map((s) => s.dish_id));
+              const uniqueVegDishes =
+                activeProduct.dish_type === 'chay'
+                  ? []
+                  : vegetarianDishes.filter((v) => !similarIdSet.has(v.dish_id));
+              if (uniqueVegDishes.length === 0) return null;
+              return (
+                <div className="pt-2">
+                  <h3
+                    className={`font-bold text-sm uppercase tracking-wider mb-3 border-b pb-1.5 ${
+                      isLight ? 'border-[#e6dccb]' : 'border-white/20'
+                    }`}
+                  >
+                    {isEn ? 'Vegetarian Alternatives' : 'Lựa chọn món chay thanh đạm'}
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {uniqueVegDishes.map((item) => (
                     <button
                       key={item.dish_id}
                       type="button"
                       onClick={() => handleSwitchProduct(item)}
-                      className={`p-2 rounded-xl border text-left cursor-pointer transition-all hover:-translate-y-0.5 flex sm:flex-col gap-2.5 group ${
+                      className={`p-2 rounded-xl border text-left cursor-pointer transition-transform hover:-translate-y-0.5 flex sm:flex-col gap-2.5 group ${
                         isLight
-                          ? 'bg-emerald-50/60 hover:bg-emerald-50 border-emerald-200 hover:border-emerald-500 shadow-xs'
-                          : 'bg-black/20 hover:bg-black/30 border-white/12 hover:border-emerald-400/60'
+                          ? 'bg-white hover:bg-[#faf7f2] border-[#e2d7c5]'
+                          : 'bg-black/20 hover:bg-black/30 border-white/12'
                       }`}
                     >
                       <div className="w-16 h-16 sm:w-full sm:h-20 relative rounded-lg overflow-hidden shrink-0">
@@ -830,35 +986,31 @@ export default function ProductModal({
                           alt={item.dish_name}
                           fill
                           sizes="(max-width: 640px) 64px, 140px"
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          className="object-cover"
                           unoptimized={shouldBypassNextImageOptimization(item.image || '')}
                         />
-                        <span className="absolute top-1.5 left-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-950/85 text-emerald-300 border border-emerald-400/30">
-                          Chay
+                        <span className="absolute top-1.5 left-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-black/70 text-white">
+                          {isEn ? 'Veg' : 'Chay'}
                         </span>
-                        {item.similarity_score && item.similarity_score > 0 ? (
-                          <span className="absolute top-1.5 right-1.5 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-black/75 text-white backdrop-blur-xs">
-                            {Math.round(item.similarity_score * 100)}%
-                          </span>
-                        ) : null}
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col justify-between w-full">
-                        <p className="text-xs font-bold leading-snug line-clamp-2 group-hover:text-[#f5c043] transition-colors">
-                          {item.dish_name}
+                        <p className="text-xs font-bold leading-snug line-clamp-2">
+                          {td(item.dish_name)}
                         </p>
                         <p
                           className={`text-xs font-extrabold mt-0.5 ${
-                            isLight ? 'text-[#ee2828]' : 'text-[#f5c043]'
+                            isLight ? 'text-[#a82e10]' : 'text-[#f5c043]'
                           }`}
                         >
-                          {formatPrice(item.prices?.[0]?.dish_price || 0)}
+                          {formatPrice(getMinItemPrice(item))}
                         </p>
                       </div>
                     </button>
                   ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
 
           {/* 3. Footer cố định ở đáy: Số lượng + Nút Thêm vào giỏ trên cùng 1 hàng */}
@@ -901,11 +1053,11 @@ export default function ProductModal({
                 {editCartItem
                   ? isEn
                     ? 'Update Cart'
-                    : 'Cập nhật giỏ'
+                    : 'Cập nhật giỏ hàng'
                   : isEn
                     ? 'Add to Cart'
                     : 'Thêm vào giỏ'}{' '}
-                : {formatPrice(totalPrice)}
+                • {formatPrice(totalPrice)}
               </span>
             </button>
           </div>

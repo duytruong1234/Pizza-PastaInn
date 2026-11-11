@@ -27,27 +27,13 @@ export function analyzeProductTaste(params: {
     badges.push({
       key: 'chay',
       label: 'Chay',
-      className: 'bg-emerald-500/25 text-emerald-200 border-emerald-400/45',
+      className: 'bg-white/15 text-white border-white/25',
     });
-  }
-  if (isSpicy) {
+  } else if (isSpicy) {
     badges.push({
       key: 'cay',
       label: 'Cay nhẹ',
-      className: 'bg-red-500/25 text-red-200 border-red-400/45',
-    });
-  }
-  if (isSeafood) {
-    badges.push({
-      key: 'hai_san',
-      label: 'Hải sản',
-      className: 'bg-sky-500/25 text-sky-200 border-sky-400/45',
-    });
-  } else if (isCheesy && badges.length < 2) {
-    badges.push({
-      key: 'pho_mai',
-      label: 'Phô mai',
-      className: 'bg-amber-400/25 text-amber-200 border-amber-300/45',
+      className: 'bg-white/15 text-white border-white/25',
     });
   }
 
@@ -56,6 +42,6 @@ export function analyzeProductTaste(params: {
     isSpicy,
     isSeafood,
     isCheesy,
-    badges: badges.slice(0, 2),
+    badges: badges.slice(0, 1),
   };
 }

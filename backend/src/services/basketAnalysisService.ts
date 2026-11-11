@@ -1,16 +1,16 @@
 import prisma from '../lib/prisma';
 
 /**
- * PHÂN TÍCH GIỎ HÀNG (Market Basket Analysis) — Thuật toán Apriori (Agrawal & Srikant, 1994)
+ * PHÂN TÍCH MUA CÙNG (Co-occurrence Statistics) — Thống kê tần suất đơn hàng gọi chung
  *
- * - Giỏ hàng (transaction) = 1 đơn hàng không bị huỷ, chỉ gồm các MÓN LẺ (không tính combo).
+ * - Giỏ hàng = 1 đơn hàng không bị huỷ, chỉ gồm các MÓN LẺ (không tính combo).
  *   Pizza nửa-nửa được tính 2 nửa là 2 món.
- * - Mỗi món chỉ tính 1 lần / đơn (dù khách gọi nhiều phần).
+ * - Mỗi món chỉ tính tối đa 1 lần / đơn (dù khách gọi nhiều phần).
  *
- * Chỉ số:
- *   Support(X)      = số đơn chứa X / N
- *   Confidence(X→Y) = Support(X ∪ Y) / Support(X)
- *   Lift(X→Y)       = Confidence(X→Y) / Support(Y)
+ * Chỉ số thống kê trực tiếp:
+ *   Số đơn gọi chung = count(X ∪ Y)
+ *   Tỷ trọng đơn     = count(X ∪ Y) / N
+ *   Tỷ lệ gọi kèm    = count(X ∪ Y) / count(X)
  */
 
 const EXCLUDED_DISH_IDS = [62, 63, 64, 65];
@@ -30,6 +30,7 @@ interface DishMeta {
   dish_id: number;
   code: string;
   dish_name: string;
+  ingredient: string;
   image: string | null;
   category_id: number | null;
   category_name: string;
@@ -37,43 +38,51 @@ interface DishMeta {
   dish_type: string;
   unitPrice: number;
   dish_price_id: string | null;
+  prices: {
+    dish_price_id: string;
+    size_id: number | null;
+    crust_id: number | null;
+    size_name: string;
+    crust_name: string;
+    dish_price: number;
+  }[];
 }
 
-export interface AprioriParams {
+export interface CoOccurrenceParams {
   year?: number;
-  minSupport?: number; // tỉ lệ 0..1
-  minConfidence?: number; // tỉ lệ 0..1
-  minLift?: number;
+  minCoOrders?: number; // Số đơn gọi chung tối thiểu
+  minAttachRate?: number; // Tỷ lệ gọi kèm tối thiểu (0..1)
 }
 
-interface AprioriLevelTrace {
-  k: number;
-  candidates: number;
-  frequent: number;
+interface SummaryStep {
+  step: number;
+  title: string;
+  fromLabel: string;
+  fromValue: number;
+  toLabel: string;
+  toValue: number;
+  desc: string;
 }
 
-export interface AssociationRule {
+export interface CoPurchasedRelation {
   antecedent: number[];
   consequent: number;
   count: number;
-  support: number;
-  confidence: number;
-  lift: number;
+  orderShare: number;
+  attachRate: number;
 }
 
-interface AprioriResult {
+interface CoOccurrenceResult {
   year: number | null;
   totalOrders: number;
-  minSupport: number;
-  minSupportCount: number;
-  minConfidence: number;
-  minLift: number;
+  minCoOrders: number;
+  minAttachRate: number;
   itemCounts: Map<number, number>;
-  pairCounts: Map<string, number>; // đếm đầy đủ mọi cặp (dùng cho ma trận)
-  frequentPairs: Map<string, number>;
-  frequentTriples: Map<string, number>;
-  trace: AprioriLevelTrace[];
-  rules: AssociationRule[];
+  pairCounts: Map<string, number>;
+  qualifiedPairs: Map<string, number>;
+  qualifiedTriples: Map<string, number>;
+  steps: SummaryStep[];
+  relations: CoPurchasedRelation[];
   dishMeta: Map<number, DishMeta>;
   computedAt: string;
 }
@@ -93,7 +102,7 @@ const roleFromCategory = (name: string): DishRole => {
 };
 
 const CACHE_TTL_MS = 10 * 60 * 1000;
-const cache = new Map<string, { at: number; value: AprioriResult }>();
+const cache = new Map<string, { at: number; value: CoOccurrenceResult }>();
 
 export class BasketAnalysisService {
   static clearCache() {
@@ -104,41 +113,56 @@ export class BasketAnalysisService {
   private static async loadDishMeta(): Promise<Map<number, DishMeta>> {
     const dishes = await prisma.dish.findMany({
       where: { dish_status: true, dish_id: { notIn: EXCLUDED_DISH_IDS } },
-      include: { category: true, prices: true },
+      include: { category: true, prices: { include: { size: true, crust: true } } },
       orderBy: { dish_id: 'asc' },
     });
     const map = new Map<number, DishMeta>();
     for (const d of dishes) {
-      const valid = (d.prices || [])
-        .filter((p) => (Number(p.dish_price) || 0) > 0)
-        .sort((a, b) => (Number(a.dish_price) || 0) - (Number(b.dish_price) || 0));
-      const chosen = valid[0] || d.prices?.[0];
       const catName = d.category?.category_name || 'Khác';
+      const sortedValidPrices = [...d.prices]
+        .filter((p) => (p.dish_price || 0) > 0)
+        .sort((a, b) => Number(a.dish_price) - Number(b.dish_price));
+      const rep =
+        sortedValidPrices.find((p) => (p.size?.size_name || '').toLowerCase() === 'regular') ||
+        sortedValidPrices[0] ||
+        null;
       map.set(d.dish_id, {
         dish_id: d.dish_id,
         code: formatDishCode(d.dish_id),
         dish_name: d.dish_name,
+        ingredient: d.ingredient || '',
         image: d.image || null,
-        category_id: d.category_id ?? null,
+        category_id: d.category_id,
         category_name: catName,
         role: roleFromCategory(catName),
         dish_type: d.dish_type || 'man',
-        unitPrice: Number(chosen?.dish_price) || 0,
-        dish_price_id: chosen?.dish_price_id || null,
+        unitPrice: rep?.dish_price || 0,
+        dish_price_id: rep?.dish_price_id || null,
+        prices: sortedValidPrices.map((p) => ({
+          dish_price_id: p.dish_price_id,
+          size_id: p.size_id ?? null,
+          crust_id: p.crust_id ?? null,
+          size_name: p.size?.size_name || '',
+          crust_name: p.crust?.crust_name || '',
+          dish_price: Number(p.dish_price),
+        })),
       });
     }
     return map;
   }
 
   /**
-   * BƯỚC 0: Tạo tập giao dịch D — mỗi đơn hàng là một tập món lẻ (không tính combo).
+   * Đọc toàn bộ "giỏ món lẻ" từ CSDL:
+   * - Không lấy dòng thuộc combo (combo_id IS NULL)
+   * - Gộp cả 2 nửa của pizza nửa-nửa (order_item_half)
+   * - Khử trùng (order_id, dish_id) để mỗi món chỉ tính 1 lần / đơn
    */
   private static async loadTransactions(year?: number): Promise<number[][]> {
     const yearFilter = year
-      ? `AND EXTRACT(YEAR FROM (o.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh')) = ${Number(year)}`
+      ? `AND o.created_at >= '${year}-01-01'::timestamp AND o.created_at < '${year + 1}-01-01'::timestamp`
       : '';
     const rows = await prisma.$queryRawUnsafe<Array<{ order_id: number; dish_id: number }>>(`
-      SELECT DISTINCT x.order_id, x.dish_id FROM (
+      SELECT DISTINCT order_id, dish_id FROM (
         SELECT o.order_id, dp.dish_id
         FROM orders o
         JOIN order_items oi ON oi.order_id = o.order_id
@@ -179,13 +203,16 @@ export class BasketAnalysisService {
   }
 
   /**
-   * Thuật toán Apriori (k ≤ 3) + sinh luật kết hợp.
+   * Thống kê tần suất gọi chung đơn hàng (đếm trực tiếp số đơn chứa từng món, cặp 2 món, nhóm 3 món).
    */
-  static async runApriori(params: AprioriParams = {}): Promise<AprioriResult> {
-    const minSupport = params.minSupport ?? 0.003;
-    const minConfidence = params.minConfidence ?? 0.1;
-    const minLift = params.minLift ?? 1.2;
-    const cacheKey = JSON.stringify({ y: params.year ?? null, minSupport, minConfidence, minLift });
+  static async computeCoOccurrence(params: CoOccurrenceParams = {}): Promise<CoOccurrenceResult> {
+    const minAttachRate = params.minAttachRate ?? 0.1;
+    const rawMinOrders = params.minCoOrders;
+    const cacheKey = JSON.stringify({
+      y: params.year ?? null,
+      minCoOrders: rawMinOrders ?? 'auto',
+      minAttachRate,
+    });
     const hit = cache.get(cacheKey);
     if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.value;
 
@@ -194,119 +221,127 @@ export class BasketAnalysisService {
       this.loadTransactions(params.year),
     ]);
     const N = transactions.length;
-    const minSupportCount = Math.max(2, Math.ceil(minSupport * N));
-    const trace: AprioriLevelTrace[] = [];
+    const minCoOrders =
+      rawMinOrders !== undefined && rawMinOrders > 0
+        ? Math.round(rawMinOrders)
+        : Math.max(2, Math.ceil(0.003 * N));
 
-    // BƯỚC 1: C1 → L1 (đếm từng món, loại món có support < ngưỡng)
+    // BƯỚC 1: Đếm số đơn xuất hiện của từng món lẻ
     const itemCounts = new Map<number, number>();
     for (const t of transactions) {
       for (const id of t) itemCounts.set(id, (itemCounts.get(id) || 0) + 1);
     }
-    const L1 = new Set<number>();
-    for (const [id, c] of itemCounts) if (c >= minSupportCount) L1.add(id);
-    trace.push({ k: 1, candidates: itemCounts.size, frequent: L1.size });
 
-    // BƯỚC 2: C2 → L2 (đếm cặp món cùng xuất hiện trong một đơn)
+    // BƯỚC 2: Đếm trực tiếp số đơn gọi chung từng cặp 2 món và nhóm 3 món
     const pairCounts = new Map<string, number>();
+    const tripleCounts = new Map<string, number>();
     for (const t of transactions) {
       for (let i = 0; i < t.length; i++) {
         for (let j = i + 1; j < t.length; j++) {
-          const k = `${t[i]}-${t[j]}`;
-          pairCounts.set(k, (pairCounts.get(k) || 0) + 1);
-        }
-      }
-    }
-    const c2Size = (L1.size * (L1.size - 1)) / 2;
-    const frequentPairs = new Map<string, number>();
-    for (const [k, c] of pairCounts) {
-      const [a, b] = k.split('-').map(Number);
-      if (L1.has(a) && L1.has(b) && c >= minSupportCount) frequentPairs.set(k, c);
-    }
-    trace.push({ k: 2, candidates: c2Size, frequent: frequentPairs.size });
-
-    // BƯỚC 3: C3 (nối L2 & tỉa theo tính chất Apriori) → L3
-    const pairsByFirst = new Map<number, number[]>();
-    for (const k of frequentPairs.keys()) {
-      const [a, b] = k.split('-').map(Number);
-      if (!pairsByFirst.has(a)) pairsByFirst.set(a, []);
-      pairsByFirst.get(a)!.push(b);
-    }
-    const C3 = new Set<string>();
-    for (const [a, partners] of pairsByFirst) {
-      partners.sort((x, y) => x - y);
-      for (let i = 0; i < partners.length; i++) {
-        for (let j = i + 1; j < partners.length; j++) {
-          const b = partners[i];
-          const c = partners[j];
-          // Tỉa: mọi tập con 2 phần tử phải thuộc L2
-          if (frequentPairs.has(pairKey(b, c))) C3.add(`${a}-${b}-${c}`);
-        }
-      }
-    }
-    const tripleCounts = new Map<string, number>();
-    if (C3.size > 0) {
-      for (const t of transactions) {
-        const f = t.filter((id) => L1.has(id));
-        if (f.length < 3) continue;
-        for (let i = 0; i < f.length; i++) {
-          for (let j = i + 1; j < f.length; j++) {
-            for (let k = j + 1; k < f.length; k++) {
-              const key = `${f[i]}-${f[j]}-${f[k]}`;
-              if (C3.has(key)) tripleCounts.set(key, (tripleCounts.get(key) || 0) + 1);
+          const pk = `${t[i]}-${t[j]}`;
+          pairCounts.set(pk, (pairCounts.get(pk) || 0) + 1);
+          // Đếm bộ 3 món cho các giỏ hàng thông thường (tối đa 10 món lẻ/đơn để tránh tổ hợp dư thừa)
+          if (t.length <= 10) {
+            for (let k = j + 1; k < t.length; k++) {
+              const tk = `${t[i]}-${t[j]}-${t[k]}`;
+              tripleCounts.set(tk, (tripleCounts.get(tk) || 0) + 1);
             }
           }
         }
       }
     }
-    const frequentTriples = new Map<string, number>();
-    for (const [k, c] of tripleCounts) if (c >= minSupportCount) frequentTriples.set(k, c);
-    trace.push({ k: 3, candidates: C3.size, frequent: frequentTriples.size });
 
-    // BƯỚC 4: Sinh luật X → Y, giữ luật đạt Confidence & Lift tối thiểu
-    const rules: AssociationRule[] = [];
-    const pushRule = (antecedent: number[], consequent: number, count: number, antCount: number) => {
-      const conf = count / antCount;
-      const supY = (itemCounts.get(consequent) || 0) / N;
-      const lift = supY > 0 ? conf / supY : 0;
-      if (conf >= minConfidence && lift >= minLift) {
-        rules.push({
+    const qualifiedPairs = new Map<string, number>();
+    for (const [k, c] of pairCounts) {
+      if (c >= minCoOrders) qualifiedPairs.set(k, c);
+    }
+
+    const qualifiedTriples = new Map<string, number>();
+    for (const [k, c] of tripleCounts) {
+      if (c >= minCoOrders) qualifiedTriples.set(k, c);
+    }
+
+    // BƯỚC 3: Tổng hợp chiều gọi kèm X → Y đạt tỷ lệ gọi kèm tối thiểu
+    const relations: CoPurchasedRelation[] = [];
+    let candidateDirections = 0;
+
+    const pushRelation = (antecedent: number[], consequent: number, count: number, antCount: number) => {
+      if (antCount <= 0) return;
+      candidateDirections++;
+      const attachRate = count / antCount;
+      if (attachRate >= minAttachRate) {
+        relations.push({
           antecedent,
           consequent,
           count,
-          support: round(count / N),
-          confidence: round(conf),
-          lift: round(lift, 3),
+          orderShare: N > 0 ? round(count / N) : 0,
+          attachRate: round(attachRate),
         });
       }
     };
-    for (const [k, c] of frequentPairs) {
+
+    for (const [k, c] of qualifiedPairs) {
       const [a, b] = k.split('-').map(Number);
-      pushRule([a], b, c, itemCounts.get(a) || 1);
-      pushRule([b], a, c, itemCounts.get(b) || 1);
+      pushRelation([a], b, c, itemCounts.get(a) || 0);
+      pushRelation([b], a, c, itemCounts.get(b) || 0);
     }
-    for (const [k, c] of frequentTriples) {
+    for (const [k, c] of qualifiedTriples) {
       const ids = k.split('-').map(Number);
       for (let i = 0; i < 3; i++) {
         const cons = ids[i];
         const ant = ids.filter((_, idx) => idx !== i);
-        pushRule(ant, cons, c, frequentPairs.get(pairKey(ant[0], ant[1])) || 1);
+        pushRelation(ant, cons, c, pairCounts.get(pairKey(ant[0], ant[1])) || 0);
       }
     }
-    rules.sort((x, y) => y.lift * y.confidence - x.lift * x.confidence);
 
-    const result: AprioriResult = {
+    // Xếp hạng ưu tiên kết hợp có tỷ lệ gọi kèm cao và số đơn chung thực tế lớn
+    relations.sort(
+      (x, y) =>
+        y.attachRate * Math.log1p(y.count) - x.attachRate * Math.log1p(x.count) ||
+        y.count - x.count
+    );
+
+    const steps: SummaryStep[] = [
+      {
+        step: 1,
+        title: 'Bước 1 · Gom giỏ món lẻ',
+        fromLabel: 'Đơn hợp lệ',
+        fromValue: N,
+        toLabel: 'Món xuất hiện',
+        toValue: itemCounts.size,
+        desc: 'Trích xuất danh sách món lẻ không trùng lặp trên từng đơn hàng (pizza nửa-nửa tính 2 món).',
+      },
+      {
+        step: 2,
+        title: 'Bước 2 · Đếm đơn gọi chung',
+        fromLabel: 'Cặp xuất hiện',
+        fromValue: pairCounts.size,
+        toLabel: `≥ ${minCoOrders} đơn`,
+        toValue: qualifiedPairs.size,
+        desc: 'Đếm trực tiếp số đơn hàng chứa đồng thời từng cặp 2 món và nhóm 3 món.',
+      },
+      {
+        step: 3,
+        title: 'Bước 3 · Lọc tỷ lệ gọi kèm',
+        fromLabel: 'Chiều ghép',
+        fromValue: candidateDirections,
+        toLabel: 'Đạt ngưỡng',
+        toValue: relations.length,
+        desc: `Giữ lại các kết hợp có tỷ lệ khách gọi kèm từ ${Math.round(minAttachRate * 100)}% trở lên.`,
+      },
+    ];
+
+    const result: CoOccurrenceResult = {
       year: params.year ?? null,
       totalOrders: N,
-      minSupport,
-      minSupportCount,
-      minConfidence,
-      minLift,
+      minCoOrders,
+      minAttachRate,
       itemCounts,
       pairCounts,
-      frequentPairs,
-      frequentTriples,
-      trace,
-      rules,
+      qualifiedPairs,
+      qualifiedTriples,
+      steps,
+      relations,
       dishMeta,
       computedAt: new Date().toISOString(),
     };
@@ -314,7 +349,7 @@ export class BasketAnalysisService {
     return result;
   }
 
-  /** Các combo cố định đang bán (dùng để tránh gợi ý trùng & đánh giá sức khoẻ combo) */
+  /** Các combo cố định đang bán (dùng để tránh gợi ý trùng & đánh giá combo hiện có) */
   private static async loadActiveCombos() {
     const rows = await prisma.$queryRawUnsafe<
       Array<{ combo_id: number; combo_name: string; combo_price: number; dishes: number[] | null }>
@@ -340,10 +375,10 @@ export class BasketAnalysisService {
   /**
    * API tổng hợp cho trang Admin "Phân tích Mua Cùng"
    */
-  static async getAdminAnalysis(params: AprioriParams & { top?: number; categoryId?: number }) {
-    const ap = await this.runApriori(params);
-    const N = ap.totalOrders;
-    const meta = ap.dishMeta;
+  static async getAdminAnalysis(params: CoOccurrenceParams & { top?: number; categoryId?: number }) {
+    const stats = await this.computeCoOccurrence(params);
+    const N = stats.totalOrders;
+    const meta = stats.dishMeta;
     const top = Math.min(30, Math.max(5, params.top ?? 15));
 
     const dishInfo = (id: number) => {
@@ -357,56 +392,58 @@ export class BasketAnalysisService {
         role: m?.role || 'side',
         unitPrice: m?.unitPrice || 0,
         dish_price_id: m?.dish_price_id || null,
-        orderCount: ap.itemCounts.get(id) || 0,
-        support: N > 0 ? round((ap.itemCounts.get(id) || 0) / N) : 0,
+        orderCount: stats.itemCounts.get(id) || 0,
+        orderShare: N > 0 ? round((stats.itemCounts.get(id) || 0) / N) : 0,
       };
     };
+
     const pairStats = (a: number, b: number) => {
-      const count = ap.pairCounts.get(pairKey(a, b)) || 0;
-      const cA = ap.itemCounts.get(a) || 0;
-      const cB = ap.itemCounts.get(b) || 0;
-      const confAB = cA > 0 ? count / cA : 0;
-      const confBA = cB > 0 ? count / cB : 0;
-      const lift = cA > 0 && cB > 0 ? (count * N) / (cA * cB) : 0;
-      const expected = N > 0 ? (cA * cB) / N : 0;
+      const count = stats.pairCounts.get(pairKey(a, b)) || 0;
+      const cA = stats.itemCounts.get(a) || 0;
+      const cB = stats.itemCounts.get(b) || 0;
+      const attachRateAB = cA > 0 ? count / cA : 0;
+      const attachRateBA = cB > 0 ? count / cB : 0;
       return {
         count,
-        support: N > 0 ? round(count / N) : 0,
-        confidenceAB: round(confAB),
-        confidenceBA: round(confBA),
-        lift: round(lift, 3),
-        expected: round(expected, 1),
+        orderShare: N > 0 ? round(count / N) : 0,
+        attachRateAB: round(attachRateAB),
+        attachRateBA: round(attachRateBA),
       };
     };
 
     // ── Ma trận mua cùng: Top N món phổ biến nhất (có thể lọc theo danh mục) ──
-    let matrixIds = [...ap.itemCounts.entries()]
+    let matrixIds = [...stats.itemCounts.entries()]
       .filter(([id]) => meta.has(id))
       .filter(([id]) => !params.categoryId || meta.get(id)?.category_id === params.categoryId)
       .sort((a, b) => b[1] - a[1])
       .slice(0, top)
       .map(([id]) => id);
+
     // Nhóm theo vai trò để ma trận dễ đọc (món chính trước, món phụ, đồ uống sau)
     const roleOrder: Record<string, number> = { pizza: 0, spaghetti: 1, gratin: 2, side: 3, drink: 4 };
     matrixIds = matrixIds.sort(
       (a, b) =>
         (roleOrder[meta.get(a)?.role || 'side'] ?? 9) - (roleOrder[meta.get(b)?.role || 'side'] ?? 9) ||
-        (ap.itemCounts.get(b) || 0) - (ap.itemCounts.get(a) || 0)
+        (stats.itemCounts.get(b) || 0) - (stats.itemCounts.get(a) || 0)
     );
+
     const matrixCells: Array<{ a: number; b: number } & ReturnType<typeof pairStats>> = [];
     let maxCount = 0;
-    let maxLift = 0;
+    let maxAttachRate = 0;
     for (let i = 0; i < matrixIds.length; i++) {
       for (let j = i + 1; j < matrixIds.length; j++) {
         const s = pairStats(matrixIds[i], matrixIds[j]);
         maxCount = Math.max(maxCount, s.count);
-        maxLift = Math.max(maxLift, s.lift);
+        maxAttachRate = Math.max(maxAttachRate, s.attachRateAB, s.attachRateBA);
         matrixCells.push({ a: matrixIds[i], b: matrixIds[j], ...s });
       }
     }
 
-    // ── Bảng luật kết hợp nổi bật ──
-    const topRules = ap.rules.slice(0, 40).map((r) => ({
+    // ── Bảng cặp & nhóm món hay gọi kèm (chỉ gồm các món đang kinh doanh) ──
+    const activeRelations = stats.relations.filter(
+      (r) => meta.has(r.consequent) && r.antecedent.every((id) => meta.has(id))
+    );
+    const topRelations = activeRelations.slice(0, 40).map((r) => ({
       ...r,
       antecedentDishes: r.antecedent.map(dishInfo),
       consequentDish: dishInfo(r.consequent),
@@ -424,11 +461,9 @@ export class BasketAnalysisService {
       size: number;
       dishes: ReturnType<typeof dishInfo>[];
       count: number;
-      support: number;
-      confidence: number;
-      lift: number;
-      excessOrders: number;
-      bestRuleText: string;
+      orderShare: number;
+      attachRate: number;
+      bestPairText: string;
       originalPrice: number;
       suggestedPrice: number;
       discountPercent: number;
@@ -439,7 +474,7 @@ export class BasketAnalysisService {
       suggestedName: string;
     };
     const suggestions: ComboSuggestion[] = [];
-    const comboMinLift = Math.max(1.5, ap.minLift);
+    const comboMinAttachRate = Math.max(0.12, stats.minAttachRate);
 
     const buildSuggestion = (ids: number[], count: number): ComboSuggestion | null => {
       const metas = ids.map((id) => meta.get(id));
@@ -450,34 +485,38 @@ export class BasketAnalysisService {
       if (!metas.some((m) => MAIN_ROLES.has(m!.role))) return null; // phải có món chính
       if (coveredByFixed(ids)) return null; // đã có combo cố định
 
-      // Luật đại diện cho bộ món: ưu tiên luật "món chính → món gọi kèm", sau đó Confidence cao nhất
-      let best: { ant: number[]; cons: number; conf: number; lift: number; antCount: number } | null = null;
+      // Chọn chiều đại diện "món chính → món gọi kèm" có tỷ lệ gọi kèm cao nhất
+      let best: { ant: number[]; cons: number; attachRate: number; antCount: number } | null = null;
       let bestRank = -1;
       for (const cons of ids) {
         const ant = ids.filter((x) => x !== cons);
         const antCount =
-          ant.length === 1 ? ap.itemCounts.get(ant[0]) || 0 : ap.pairCounts.get(pairKey(ant[0], ant[1])) || 0;
+          ant.length === 1
+            ? stats.itemCounts.get(ant[0]) || 0
+            : stats.pairCounts.get(pairKey(ant[0], ant[1])) || 0;
         if (antCount <= 0) continue;
-        const conf = count / antCount;
-        const supY = (ap.itemCounts.get(cons) || 0) / N;
-        const lift = supY > 0 ? conf / supY : 0;
+        const attachRate = count / antCount;
         const consIsAddon = !MAIN_ROLES.has(meta.get(cons)?.role || 'side');
         const antHasMain = ant.some((id) => MAIN_ROLES.has(meta.get(id)?.role || 'side'));
-        const rank = (consIsAddon && antHasMain ? 10 : 0) + conf;
+        const rank = (consIsAddon && antHasMain ? 10 : 0) + attachRate;
         if (rank > bestRank) {
           bestRank = rank;
-          best = { ant, cons, conf, lift, antCount };
+          best = { ant, cons, attachRate, antCount };
         }
       }
-      if (!best || best.lift < comboMinLift) return null;
-      if (ids.length === 3) {
-        // Mọi cặp con đều phải hút nhau (Lift ≥ 1)
-        for (let i = 0; i < 3; i++)
-          for (let j = i + 1; j < 3; j++) if (pairStats(ids[i], ids[j]).lift < 1) return null;
-      }
+      if (!best || best.attachRate < comboMinAttachRate) return null;
 
-      const expected = (best.antCount * (ap.itemCounts.get(best.cons) || 0)) / N;
-      const excessOrders = Math.max(0, count - expected);
+      if (ids.length === 3) {
+        // Mọi cặp con đều phải thực sự từng đi chung đủ ngưỡng
+        for (let i = 0; i < 3; i++) {
+          for (let j = i + 1; j < 3; j++) {
+            const sub = pairStats(ids[i], ids[j]);
+            if (sub.count < stats.minCoOrders || Math.max(sub.attachRateAB, sub.attachRateBA) < 0.05) {
+              return null;
+            }
+          }
+        }
+      }
 
       const originalPrice = metas.reduce((s, m) => s + (m!.unitPrice || 0), 0);
       const discount = ids.length === 2 ? COMBO_ASSUMPTIONS.pairDiscount : COMBO_ASSUMPTIONS.tripleDiscount;
@@ -488,8 +527,8 @@ export class BasketAnalysisService {
       let opportunityOrders = 0;
       if (ids.length === 2) {
         const [a, b] = ids;
-        const onlyA = (ap.itemCounts.get(a) || 0) - count;
-        const onlyB = (ap.itemCounts.get(b) || 0) - count;
+        const onlyA = (stats.itemCounts.get(a) || 0) - count;
+        const onlyB = (stats.itemCounts.get(b) || 0) - count;
         opportunityOrders = onlyA + onlyB;
         opportunityGain =
           onlyA * Math.max(0, suggestedPrice - (meta.get(a)?.unitPrice || 0)) +
@@ -503,7 +542,7 @@ export class BasketAnalysisService {
         count * COMBO_ASSUMPTIONS.cannibalizationRate * Math.max(0, originalPrice - suggestedPrice);
       const estimatedNetGain = Math.round(opportunityGain * COMBO_ASSUMPTIONS.conversionRate - cannibalization);
       const currentRevenue = ids.reduce(
-        (s, id) => s + (ap.itemCounts.get(id) || 0) * (meta.get(id)?.unitPrice || 0),
+        (s, id) => s + (stats.itemCounts.get(id) || 0) * (meta.get(id)?.unitPrice || 0),
         0
       );
 
@@ -517,11 +556,9 @@ export class BasketAnalysisService {
         size: ids.length,
         dishes: ids.map(dishInfo),
         count,
-        support: round(count / N),
-        confidence: round(best.conf),
-        lift: round(best.lift, 3),
-        excessOrders: Math.round(excessOrders),
-        bestRuleText: `${Math.round(best.conf * 100)}% đơn có ${antNames} đã gọi thêm ${consName}`,
+        orderShare: N > 0 ? round(count / N) : 0,
+        attachRate: round(best.attachRate),
+        bestPairText: `${Math.round(best.attachRate * 100)}% đơn có ${antNames} đã gọi thêm ${consName}`,
         originalPrice,
         suggestedPrice,
         discountPercent: Math.round(discount * 100),
@@ -535,86 +572,97 @@ export class BasketAnalysisService {
       };
     };
 
-    for (const [k, c] of ap.frequentPairs) {
+    for (const [k, c] of stats.qualifiedPairs) {
       const s = buildSuggestion(k.split('-').map(Number), c);
       if (s) suggestions.push(s);
     }
-    for (const [k, c] of ap.frequentTriples) {
+    for (const [k, c] of stats.qualifiedTriples) {
       const s = buildSuggestion(k.split('-').map(Number), c);
       if (s) suggestions.push(s);
     }
-    // Xếp hạng theo "số đơn chung vượt kỳ vọng ngẫu nhiên"
-    suggestions.sort((x, y) => y.excessOrders - x.excessOrders);
+    suggestions.sort((x, y) => y.count * y.attachRate - x.count * x.attachRate || y.count - x.count);
     const pairSuggestions = suggestions.filter((s) => s.size === 2).slice(0, 6);
     const tripleSuggestions = suggestions.filter((s) => s.size === 3).slice(0, 3);
 
-    // ── Sức khoẻ combo cố định hiện có (các món trong combo có thật sự hay gọi chung?) ──
+    // ── Đánh giá combo cố định hiện có dựa trên số đơn gọi chung & tỷ lệ gọi kèm thực tế ──
     const comboHealth = fixedCombos.map((c) => {
       const ids = c.dishes.filter((id) => meta.has(id));
-      const pairs: Array<{ a: number; b: number; count: number; lift: number }> = [];
-      for (let i = 0; i < ids.length; i++)
+      const pairs: Array<{ a: number; b: number; count: number; attachRate: number }> = [];
+      for (let i = 0; i < ids.length; i++) {
         for (let j = i + 1; j < ids.length; j++) {
           const s = pairStats(ids[i], ids[j]);
-          pairs.push({ a: ids[i], b: ids[j], count: s.count, lift: s.lift });
+          pairs.push({
+            a: ids[i],
+            b: ids[j],
+            count: s.count,
+            attachRate: round(Math.max(s.attachRateAB, s.attachRateBA)),
+          });
         }
+      }
       const valid = pairs.filter((p) => p.count > 0);
-      const avgLift = valid.length ? valid.reduce((s, p) => s + p.lift, 0) / valid.length : 0;
-      const verdict = valid.length === 0 ? 'insufficient' : avgLift >= 1.2 ? 'good' : avgLift >= 0.9 ? 'neutral' : 'weak';
+      const avgAttachRate = valid.length ? valid.reduce((s, p) => s + p.attachRate, 0) / valid.length : 0;
+      const totalCoOrders = valid.reduce((s, p) => s + p.count, 0);
+      const verdict =
+        valid.length === 0
+          ? 'insufficient'
+          : avgAttachRate >= 0.12
+            ? 'good'
+            : avgAttachRate >= 0.05
+              ? 'neutral'
+              : 'weak';
       return {
         combo_id: c.combo_id,
         combo_name: c.combo_name,
         combo_price: c.combo_price,
         dishes: ids.map(dishInfo),
-        avgLift: round(avgLift, 3),
+        avgAttachRate: round(avgAttachRate),
+        totalCoOrders,
         pairs: pairs.map((p) => ({ ...p, aName: meta.get(p.a)?.dish_name, bName: meta.get(p.b)?.dish_name })),
         verdict,
       };
     });
 
-    // ── Ví dụ tính tay (luật mạnh nhất) để minh hoạ công thức ──
-    const exampleRule = ap.rules.find((r) => r.antecedent.length === 1) || null;
-    const workedExample = exampleRule
+    // ── Ví dụ tính trực tiếp từ cặp món gọi kèm mạnh nhất ──
+    const exampleRel = activeRelations.find((r) => r.antecedent.length === 1) || null;
+    const workedExample = exampleRel
       ? {
-          antecedent: dishInfo(exampleRule.antecedent[0]),
-          consequent: dishInfo(exampleRule.consequent),
+          antecedent: dishInfo(exampleRel.antecedent[0]),
+          consequent: dishInfo(exampleRel.consequent),
           N,
-          countA: ap.itemCounts.get(exampleRule.antecedent[0]) || 0,
-          countB: ap.itemCounts.get(exampleRule.consequent) || 0,
-          countAB: exampleRule.count,
-          support: exampleRule.support,
-          confidence: exampleRule.confidence,
-          lift: exampleRule.lift,
+          countA: stats.itemCounts.get(exampleRel.antecedent[0]) || 0,
+          countB: stats.itemCounts.get(exampleRel.consequent) || 0,
+          countAB: exampleRel.count,
+          orderShare: exampleRel.orderShare,
+          attachRate: exampleRel.attachRate,
         }
       : null;
 
     const avgBasketSize =
-      N > 0 ? round([...ap.itemCounts.values()].reduce((s, c) => s + c, 0) / N, 2) : 0;
+      N > 0 ? round([...stats.itemCounts.values()].reduce((s, c) => s + c, 0) / N, 2) : 0;
 
     return {
       meta: {
-        year: ap.year,
+        year: stats.year,
         totalOrders: N,
         avgBasketSize,
-        distinctPairs: ap.pairCounts.size,
-        minSupport: ap.minSupport,
-        minSupportCount: ap.minSupportCount,
-        minConfidence: ap.minConfidence,
-        minLift: ap.minLift,
-        comboMinLift,
-        computedAt: ap.computedAt,
+        distinctPairs: stats.pairCounts.size,
+        minCoOrders: stats.minCoOrders,
+        minAttachRate: stats.minAttachRate,
+        comboMinAttachRate,
+        computedAt: stats.computedAt,
         assumptions: COMBO_ASSUMPTIONS,
       },
-      apriori: {
-        trace: ap.trace,
-        totalRules: ap.rules.length,
+      summary: {
+        steps: stats.steps,
+        totalRelations: activeRelations.length,
       },
       matrix: {
         dishes: matrixIds.map(dishInfo),
         cells: matrixCells,
         maxCount,
-        maxLift: round(maxLift, 3),
+        maxAttachRate: round(maxAttachRate),
       },
-      rules: topRules,
+      relations: topRelations,
       comboSuggestions: [...pairSuggestions, ...tripleSuggestions],
       comboHealth,
       workedExample,
@@ -622,34 +670,50 @@ export class BasketAnalysisService {
   }
 
   /**
-   * Gợi ý "Thường được gọi cùng" cho khách hàng dựa trên luật kết hợp.
-   * Điểm(A→B) = Confidence × ln(Lift), cộng dồn theo các món đang có trong giỏ.
+   * Gợi ý "Món ngon hay gọi kèm" cho khách hàng dựa trên thống kê đơn hàng gọi chung.
+   * Xếp hạng theo tỷ lệ gọi kèm × ln(1 + số đơn gọi chung), cộng dồn theo các món đang có trong giỏ.
    * Trả về null nếu chưa đủ dữ liệu (để dùng phương án dự phòng).
    */
   static async getCustomerRecommendations(cartDishIds: number[], limit = 4) {
-    const ap = await this.runApriori({ minSupport: 0.002, minConfidence: 0.05, minLift: 1.1 });
-    if (ap.totalOrders === 0 || ap.rules.length === 0) return null;
+    const stats = await this.computeCoOccurrence({ minAttachRate: 0.05 });
+    if (stats.totalOrders === 0 || stats.relations.length === 0) return null;
     const cart = new Set(cartDishIds);
-    const MIN_PAIR_COUNT = 15;
+    const minPairCount = stats.totalOrders >= 200 ? 15 : 1;
+
+    // Kiểm tra nếu toàn bộ món ăn (không tính đồ uống) trong giỏ đều là món chay
+    const cartFoodMetas = cartDishIds
+      .map((id) => stats.dishMeta.get(id))
+      .filter((m): m is DishMeta => !!m && m.role !== 'drink');
+    const isStrictlyVegetarianCart =
+      cartFoodMetas.length > 0 && cartFoodMetas.every((m) => m.dish_type === 'chay');
 
     const scores = new Map<
       number,
-      { score: number; best: { from: number[]; confidence: number; lift: number; count: number } }
+      { score: number; best: { from: number[]; attachRate: number; count: number } }
     >();
-    for (const r of ap.rules) {
-      if (cart.has(r.consequent) || r.count < MIN_PAIR_COUNT || r.lift <= 1) continue;
+
+    for (const r of stats.relations) {
+      if (cart.has(r.consequent) || r.count < minPairCount) continue;
       if (!r.antecedent.every((id) => cart.has(id))) continue;
-      const s = r.confidence * Math.log(r.lift) * (r.antecedent.length === 2 ? 1.2 : 1);
+      const consMeta = stats.dishMeta.get(r.consequent);
+      if (!consMeta || consMeta.unitPrice <= 0) continue;
+      if (isStrictlyVegetarianCart && consMeta.role !== 'drink' && consMeta.dish_type !== 'chay') {
+        continue;
+      }
+
+      // Cân bằng: món phụ/đồ uống đi kèm với tỷ lệ gọi kèm thực tế trên đơn hàng
+      const s = r.attachRate * Math.log1p(r.count) * (r.antecedent.length === 2 ? 1.2 : 1);
       const cur = scores.get(r.consequent);
       if (!cur) {
         scores.set(r.consequent, {
           score: s,
-          best: { from: r.antecedent, confidence: r.confidence, lift: r.lift, count: r.count },
+          best: { from: r.antecedent, attachRate: r.attachRate, count: r.count },
         });
       } else {
         cur.score += s;
-        if (r.confidence > cur.best.confidence)
-          cur.best = { from: r.antecedent, confidence: r.confidence, lift: r.lift, count: r.count };
+        if (r.attachRate > cur.best.attachRate) {
+          cur.best = { from: r.antecedent, attachRate: r.attachRate, count: r.count };
+        }
       }
     }
     if (scores.size === 0) return null;
@@ -658,7 +722,7 @@ export class BasketAnalysisService {
     const picked: typeof ranked = [];
     let drinks = 0;
     for (const entry of ranked) {
-      const m = ap.dishMeta.get(entry[0]);
+      const m = stats.dishMeta.get(entry[0]);
       if (!m) continue;
       if (m.role === 'drink') {
         if (drinks >= 2) continue;
@@ -669,20 +733,24 @@ export class BasketAnalysisService {
     }
 
     return picked.map(([dishId, info]) => {
-      const m = ap.dishMeta.get(dishId)!;
+      const m = stats.dishMeta.get(dishId)!;
       return {
         dish_id: dishId,
         dish_name: m.dish_name,
         category: m.category_name,
+        ingredient: m.ingredient,
+        dish_type: m.dish_type,
         image: m.image || '',
         price: m.unitPrice,
         dish_price_id: m.dish_price_id,
+        prices: m.prices,
         co_order_count: info.best.count,
-        confidence: info.best.confidence,
-        lift: info.best.lift,
+        attach_rate: info.best.attachRate,
         score: round(info.score),
         reason_dish_ids: info.best.from,
-        reason_dish_names: info.best.from.map((id) => ap.dishMeta.get(id)?.dish_name || ''),
+        reason_dish_names: info.best.from
+          .map((id) => stats.dishMeta.get(id)?.dish_name || '')
+          .filter(Boolean),
       };
     });
   }

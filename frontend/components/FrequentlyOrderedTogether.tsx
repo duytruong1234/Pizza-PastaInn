@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
+import { Utensils, Plus } from 'lucide-react';
 import { API_BASE, BACKEND_URL } from '@/lib/config';
 import { formatPrice } from '@/lib/utils';
 import { shouldBypassNextImageOptimization } from '@/lib/image';
@@ -19,9 +20,9 @@ interface TogetherItem {
   price?: number;
   dish_price_id?: string | null;
   prices?: { dish_price_id: string; size_name: string; crust_name: string; dish_price: number }[];
-  // Luật kết hợp (Apriori): lý do gợi ý
-  confidence?: number;
-  lift?: number;
+  // Thống kê gọi kèm: lý do gợi ý theo đơn hàng thực tế
+  co_order_count?: number;
+  attach_rate?: number;
   reason_dish_names?: string[];
 }
 
@@ -119,9 +120,12 @@ export default function FrequentlyOrderedTogether() {
 
   return (
     <div className="pt-2 border-t border-dashed border-current/10">
-      <h3 className={`text-[11px] font-extrabold mb-2 uppercase tracking-wider ${isLight ? 'text-zinc-700' : 'text-zinc-300'}`}>
-        {isEn ? 'Frequently Ordered Together' : 'Thường được đặt cùng'}
-      </h3>
+      <div className="flex items-center gap-1.5 mb-2">
+        <Utensils size={13} className={isLight ? 'text-[#a82e10]' : 'text-zinc-300'} />
+        <h3 className={`text-[11px] font-extrabold uppercase tracking-wider ${isLight ? 'text-zinc-700' : 'text-zinc-300'}`}>
+          {isEn ? 'Frequently Ordered Together' : 'Món ngon hay gọi kèm'}
+        </h3>
+      </div>
       <div className="flex flex-col gap-1.5">
         {dishes.map((dish, index) => {
           const imageUrl = getImageUrl(dish.image);
@@ -131,8 +135,8 @@ export default function FrequentlyOrderedTogether() {
               key={`together_${dish.dish_id}_${index}`}
               className={`flex items-center gap-2.5 p-2 rounded-xl border transition-colors group ${
                 isLight
-                  ? 'bg-white hover:bg-amber-50/40 border-[#e4d8c5]'
-                  : 'bg-[#211c18]/75 hover:bg-[#211c18] border-white/[0.06] hover:border-white/[0.14]'
+                  ? 'bg-white hover:bg-stone-50 border-[#e4d8c5]'
+                  : 'bg-[#211c18]/75 hover:bg-[#211c18] border-white/[0.08]'
               }`}
             >
               <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-white/10">
@@ -146,28 +150,27 @@ export default function FrequentlyOrderedTogether() {
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className={`text-xs font-bold truncate ${isLight ? 'text-zinc-900' : 'text-white'}`}>{td(dish.dish_name)}</h4>
-                {dish.confidence && dish.reason_dish_names?.length ? (
-                  <p className={`text-[10.5px] leading-tight truncate ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                <h4 className={`text-xs font-bold truncate ${isLight ? 'text-zinc-900' : 'text-white'}`}>
+                  {td(dish.dish_name)}
+                </h4>
+                {dish.reason_dish_names?.length ? (
+                  <p className={`text-[10.5px] leading-tight truncate ${isLight ? 'text-stone-500' : 'text-zinc-400'}`}>
                     {isEn
-                      ? `${Math.round(dish.confidence * 100)}% of ${dish.reason_dish_names.map(n => td(n)).join(' + ')} orders added this`
-                      : `${Math.round(dish.confidence * 100)}% khách gọi ${dish.reason_dish_names.map(n => td(n)).join(' + ')} gọi thêm món này`}
+                      ? `Ordered with ${dish.reason_dish_names.map(n => td(n)).join(', ')}`
+                      : `Hay gọi kèm ${dish.reason_dish_names.map(n => td(n)).join(', ')}`}
                   </p>
                 ) : null}
-                <div className={`text-xs font-extrabold ${isLight ? 'text-[#ee2828]' : 'text-[#f5c043]'}`}>
+                <div className={`text-xs font-extrabold ${isLight ? 'text-[#a82e10]' : 'text-[#f5c043]'}`}>
                   {formatPrice(displayPrice)}
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => onAddClick(dish)}
-                className={`shrink-0 text-white text-[10.5px] font-extrabold py-1.5 px-2.5 rounded-lg transition-colors cursor-pointer ${
-                  isLight
-                    ? 'bg-[#007a3f] hover:bg-[#006030]'
-                    : 'bg-[#007a3f] hover:bg-[#00924b]'
-                }`}
+                className="shrink-0 inline-flex items-center gap-1 text-white text-[11px] font-bold py-1.5 px-2.5 rounded-lg bg-[#007a3f] hover:bg-[#006030] transition-colors cursor-pointer"
               >
-                {isEn ? '+ Add' : '+ Thêm'}
+                <Plus size={11} strokeWidth={2.5} />
+                <span>{isEn ? 'Add' : 'Thêm'}</span>
               </button>
             </div>
           );

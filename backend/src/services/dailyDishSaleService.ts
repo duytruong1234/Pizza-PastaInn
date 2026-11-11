@@ -618,7 +618,7 @@ export class DailyDishSaleService {
     ];
     const paymentMethods = ['cash', 'sepay', 'vnpay'];
 
-    // ─── Cấu hình mô phỏng GIỎ HÀNG THẬT (phục vụ Phân tích Mua Cùng - Apriori) ───
+    // ─── Cấu hình mô phỏng GIỎ HÀNG THẬT (phục vụ Phân tích Mua Cùng) ───
     // Bộ sinh số ngẫu nhiên có hạt giống (mulberry32) → kết quả mô phỏng ổn định, tái lập được
     const makeRng = (seed: number) => {
       let a = seed >>> 0;
@@ -648,7 +648,7 @@ export class DailyDishSaleService {
     };
 
     // Hành vi gọi kèm phổ biến: món chính → (món phụ / đồ uống) với trọng số hấp dẫn.
-    // Thuật toán Apriori KHÔNG biết trước bảng này, nó phải tự tìm lại từ phiếu bán hàng.
+    // Bộ thống kê mua cùng sẽ tự tổng hợp lại từ dữ liệu phiếu bán hàng thực tế.
     const ADDON_AFFINITY: Record<number, Record<number, number>> = {
       11: { 42: 16, 58: 12, 28: 5 }, // Seafood Pizza ↔ Salad A, Tiger Beer
       2: { 47: 15, 50: 12, 46: 5 }, // BBQ Pizza ↔ BBQ Wing (6), Pepsi
@@ -1232,16 +1232,16 @@ export class DailyDishSaleService {
       );
 
       let trendStatus: 'growing' | 'stable' | 'declining' = 'stable';
-      let trendLabel = 'Tiêu thụ ổn định';
+      let trendLabel = 'Ổn định';
       if (yoyGrowthPercent >= 12 && avgMonthly >= 55) {
         trendStatus = 'growing';
-        trendLabel = 'Bán chạy · Tăng trưởng';
+        trendLabel = 'Bán chạy';
       } else if (avgMonthly < 42 || yoyGrowthPercent < 8) {
         trendStatus = 'declining';
-        trendLabel = 'Tiêu thụ chậm · Cần đẩy gợi ý';
+        trendLabel = 'Bán chậm';
       } else {
         trendStatus = 'stable';
-        trendLabel = 'Tiêu thụ ổn định';
+        trendLabel = 'Ổn định';
       }
 
       // ── DỰ BÁO THÁNG TIẾP THEO (Forecasting) ───────────────────────────────
@@ -1421,11 +1421,11 @@ export class DailyDishSaleService {
     };
 
     const categoryAnalytics: CategorySalesAnalyticsItem[] = [
-      buildGroupAnalytics('all', 'Toàn hệ thống (Tất cả 61 món lẻ)', 'all', null, () => true),
+      buildGroupAnalytics('all', 'Tất cả món lẻ', 'all', null, () => true),
       ...categories.map((cat) =>
         buildGroupAnalytics(
           `cat_${cat.category_id}`,
-          `Danh mục: ${cat.category_name}`,
+          cat.category_name,
           'category',
           cat.category_id,
           (d) => d.category_id === cat.category_id
@@ -1433,14 +1433,14 @@ export class DailyDishSaleService {
       ),
       buildGroupAnalytics(
         'diet_man',
-        'Nhóm khẩu vị: Món Mặn',
+        'Món mặn',
         'diet',
         null,
         (d) => d.dish_type !== 'chay'
       ),
       buildGroupAnalytics(
         'diet_chay',
-        'Nhóm khẩu vị: Món Chay (Vegetarian)',
+        'Món chay',
         'diet',
         null,
         (d) => d.dish_type === 'chay'

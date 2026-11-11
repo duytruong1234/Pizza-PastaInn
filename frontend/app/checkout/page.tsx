@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ArrowLeft, MapPin, Phone, Mail, User, Clock, FileText, CreditCard, Store, Truck, Package, QrCode, AlertTriangle, RotateCcw, BookOpen, Bell, Trash2, Ticket, Award, Printer } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, Mail, User, Clock, FileText, CreditCard, Store, Truck, Package, QrCode, AlertTriangle, RotateCcw, BookOpen, Bell, Trash2, Ticket, Award, Printer, ChevronDown } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { printOrderReceipt } from '@/lib/printReceipt';
 import { shouldBypassNextImageOptimization } from '@/lib/image';
@@ -437,7 +437,9 @@ function ScheduleSection() {
                 </option>
               ))}
             </select>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none checkout-text-muted text-[10px]">▼</div>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none checkout-text-muted flex items-center">
+              <ChevronDown size={14} />
+            </div>
           </div>
 
           <div className="relative flex-1">
@@ -452,7 +454,9 @@ function ScheduleSection() {
                 </option>
               ))}
             </select>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none checkout-text-muted text-[10px]">▼</div>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none checkout-text-muted flex items-center">
+              <ChevronDown size={14} />
+            </div>
           </div>
         </div>
       )}
@@ -1465,8 +1469,8 @@ function OrderSuccess({ stores }: { stores: any[] }) {
         {/* Accordion chi tiết đơn hàng ẩn/hiện */}
         {showDetails && (
           <div className={`border-t pt-5 mt-4 space-y-4 animate-fadeIn ${isLight ? 'border-black/[0.08]' : 'border-white/[0.06]'}`}>
-            <h5 className="text-[11px] font-extrabold text-[#d4a017] tracking-[0.15em] uppercase">
-              {lang === 'en' ? 'ORDER SUMMARY DETAILS' : 'THÔNG TIN TÓM TẮT ĐƠN HÀNG'}
+            <h5 className={`text-sm font-bold ${isLight ? 'text-[#1c1208]' : 'text-white'}`}>
+              {lang === 'en' ? 'Order Summary Details' : 'Thông tin tóm tắt đơn hàng'}
             </h5>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs md:text-sm">
               <div className="space-y-2.5">
@@ -1518,8 +1522,8 @@ function OrderSuccess({ stores }: { stores: any[] }) {
             {/* Chi tiết món đã đặt */}
             {cartBackup && cartBackup.length > 0 && (
               <div className="mt-4">
-                <h5 className="text-[11px] font-extrabold text-[#d4a017] tracking-[0.15em] uppercase mb-4">
-                  {lang === 'en' ? 'ORDERED ITEMS' : 'CHI TIẾT MÓN ĐẶT'}
+                <h5 className={`text-sm font-bold mb-3 ${isLight ? 'text-[#1c1208]' : 'text-white'}`}>
+                  {lang === 'en' ? 'Ordered Items' : 'Chi tiết món đặt'}
                 </h5>
                 <div className="space-y-4">
                   {cartBackup.map((item, idx) => (
@@ -1684,13 +1688,6 @@ function OrderFailure() {
         {lang === 'en' ? 'SORRY, YOUR PAYMENT' : 'RẤT TIẾC, ĐƠN HÀNG CỦA BẠN'} <br />
         <span className="text-[#ef4444] block mt-1">{lang === 'en' ? 'COULD NOT BE COMPLETED!' : 'CHƯA THỂ HOÀN TẤT!'}</span>
       </h2>
-
-      {/* Subhead trạng thái lỗi */}
-      <p className={`text-center text-[11px] font-extrabold tracking-[0.25em] mt-3 uppercase ${
-        isLight ? 'text-[#8c7d6b]' : 'text-white/40'
-      }`}>
-        {lang === 'en' ? 'TRANSACTION INTERRUPTED OR EXPIRED' : 'HỆ THỐNG GHI NHẬN GIÁN ĐOẠN GIAO DỊCH'}
-      </p>
 
       {/* Hộp nội dung chi tiết */}
       <div className={`border rounded-[24px] p-6 md:p-8 mt-8 space-y-6 ${

@@ -81,7 +81,7 @@ export default function CombosPage() {
     api.get("/api/admin/dishes").then(r => setDishes(r.data.data)).catch(() => { });
     api.get("/api/admin/sizes").then(r => setAllSizes((r.data.data || []).map((s: any) => s.size_name))).catch(() => { });
     api.get("/api/admin/crusts").then(r => setAllCrusts((r.data.data || []).map((c: any) => c.crust_name))).catch(() => { });
-    // Nhận combo nháp được tạo từ trang "Phân tích mua cùng" (Apriori)
+    // Nhận combo nháp được tạo từ trang "Phân tích mua cùng"
     try {
       const raw = sessionStorage.getItem("comboDraft");
       if (raw) {

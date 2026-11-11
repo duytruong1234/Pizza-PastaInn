@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Leaf, Flame, FishOff, Sparkles, ArrowUpDown, RotateCcw } from 'lucide-react';
+import { Leaf, Flame, FishOff, Award, UtensilsCrossed, ArrowUpDown, RotateCcw } from 'lucide-react';
 import ProductCard from './ProductCard';
 import { EmptyState } from './PageComponents';
 import { analyzeProductTaste } from '@/lib/tasteTags';
 import { useUI } from './UIProvider';
+import { useRecommendationStore } from '@/store/recommendationStore';
 
 type QuickFilterKey = 'all' | 'vegetarian' | 'no_spicy' | 'no_seafood' | 'extra_cheese';
 type SortKey = 'default' | 'price_asc' | 'price_desc';
@@ -28,7 +29,7 @@ const QUICK_FILTERS: {
   { key: 'vegetarian', labelVi: 'Món chay', labelEn: 'Vegetarian', icon: Leaf },
   { key: 'no_spicy', labelVi: 'Không cay', labelEn: 'Non-Spicy', icon: Flame },
   { key: 'no_seafood', labelVi: 'Không hải sản', labelEn: 'No Seafood', icon: FishOff },
-  { key: 'extra_cheese', labelVi: 'Nhiều phô mai', labelEn: 'Extra Cheese', icon: Sparkles },
+  { key: 'extra_cheese', labelVi: 'Nhiều phô mai', labelEn: 'Extra Cheese', icon: Award },
 ];
 
 export default function MenuCatalogClient({
@@ -39,6 +40,7 @@ export default function MenuCatalogClient({
   searchQuery,
 }: MenuCatalogClientProps) {
   const { theme, lang, td } = useUI();
+  const openQuiz = useRecommendationStore((s) => s.openQuiz);
   const isLight = theme === 'light';
   const isEn = lang === 'en';
 
@@ -199,7 +201,7 @@ export default function MenuCatalogClient({
               <p className="text-base font-bold mb-1">
                 {isEn
                   ? 'No dishes match your current filter'
-                  : 'Không có món nào khớp với bộ lọc hiện tại'}
+                  : 'Chưa có món nào phù hợp với bộ lọc đang chọn'}
               </p>
               <p
                 className={`text-xs mb-4 ${
@@ -207,22 +209,32 @@ export default function MenuCatalogClient({
                 }`}
               >
                 {isEn
-                  ? 'Try switching to another taste filter or resetting the filters.'
-                  : 'Hãy thử chuyển sang bộ lọc khẩu vị khác hoặc đặt lại bộ lọc.'}
+                  ? 'Try switching to another taste filter or let us suggest dishes for you.'
+                  : 'Bạn có thể đổi sang bộ lọc khẩu vị khác hoặc mở mục tư vấn chọn món nhé.'}
               </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveFilter('all');
-                  setSortBy('default');
-                }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#f5c043] text-zinc-950 text-xs font-extrabold hover:bg-[#e5b034] transition-colors cursor-pointer"
-              >
-                <RotateCcw size={13} />
-                <span>
-                  {isEn ? `View all ${products.length} items` : `Xem tất cả ${products.length} món`}
-                </span>
-              </button>
+              <div className="flex flex-wrap items-center justify-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveFilter('all');
+                    setSortBy('default');
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#f5c043] text-zinc-950 text-xs font-extrabold hover:bg-[#e5b034] transition-colors cursor-pointer"
+                >
+                  <RotateCcw size={13} />
+                  <span>
+                    {isEn ? `View all ${products.length} items` : `Xem toàn bộ ${products.length} món`}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openQuiz('empty_filter')}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#ee2828] text-white text-xs font-extrabold hover:bg-[#d41f1f] transition-colors cursor-pointer"
+                >
+                  <UtensilsCrossed size={13} />
+                  <span>{isEn ? 'Menu Guide' : 'Tư vấn chọn món'}</span>
+                </button>
+              </div>
             </div>
           )}
         </div>

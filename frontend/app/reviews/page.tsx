@@ -477,16 +477,13 @@ export default function ReviewsPage() {
             <div className={`lg:col-span-5 border rounded-3xl p-6 md:p-7 space-y-5 shadow-xl flex flex-col text-left transition-all duration-300 ${
               isDark ? 'bg-[#161311] border-white/[0.08]' : 'bg-white border-zinc-200'
             }`}>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-[#f5c043]/15 border border-[#f5c043]/30 text-[#f5c043] text-[10px] font-black uppercase tracking-wider">
-                  {isEn ? 'Submit Review' : 'Gửi đánh giá'}
-                </span>
-                {orderId && !editingReviewId && (
-                  <span className="px-3 py-1 rounded-full bg-[#007a3f]/15 border border-[#007a3f]/30 text-[#10b981] text-[10px] font-black uppercase tracking-wider">
+              {orderId && !editingReviewId && (
+                <div>
+                  <span className="px-3 py-1 rounded-full bg-[#007a3f]/15 border border-[#007a3f]/30 text-[#10b981] text-xs font-bold">
                     {isEn ? `Order #PIZZA-${orderId}` : `Đơn hàng #PIZZA-${orderId}`}
                   </span>
-                )}
-              </div>
+                </div>
+              )}
 
               <div className="space-y-1">
                 <h3 className={`text-xl font-black uppercase tracking-wide leading-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>

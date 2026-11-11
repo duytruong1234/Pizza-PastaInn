@@ -1,39 +1,39 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a0a;
+  --background: #0f0d0c;
   --foreground: #ededed;
-  --menu-bg: #0a0a0a;
-  --menu-img-opacity: 0.5;
-  --menu-overlay: rgba(0, 0, 0, 0.40);
+  --menu-bg: #0f0d0c;
+  --menu-img-opacity: 0.25;
+  --menu-overlay: rgba(15, 13, 12, 0.72);
   --menu-heading: #ffffff;
-  --menu-heading-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  --menu-heading-shadow: none;
   --menu-subheading: #d1d5db;
   --menu-divider: rgba(255, 255, 255, 0.12);
 }
 
 .dark {
-  --background: #0a0a0a;
+  --background: #0f0d0c;
   --foreground: #ededed;
-  --menu-bg: #0a0a0a;
-  --menu-img-opacity: 0.5;
-  --menu-overlay: rgba(0, 0, 0, 0.40);
+  --menu-bg: #0f0d0c;
+  --menu-img-opacity: 0.25;
+  --menu-overlay: rgba(15, 13, 12, 0.72);
   --menu-heading: #ffffff;
-  --menu-heading-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  --menu-heading-shadow: none;
   --menu-subheading: #d1d5db;
   --menu-divider: rgba(255, 255, 255, 0.12);
 }
 
 .light {
-  --background: #f9fafb;
-  --foreground: #18181b;
-  --menu-bg: #f9fafb;
-  --menu-img-opacity: 0.85;
-  --menu-overlay: rgba(255, 255, 255, 0.52);
-  --menu-heading: #18181b;
-  --menu-heading-shadow: 0 1px 10px rgba(255, 255, 255, 0.9);
-  --menu-subheading: #3f3f46;
-  --menu-divider: rgba(24, 24, 27, 0.15);
+  --background: #faf6f0;
+  --foreground: #1f1f1f;
+  --menu-bg: #faf6f0;
+  --menu-img-opacity: 0;
+  --menu-overlay: transparent;
+  --menu-heading: #1f1f1f;
+  --menu-heading-shadow: none;
+  --menu-subheading: #57534e;
+  --menu-divider: rgba(31, 31, 31, 0.12);
 }
 
 @theme inline {

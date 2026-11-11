@@ -545,8 +545,8 @@ export default function OrderLookupPage() {
                     {/* Customer & Delivery Specs Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
                       <div className="space-y-3.5">
-                        <h5 className={`text-[11px] font-black uppercase tracking-widest block border-b pb-2 ${
-                          isDark ? 'text-[#f5c043] border-white/10' : 'text-[#007a3f] border-zinc-200'
+                        <h5 className={`text-sm font-bold block border-b pb-2 ${
+                          isDark ? 'text-white border-white/10' : 'text-zinc-900 border-zinc-200'
                         }`}>
                           {isEn ? 'Recipient & Delivery Info' : 'Thông tin người nhận & giao hàng'}
                         </h5>
@@ -600,8 +600,8 @@ export default function OrderLookupPage() {
                       </div>
 
                       <div className="space-y-3.5">
-                        <h5 className={`text-[11px] font-black uppercase tracking-widest block border-b pb-2 ${
-                          isDark ? 'text-[#f5c043] border-white/10' : 'text-[#007a3f] border-zinc-200'
+                        <h5 className={`text-sm font-bold block border-b pb-2 ${
+                          isDark ? 'text-white border-white/10' : 'text-zinc-900 border-zinc-200'
                         }`}>
                           {isEn ? 'Payment & Timing' : 'Thanh toán & thời gian'}
                         </h5>
@@ -672,8 +672,8 @@ export default function OrderLookupPage() {
 
                       {/* Left: Dishes List */}
                       <div className="lg:col-span-7 space-y-3.5">
-                        <h5 className={`text-[11px] font-black uppercase tracking-widest block border-b pb-2 ${
-                          isDark ? 'text-[#f5c043] border-white/10' : 'text-[#007a3f] border-zinc-200'
+                        <h5 className={`text-sm font-bold block border-b pb-2 ${
+                          isDark ? 'text-white border-white/10' : 'text-zinc-900 border-zinc-200'
                         }`}>
                           {isEn ? 'Ordered Items' : 'Danh sách món đã đặt'}
                         </h5>
@@ -851,8 +851,8 @@ export default function OrderLookupPage() {
 
                       {/* Right: Totals Summary */}
                       <div className="lg:col-span-5 flex flex-col justify-start space-y-3.5">
-                        <h5 className={`text-[11px] font-black uppercase tracking-widest block border-b pb-2 ${
-                          isDark ? 'text-[#f5c043] border-white/10' : 'text-[#007a3f] border-zinc-200'
+                        <h5 className={`text-sm font-bold block border-b pb-2 ${
+                          isDark ? 'text-white border-white/10' : 'text-zinc-900 border-zinc-200'
                         }`}>
                           {isEn ? 'Payment Summary' : 'Tóm tắt thanh toán'}
                         </h5>
@@ -900,8 +900,8 @@ export default function OrderLookupPage() {
                                   : 'bg-amber-50/70 border-amber-200 text-zinc-800'
                               }`}
                             >
-                              <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-500">
-                                {isEn ? 'Scan VietQR to Pay Now' : 'Quét mã VietQR để thanh toán ngay'}
+                              <span className={`text-xs font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                                {isEn ? 'Scan VietQR to pay' : 'Quét mã VietQR để thanh toán'}
                               </span>
                               <div className="w-44 h-44 bg-white p-2 rounded-xl border border-zinc-200 shadow-sm">
                                 <img

@@ -351,7 +351,7 @@ export default function HalfHalfModal({
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        className={`rounded-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row w-full max-w-5xl max-h-[92vh] transition-colors ${
+        className={`rounded-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row w-full max-w-[540px] md:max-w-4xl lg:max-w-5xl max-h-[86dvh] md:h-[min(600px,84dvh)] lg:h-[min(640px,84dvh)] transition-colors ${
           isLight
             ? 'bg-[#fbf8f2] text-[#1c1208] border border-[#dfd3bf]'
             : 'bg-[#9f280a] text-white'

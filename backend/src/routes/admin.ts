@@ -1510,18 +1510,42 @@ router.delete('/chat/rooms/:roomId', async (req: AuthRequest, res: Response): Pr
 
 /**
  * GET /api/admin/recommendations/stats
- * Thống kê đề xuất món ăn
+ * Thống kê đề xuất món ăn (2 thuật toán cốt lõi + các tiện ích thống kê/bán kèm)
  */
-router.get('/recommendations/stats', async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/recommendations/stats', async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { getPopularDishes, getTopRatedDishes } = await import('../services/recommendationService');
-    const [popular, topRated] = await Promise.all([
+    const [
+      { getPopularDishes, getTopRatedDishes },
+      { loadDishFeatures, VECTOR_SIZE },
+      { loadSixStepCandidates, INGREDIENT_DEFS },
+    ] = await Promise.all([
+      import('../services/recommendationService'),
+      import('../services/contentBasedService'),
+      import('../services/sixStepQuizService'),
+    ]);
+
+    const [popular, topRated, features, sixStepPool, pairingGroupsCount] = await Promise.all([
       getPopularDishes(10),
-      getTopRatedDishes(10)
+      getTopRatedDishes(10),
+      loadDishFeatures(),
+      loadSixStepCandidates(),
+      prisma.dishPairing.count(),
     ]);
 
     sendSuccess(res, {
-      data: { popular, topRated }
+      data: {
+        popular,
+        topRated,
+        overview: {
+          coreAlgorithmsCount: 2,
+          utilityFeaturesCount: 5,
+          vectorizedDishesCount: features.length,
+          vectorDimensions: VECTOR_SIZE,
+          sixStepCandidatesCount: sixStepPool.dishes.length + sixStepPool.combos.length,
+          sixStepIngredientsCount: INGREDIENT_DEFS.length,
+          pairingGroupsCount,
+        },
+      },
     });
   } catch (err) {
     logger.error('Admin recommendation stats error:', err);
@@ -1787,26 +1811,24 @@ router.post('/dish-sales/seed', async (_req: AuthRequest, res: Response): Promis
   }
 });
 
-// ─── PHÂN TÍCH MUA CÙNG (Apriori - Luật kết hợp, chỉ món lẻ) ──────────────────
+// ─── PHÂN TÍCH MUA CÙNG (Thống kê tần suất đơn hàng gọi chung, chỉ món lẻ) ──
 
 /**
  * GET /api/admin/basket-analysis
- * Ma trận mua cùng, các bước Apriori, luật kết hợp, gợi ý thiết lập combo & sức khoẻ combo hiện có.
- * Query: year, top, categoryId, minSupport (%), minConfidence (%), minLift
+ * Ma trận mua cùng, quy trình đếm đơn gọi chung, cặp/nhóm món gọi kèm, gợi ý thiết lập combo & đánh giá combo hiện có.
+ * Query: year, top, categoryId, minCoOrders, minAttachRate (%)
  */
 router.get('/basket-analysis', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const num = (v: unknown) => (v !== undefined && v !== '' ? Number(v) : undefined);
     const year = num(req.query.year);
-    const minSupportPct = num(req.query.minSupport);
-    const minConfidencePct = num(req.query.minConfidence);
+    const minAttachRatePct = num(req.query.minAttachRate);
     const data = await BasketAnalysisService.getAdminAnalysis({
       year: year && !isNaN(year) ? year : undefined,
       top: num(req.query.top),
       categoryId: num(req.query.categoryId),
-      minSupport: minSupportPct !== undefined ? minSupportPct / 100 : undefined,
-      minConfidence: minConfidencePct !== undefined ? minConfidencePct / 100 : undefined,
-      minLift: num(req.query.minLift),
+      minCoOrders: num(req.query.minCoOrders),
+      minAttachRate: minAttachRatePct !== undefined ? minAttachRatePct / 100 : undefined,
     });
     sendSuccess(res, { data });
   } catch (err) {
